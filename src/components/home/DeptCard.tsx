@@ -1,7 +1,7 @@
 import type { DeptCard as DeptCardType } from '../../types'
 import Badge from '../common/Badge'
 
-interface DeptCardProps extends DeptCardType {
+interface DeptCardProps extends Omit<DeptCardType, 'key'> {
   className?: string
 }
 
@@ -11,7 +11,7 @@ const DEPT_EMOJI: Record<string, string> = {
   hyundai: '🏢',
 }
 
-export default function DeptCard({ key: _key, name, brandCount, isVip, bgColor, textColor, accentColor, className = '' }: DeptCardProps) {
+export default function DeptCard({ name, brandCount, isVip, bgColor, textColor, accentColor, className = '' }: DeptCardProps) {
   const deptKey = name.includes('롯데') ? 'lotte' : name.includes('신세계') ? 'shinsegae' : 'hyundai'
   const emoji = DEPT_EMOJI[deptKey] ?? '🏪'
 

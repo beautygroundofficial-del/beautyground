@@ -73,6 +73,7 @@ export interface LiveStream extends LiveCard {
   avatarInitial: string
   avatarColor: string
   bgColor: string
+  originalPrice?: number
   scheduledAt?: string
   products: ProductCard[]
   likes: number

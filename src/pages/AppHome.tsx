@@ -118,13 +118,13 @@ export default function AppHome() {
           백화점 3사관
         </h2>
         <div className="grid grid-cols-2 gap-2">
-          {DEPT_CARDS.filter((d) => !d.isVip).map((dept) => (
-            <DeptCard key={dept.key} {...dept} />
+          {DEPT_CARDS.filter((d) => !d.isVip).map(({ key, ...deptProps }) => (
+            <DeptCard key={key} {...deptProps} />
           ))}
         </div>
-        {DEPT_CARDS.filter((d) => d.isVip).map((dept) => (
-          <div key={dept.key} className="mt-2">
-            <DeptCard {...dept} className="min-h-[80px]" />
+        {DEPT_CARDS.filter((d) => d.isVip).map(({ key, ...deptProps }) => (
+          <div key={key} className="mt-2">
+            <DeptCard {...deptProps} className="min-h-[80px]" />
           </div>
         ))}
       </section>

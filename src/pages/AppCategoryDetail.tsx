@@ -4,7 +4,6 @@ import BackHeader from '../components/layout/BackHeader'
 import BottomNav from '../components/layout/BottomNav'
 import ProductCard from '../components/product/ProductCard'
 import { CATEGORIES, ALL_PRODUCTS } from '../constants'
-import type { CategoryId } from '../types'
 
 const SORT_OPTIONS = ['인기순', '가격 낮은순', '가격 높은순', '신상품순']
 
