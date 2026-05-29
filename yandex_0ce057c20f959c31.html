@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>뷰티관 — 백화점 뷰티 라이브커머스</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;500;700&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --gold: #b8924a;
+  --gold-light: #d4af6e;
+  --gold-dim: #7a6030;
+  --dark: #0e0c08;
+  --dark2: #1a1710;
+  --dark3: #252117;
+  --cream: #f7f4ef;
+  --cream2: #edeae3;
+  --text: #1a1710;
+  --text2: #5a5547;
+  --text3: #9a9080;
+  --border: rgba(184,146,74,0.18);
+  --radius: 14px;
+  --radius-sm: 8px;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+html { scroll-behavior:smooth; }
+body { font-family:'Noto Sans KR',sans-serif; background:#fff; color:var(--text); overflow-x:hidden; }
+
+/* ── GNB ── */
+.gnb {
+  position:sticky; top:0; z-index:100;
+  background:rgba(255,255,255,0.96);
+  backdrop-filter:blur(12px);
+  border-bottom:0.5px solid var(--border);
+  display:flex; align-items:center; justify-content:space-between;
+  padding:0 4rem; height:64px;
+}
+.gnb-logo { font-family:'Noto Serif KR',serif; font-size:22px; font-weight:700; color:var(--gold); letter-spacing:-0.5px; }
+.gnb-links { display:flex; gap:2.5rem; }
+.gnb-link { font-size:13px; color:var(--text2); cursor:pointer; text-decoration:none; transition:color .2s; }
+.gnb-link:hover { color:var(--text); }
+.gnb-btn { background:var(--gold); color:#fff; font-size:13px; font-weight:500; padding:9px 22px; border-radius:24px; cursor:pointer; border:none; transition:background .2s; }
+.gnb-btn:hover { background:var(--gold-light); }
+
+/* ── HERO ── */
+.hero {
+  width:100%; min-height:100vh;
+  background:var(--dark);
+  display:grid; grid-template-columns:1fr 1fr;
+  align-items:center;
+  position:relative; overflow:hidden;
+}
+.hero-deco1 { position:absolute; width:500px; height:500px; border-radius:50%; border:1px solid rgba(184,146,74,0.1); top:-100px; right:-50px; }
+.hero-deco2 { position:absolute; width:300px; height:300px; border-radius:50%; background:rgba(184,146,74,0.06); top:50px; right:80px; }
+.hero-deco3 { position:absolute; width:160px; height:160px; border-radius:50%; border:1px solid rgba(184,146,74,0.15); bottom:80px; right:200px; }
+.hero-left { padding:6rem 4rem 6rem 6rem; z-index:1; }
+.hero-eyebrow { font-size:11px; color:var(--gold); letter-spacing:3px; margin-bottom:1.5rem; }
+.hero-title { font-family:'Noto Serif KR',serif; font-size:48px; font-weight:700; color:#fff; line-height:1.25; margin-bottom:1.25rem; }
+.hero-title em { color:var(--gold); font-style:normal; display:block; }
+.hero-desc { font-size:15px; color:#888; line-height:1.9; margin-bottom:2.5rem; }
+.hero-btns { display:flex; gap:12px; flex-wrap:wrap; }
+.btn-gold { background:var(--gold); color:#fff; font-size:14px; font-weight:500; padding:13px 28px; border-radius:32px; cursor:pointer; border:none; display:inline-flex; align-items:center; gap:7px; transition:background .2s; }
+.btn-gold:hover { background:var(--gold-light); }
+.btn-ghost { background:transparent; color:#bbb; font-size:14px; padding:13px 28px; border-radius:32px; cursor:pointer; border:1px solid #333; display:inline-flex; align-items:center; gap:7px; transition:all .2s; }
+.btn-ghost:hover { border-color:#555; color:#fff; }
+.hero-right { height:100vh; display:flex; align-items:center; justify-content:center; background:rgba(255,255,255,0.02); border-left:0.5px solid rgba(255,255,255,0.04); z-index:1; }
+.phone-frame { width:220px; background:#fff; border-radius:36px; border:7px solid #fff; overflow:hidden; box-shadow:0 40px 80px rgba(0,0,0,0.6); }
+.pf-bar { background:#111; padding:10px 14px; display:flex; align-items:center; gap:6px; }
+.pf-live { background:var(--gold); color:#fff; font-size:9px; font-weight:700; padding:3px 7px; border-radius:4px; }
+.pf-host { font-size:11px; color:#ddd; flex:1; }
+.pf-viewers { font-size:10px; color:#777; }
+.pf-video { background:#1c1c1c; height:150px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; position:relative; }
+.pf-video-play { width:44px; height:44px; border-radius:50%; background:rgba(184,146,74,0.2); border:1.5px solid var(--gold); display:flex; align-items:center; justify-content:center; }
+.pf-video-play svg { width:16px; height:16px; fill:var(--gold); margin-left:2px; }
+.pf-video-label { font-size:10px; color:#666; }
+.pf-coupon { background:#fff; margin:8px; border-radius:10px; padding:9px 12px; border:0.5px solid #eee; }
+.pf-coupon-label { font-size:9px; color:#999; }
+.pf-coupon-amt { font-size:18px; font-weight:700; color:var(--gold); }
+.pf-coupon-cond { font-size:9px; color:#bbb; }
+.pf-chat { background:#f9f8f6; padding:7px 12px; }
+.pf-chat-line { font-size:10px; color:#777; padding:2px 0; }
+.pf-chat-line b { color:var(--gold); font-weight:500; }
+.pf-input { background:#fff; padding:7px 12px; display:flex; gap:6px; align-items:center; border-top:0.5px solid #eee; }
+.pf-input-box { flex:1; background:#f5f4f2; border-radius:12px; padding:5px 9px; font-size:10px; color:#aaa; }
+.pf-send { color:var(--gold); }
+.pf-send svg { width:14px; height:14px; fill:var(--gold); }
+
+/* ── STATS ── */
+.stats { display:grid; grid-template-columns:repeat(4,1fr); background:#fff; border-bottom:0.5px solid #eee; }
+.stat { padding:1.75rem 2rem; text-align:center; border-right:0.5px solid #eee; }
+.stat:last-child { border-right:none; }
+.stat-num { font-family:'Noto Serif KR',serif; font-size:28px; font-weight:700; color:var(--text); }
+.stat-label { font-size:12px; color:var(--text3); margin-top:4px; }
+
+/* ── INTRO ── */
+.intro { width:100%; display:grid; grid-template-columns:1fr 1fr; min-height:60vh; }
+.intro-left { padding:6rem; background:#fff; display:flex; flex-direction:column; justify-content:center; }
+.intro-big { font-family:'Noto Serif KR',serif; font-size:38px; font-weight:700; color:var(--text); line-height:1.3; margin-bottom:1.25rem; }
+.intro-big em { color:var(--gold); font-style:normal; }
+.intro-desc { font-size:15px; color:var(--text2); line-height:1.9; }
+.intro-right { background:var(--cream); padding:6rem; display:flex; flex-direction:column; justify-content:center; border-left:0.5px solid #eee; }
+.intro-services { display:flex; flex-direction:column; gap:16px; }
+.intro-service { display:flex; align-items:flex-start; gap:14px; }
+.svc-dot { width:6px; height:6px; border-radius:50%; background:var(--gold); margin-top:8px; flex-shrink:0; }
+.svc-title { font-size:16px; font-weight:500; color:var(--text); margin-bottom:3px; }
+.svc-desc { font-size:13px; color:var(--text2); line-height:1.7; }
+
+/* ── SPLIT SECTION ── */
+.split { width:100%; display:grid; grid-template-columns:1fr 1fr; min-height:70vh; }
+.split.reverse { }
+.split-text { padding:6rem; display:flex; flex-direction:column; justify-content:center; }
+.split-bg { display:flex; align-items:center; justify-content:center; }
+.split-bg.cream { background:var(--cream); }
+.split-bg.dark { background:var(--dark); }
+.split-eyebrow { font-size:11px; color:var(--gold); letter-spacing:3px; margin-bottom:1rem; }
+.split-title { font-family:'Noto Serif KR',serif; font-size:36px; font-weight:700; color:var(--text); line-height:1.3; margin-bottom:1rem; }
+.split-title em { color:var(--gold); font-style:normal; }
+.split-title.white { color:#fff; }
+.split-desc { font-size:14px; color:var(--text2); line-height:1.9; margin-bottom:1.5rem; }
+.split-desc.white { color:#888; }
+.check-list { display:flex; flex-direction:column; gap:10px; }
+.check-item { display:flex; align-items:center; gap:10px; font-size:14px; color:var(--text2); }
+.check-item svg { width:16px; height:16px; stroke:var(--gold); flex-shrink:0; }
+
+/* ── FEATURES ── */
+.features { background:var(--cream); padding:6rem; }
+.sec-eyebrow { font-size:11px; color:var(--gold); letter-spacing:3px; margin-bottom:1rem; }
+.sec-title { font-family:'Noto Serif KR',serif; font-size:36px; font-weight:700; color:var(--text); line-height:1.3; margin-bottom:0.5rem; }
+.sec-title em { color:var(--gold); font-style:normal; }
+.sec-sub { font-size:14px; color:var(--text2); line-height:1.8; margin-bottom:3rem; }
+.feature-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; }
+.feature-card { background:#fff; border-radius:var(--radius); border:0.5px solid #e5e0d8; padding:2rem; }
+.feature-icon { font-size:28px; margin-bottom:1rem; }
+.feature-title { font-size:15px; font-weight:500; color:var(--text); margin-bottom:6px; }
+.feature-desc { font-size:13px; color:var(--text2); line-height:1.7; }
+
+/* ── BRANDS ── */
+.brands { background:#fff; padding:6rem; }
+.dept-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
+.dept-card { border-radius:var(--radius); border:0.5px solid #eee; padding:2rem; }
+.dept-badge { display:inline-block; font-size:12px; font-weight:500; padding:5px 14px; border-radius:24px; margin-bottom:14px; }
+.dept-brands { font-size:13px; color:var(--text2); line-height:2.1; }
+
+/* ── TARGET ── */
+.target { background:var(--dark); padding:6rem; }
+.target .sec-title { color:#fff; }
+.target .sec-sub { color:#666; }
+.target-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
+.target-card { background:#1a1a1a; border:0.5px solid #2a2a2a; border-radius:var(--radius); padding:2rem; }
+.target-age { font-family:'Noto Serif KR',serif; font-size:36px; font-weight:700; margin-bottom:4px; }
+.target-name { font-size:12px; margin-bottom:14px; }
+.kw-row { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:14px; }
+.kw { font-size:11px; padding:3px 10px; border-radius:20px; }
+.target-desc { font-size:13px; color:#555; line-height:1.8; }
+
+/* ── SCHEDULE ── */
+.schedule { background:var(--cream); padding:6rem; }
+.live-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:14px; }
+.live-card { background:#fff; border:0.5px solid #e5e0d8; border-radius:var(--radius); padding:1.75rem; display:flex; gap:16px; align-items:flex-start; }
+.live-day-circle { min-width:48px; height:48px; border-radius:50%; background:var(--cream); border:1px solid #ddd; display:flex; align-items:center; justify-content:center; font-size:15px; font-weight:500; color:var(--gold); flex-shrink:0; }
+.live-title { font-size:15px; font-weight:500; color:var(--text); margin-bottom:4px; }
+.live-desc { font-size:13px; color:var(--text2); line-height:1.6; }
+.live-time { font-size:12px; color:var(--gold); margin-top:6px; }
+
+/* ── JOIN ── */
+.join { background:#fff; padding:6rem; }
+.join-steps { display:grid; grid-template-columns:repeat(2,1fr); gap:16px; margin-bottom:20px; }
+.join-step { border:0.5px solid #eee; border-radius:var(--radius); padding:2rem; }
+.step-num { width:32px; height:32px; border-radius:50%; background:var(--gold); color:#fff; font-size:13px; font-weight:700; display:flex; align-items:center; justify-content:center; margin-bottom:14px; }
+.step-title { font-size:16px; font-weight:500; color:var(--text); margin-bottom:8px; }
+.step-desc { font-size:13px; color:var(--text2); line-height:1.8; }
+.join-notice { background:var(--cream); border-radius:var(--radius); padding:1.5rem 2rem; border-left:3px solid var(--gold); border-radius:0; }
+.join-notice-title { font-size:14px; font-weight:500; color:var(--text); margin-bottom:8px; }
+.join-notice-desc { font-size:13px; color:var(--text2); line-height:1.9; }
+
+/* ── CONTACT ── */
+.contact { background:var(--cream); padding:6rem; }
+.contact-inner { display:grid; grid-template-columns:1fr 1fr; gap:4rem; align-items:start; }
+.contact-left {}
+.contact-checks { display:flex; flex-direction:column; gap:10px; margin-bottom:2rem; }
+.contact-process { background:#fff; border-radius:var(--radius); padding:1.5rem 2rem; border:0.5px solid #e5e0d8; }
+.contact-process-title { font-size:13px; color:var(--text3); margin-bottom:10px; }
+.contact-process-item { font-size:13px; color:var(--text2); line-height:2.2; }
+.contact-form { background:#fff; border:0.5px solid #e5e0d8; border-radius:var(--radius); padding:2.5rem; }
+.form-row { margin-bottom:16px; }
+.form-grid2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:16px; }
+.form-label { font-size:12px; color:var(--text2); margin-bottom:6px; display:flex; align-items:center; gap:3px; }
+.form-req { color:var(--gold); }
+.form-input { width:100%; background:var(--cream); border:0.5px solid #ddd; border-radius:var(--radius-sm); padding:10px 14px; font-size:13px; color:var(--text); font-family:inherit; outline:none; transition:border-color .2s; }
+.form-input:focus { border-color:var(--gold); }
+.form-textarea { width:100%; background:var(--cream); border:0.5px solid #ddd; border-radius:var(--radius-sm); padding:10px 14px; font-size:12px; color:var(--text2); resize:none; height:110px; font-family:inherit; line-height:1.8; outline:none; }
+.form-agree-box { background:var(--cream); border-radius:var(--radius-sm); padding:12px 14px; margin-bottom:16px; }
+.form-agree-title { font-size:12px; color:var(--text); margin-bottom:4px; }
+.form-agree-title span { color:var(--gold); font-weight:500; }
+.form-agree-desc { font-size:11px; color:var(--text3); line-height:1.7; }
+.form-btns { display:flex; gap:10px; }
+.btn-cancel { flex:1; background:#f0ede8; color:var(--text2); font-size:13px; padding:12px; border-radius:var(--radius-sm); border:none; cursor:pointer; font-family:inherit; }
+.btn-submit { flex:2; background:var(--gold); color:#fff; font-size:13px; font-weight:500; padding:12px; border-radius:var(--radius-sm); border:none; cursor:pointer; font-family:inherit; transition:background .2s; }
+.btn-submit:hover { background:var(--gold-light); }
+
+/* ── CAREER ── */
+.career { width:100%; background:var(--dark); padding:8rem 6rem; display:grid; grid-template-columns:1fr 1fr; gap:4rem; align-items:center; }
+.career-left {}
+.career-eyebrow { font-size:11px; color:var(--gold); letter-spacing:3px; margin-bottom:1rem; }
+.career-title { font-family:'Noto Serif KR',serif; font-size:40px; font-weight:700; color:#fff; line-height:1.3; margin-bottom:1rem; }
+.career-title em { color:var(--gold); font-style:normal; }
+.career-desc { font-size:14px; color:#777; line-height:1.9; }
+.career-right { display:flex; flex-direction:column; gap:14px; align-items:flex-start; }
+.career-values { display:flex; flex-direction:column; gap:12px; margin-bottom:1.5rem; }
+.career-value { display:flex; align-items:flex-start; gap:12px; }
+.cv-dot { width:6px; height:6px; border-radius:50%; background:var(--gold); margin-top:8px; flex-shrink:0; }
+.cv-text { font-size:14px; color:#bbb; line-height:1.7; }
+.career-btn { background:var(--gold); color:#fff; font-size:14px; font-weight:500; padding:14px 32px; border-radius:32px; cursor:pointer; border:none; transition:background .2s; font-family:inherit; }
+.career-btn:hover { background:var(--gold-light); }
+
+/* ── CTA ── */
+.cta { background:var(--gold); padding:5rem 6rem; display:grid; grid-template-columns:1fr 1fr; align-items:center; gap:4rem; }
+.cta-left {}
+.cta-title { font-family:'Noto Serif KR',serif; font-size:36px; font-weight:700; color:#fff; line-height:1.3; margin-bottom:0.75rem; }
+.cta-sub { font-size:14px; color:rgba(255,255,255,0.75); line-height:1.8; }
+.cta-right { display:flex; flex-direction:column; gap:12px; align-items:flex-start; }
+.cta-store-btns { display:flex; gap:10px; flex-wrap:wrap; }
+.cta-btn-w { background:#fff; color:var(--gold); font-size:13px; font-weight:500; padding:12px 24px; border-radius:28px; cursor:pointer; border:none; display:inline-flex; align-items:center; gap:7px; transition:opacity .2s; font-family:inherit; }
+.cta-btn-w:hover { opacity:0.9; }
+.cta-btn-ol { background:transparent; color:#fff; font-size:13px; padding:12px 24px; border-radius:28px; cursor:pointer; border:1.5px solid rgba(255,255,255,0.5); display:inline-flex; align-items:center; gap:7px; font-family:inherit; }
+
+/* ── FOOTER ── */
+footer { background:#0a0907; padding:4rem 6rem; }
+.footer-top { display:flex; gap:2rem; flex-wrap:wrap; padding-bottom:1.5rem; border-bottom:0.5px solid #1a1a1a; margin-bottom:1.5rem; }
+.footer-link { font-size:13px; color:#555; cursor:pointer; text-decoration:none; transition:color .2s; }
+.footer-link:hover { color:#888; }
+.sns-row { display:flex; gap:8px; margin-bottom:1.25rem; }
+.sns-btn { width:32px; height:32px; border-radius:50%; background:#141414; border:0.5px solid #222; display:flex; align-items:center; justify-content:center; cursor:pointer; color:#444; }
+.sns-btn:hover { border-color:#444; color:#888; }
+.sns-btn svg { width:15px; height:15px; fill:currentColor; }
+.footer-legal { display:flex; gap:12px; flex-wrap:wrap; margin-bottom:8px; }
+.footer-leg { font-size:11px; color:#333; cursor:pointer; }
+.footer-leg.em { color:#555; font-weight:500; }
+.footer-info { font-size:11px; color:#2a2a2a; line-height:2; margin-bottom:0.75rem; }
+.footer-notice { font-size:11px; color:#2a2a2a; line-height:1.7; padding-top:0.75rem; border-top:0.5px solid #111; }
+.footer-copy { font-size:11px; color:#1a1a1a; margin-top:0.75rem; }
+
+@media(max-width:900px){
+  .gnb { padding:0 1.5rem; }
+  .gnb-links { display:none; }
+  .hero, .intro, .split, .contact-inner, .career, .cta { grid-template-columns:1fr; }
+  .hero-left { padding:4rem 2rem 2rem; }
+  .hero-right { height:50vh; border-left:none; border-top:0.5px solid rgba(255,255,255,0.04); }
+  .intro-left, .intro-right { padding:4rem 2rem; }
+  .split-text { padding:4rem 2rem; }
+  .features, .brands, .schedule, .join, .contact, .target, .career { padding:4rem 2rem; }
+  .feature-grid, .dept-grid, .target-grid, .live-grid, .join-steps { grid-template-columns:1fr; }
+  .cta { padding:4rem 2rem; }
+  footer { padding:2.5rem 2rem; }
+  .hero-title { font-size:34px; }
+  .intro-big, .sec-title { font-size:28px; }
+  .career-title, .cta-title { font-size:28px; }
+}
+</style>
+</head>
+<body>
+
+<nav class="gnb">
+  <div class="gnb-logo">뷰티관</div>
+  <div class="gnb-links">
+    <a class="gnb-link">입점안내</a>
+    <a class="gnb-link">성공스토리</a>
+    <a class="gnb-link">B2B 솔루션</a>
+    <a class="gnb-link">광고/제휴</a>
+    <a class="gnb-link">채용(영입)</a>
+  </div>
+  <button class="gnb-btn">입점하기</button>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-deco1"></div>
+  <div class="hero-deco2"></div>
+  <div class="hero-deco3"></div>
+  <div class="hero-left">
+    <div class="hero-eyebrow">DEPARTMENT BEAUTY LIVE</div>
+    <h1 class="hero-title">백화점 뷰티를<br><em>집에서, 전문가와</em><br>함께 경험하세요</h1>
+    <p class="hero-desc">롯데 · 신세계 · 현대 3사 공식 BA가<br>직접 출연하는 프리미엄 라이브커머스 플랫폼</p>
+    <div class="hero-btns">
+      <button class="btn-gold">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="white"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
+        App Store
+      </button>
+      <button class="btn-ghost">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="#bbb"><path d="M3.18 23.76c.3.17.64.24.99.2l12.67-12.67L13.12 7.5 3.18 23.76zM20.8 10.55l-2.88-1.66-3.46 3.46 3.46 3.46 2.91-1.68c.83-.48.83-1.6-.03-2.58zM3.18.24C2.93.42 2.78.73 2.78 1.14v21.72c0 .41.15.72.4.9l.08.05 12.17-12.17v-.29L3.26.19l-.08.05zM16.85 13.15l-3.73 3.73-9.94 9.94c.35.04.71-.03 1.01-.22l11.13-6.43 1.53-.88v-.14z"/></svg>
+        Google Play
+      </button>
+    </div>
+  </div>
+  <div class="hero-right">
+    <div class="phone-frame">
+      <div class="pf-bar">
+        <span class="pf-live">LIVE</span>
+        <span class="pf-host">설화수 공식 BA</span>
+        <span class="pf-viewers">913명 시청 중</span>
+      </div>
+      <div class="pf-video">
+        <div class="pf-video-play">
+          <svg viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21"/></svg>
+        </div>
+        <div class="pf-video-label">라이브 진행 중</div>
+      </div>
+      <div class="pf-coupon">
+        <div class="pf-coupon-label">라이브 쿠폰</div>
+        <div class="pf-coupon-amt">5,000원</div>
+        <div class="pf-coupon-cond">3만원 이상 구매시 적용</div>
+      </div>
+      <div class="pf-chat">
+        <div class="pf-chat-line"><b>고객A</b> 건성 피부에도 잘 맞나요?</div>
+        <div class="pf-chat-line"><b>BA</b> 수분크림부터 추천드려요!</div>
+        <div class="pf-chat-line"><b>고객B</b> 배송 언제 오나요?</div>
+      </div>
+      <div class="pf-input">
+        <div class="pf-input-box">메시지를 입력하세요</div>
+        <div class="pf-send">
+          <svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13" stroke="#b8924a" stroke-width="2"/><polygon points="22,2 15,22 11,13 2,9" fill="#b8924a"/></svg>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- STATS -->
+<div class="stats">
+  <div class="stat"><div class="stat-num">3사</div><div class="stat-label">백화점 파트너</div></div>
+  <div class="stat"><div class="stat-num">50+</div><div class="stat-label">입점 브랜드</div></div>
+  <div class="stat"><div class="stat-num">주 4회</div><div class="stat-label">정기 라이브 편성</div></div>
+  <div class="stat"><div class="stat-num">3040·50</div><div class="stat-label">타겟 고객층</div></div>
+</div>
+
+<!-- INTRO -->
+<section class="intro">
+  <div class="intro-left">
+    <div class="intro-big"><em>뷰티관</em>과 함께라면<br>누구나 쉽게<br>라이브를 할 수 있습니다</div>
+    <p class="intro-desc" style="margin-top:1rem;">스마트폰 하나로 백화점 뷰티를 판매하고<br>무엇이든 쉽게 사고파는 세상을 꿈꿉니다.</p>
+  </div>
+  <div class="intro-right">
+    <div class="intro-services">
+      <div class="intro-service"><div class="svc-dot"></div><div><div class="svc-title">뷰티관</div><div class="svc-desc">셀러와 유저를 잇는 커머스크리에이터 플랫폼</div></div></div>
+      <div class="intro-service"><div class="svc-dot"></div><div><div class="svc-title">뷰티관 Cloud</div><div class="svc-desc">미디어 커머스 SaaS 솔루션</div></div></div>
+      <div class="intro-service"><div class="svc-dot"></div><div><div class="svc-title">뷰티관 ONE</div><div class="svc-desc">브랜드와 커머스 크리에이터를 연결하는 플랫폼</div></div></div>
+      <div class="intro-service"><div class="svc-dot"></div><div><div class="svc-title">새로운 커머스</div><div class="svc-desc">우리는 새로운 뷰티 커머스를 만들어 갑니다.</div></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- SPLIT: BA 소통 -->
+<section class="split">
+  <div class="split-text">
+    <div class="split-eyebrow">BA와의 직접 소통</div>
+    <h2 class="split-title">내가 궁금한 제품을<br><em>전문가에게 바로</em><br>물어보세요</h2>
+    <p class="split-desc">백화점 공식 뷰티 어드바이저가 직접 출연해 피부 고민을 상담하고 제품을 시연합니다. 상품이 탄생하고 판매되는 그 현장에서 시작되는 진짜 뷰티 라이브!</p>
+    <div class="check-list">
+      <div class="check-item"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>간편한 실시간 채팅 상담</div>
+      <div class="check-item"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>고객 피부 고민 소통 강화</div>
+      <div class="check-item"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>강력한 라이브 마케팅 효과</div>
+    </div>
+  </div>
+  <div class="split-bg cream">
+    <div class="phone-frame" style="width:200px;">
+      <div class="pf-bar" style="background:#1a1a1a;">
+        <span class="pf-live">LIVE</span>
+        <span class="pf-host" style="font-size:10px;">랑콤 BA · 현대백화점</span>
+      </div>
+      <div class="pf-video" style="height:130px;background:#2a2a2a;">
+        <div class="pf-video-play"><svg viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21" fill="#b8924a"/></svg></div>
+        <div class="pf-video-label">BA 피부 시연 중</div>
+      </div>
+      <div style="background:#fff;padding:10px 13px;">
+        <div style="font-size:10px;color:#999;margin-bottom:3px;">지금 바로 구매</div>
+        <div style="font-size:13px;font-weight:500;color:#111;">랑콤 제니피끄 세럼 50ml</div>
+        <div style="font-size:15px;font-weight:700;color:#b8924a;margin-top:3px;">198,000원</div>
+      </div>
+      <div class="pf-chat">
+        <div class="pf-chat-line"><b>고객C</b> 40대 건성 피부에 맞나요?</div>
+        <div class="pf-chat-line"><b>BA</b> 네, 딱 맞는 제품이에요!</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section class="features">
+  <div class="sec-eyebrow">WHY 뷰티관</div>
+  <h2 class="sec-title">단순 쇼핑이 아닌 <em>뷰티 컨설팅</em></h2>
+  <p class="sec-sub">백화점의 신뢰와 전문성을 그대로, 집에서 편하게 경험하세요.</p>
+  <div class="feature-grid">
+    <div class="feature-card">
+      <div class="feature-icon">👑</div>
+      <div class="feature-title">공식 BA 출연</div>
+      <div class="feature-desc">3사 백화점 공식 뷰티 어드바이저가 직접 시연하고 상담합니다.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">💬</div>
+      <div class="feature-title">피부 고민 Q&A</div>
+      <div class="feature-desc">실시간 채팅으로 내 피부 타입에 맞는 제품을 추천받으세요.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🎁</div>
+      <div class="feature-title">멤버십 포인트 연동</div>
+      <div class="feature-desc">롯데·신세계·현대 포인트를 그대로 사용하고 적립하세요.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🚚</div>
+      <div class="feature-title">당일 배송·반품</div>
+      <div class="feature-desc">당일·익일 배송, 백화점 매장 교환·반품까지 연동됩니다.</div>
+    </div>
+  </div>
+</section>
+
+<!-- BRANDS -->
+<section class="brands">
+  <div class="sec-eyebrow">BRANDS</div>
+  <h2 class="sec-title">백화점 3사 <em>공식 브랜드</em></h2>
+  <p class="sec-sub" style="margin-bottom:2.5rem;">각 백화점에 공식 입점된 프리미엄 뷰티 브랜드만 엄선합니다.</p>
+  <div class="dept-grid">
+    <div class="dept-card">
+      <span class="dept-badge" style="background:#fdf3e7;color:#b8924a;">롯데백화점</span>
+      <div class="dept-brands">랑콤 · 에스티로더<br>설화수 · 헤라 · 오휘<br>비오템 · 아이오페 · 클라란스</div>
+    </div>
+    <div class="dept-card">
+      <span class="dept-badge" style="background:#e8f5f0;color:#0F6E56;">신세계백화점</span>
+      <div class="dept-brands">샤넬 뷰티 · 디올 뷰티<br>입생로랑 · 지방시<br>바비브라운 · 키엘 · 겔랑</div>
+    </div>
+    <div class="dept-card">
+      <span class="dept-badge" style="background:#eeedfe;color:#534AB7;">현대백화점</span>
+      <div class="dept-brands">라메르 · 시슬리 · 달팡<br>후 · 수려한 · 로레알<br>비쉬 · 라로슈포제</div>
+    </div>
+  </div>
+</section>
+
+<!-- TARGET -->
+<section class="target">
+  <div class="sec-eyebrow">TARGET</div>
+  <h2 class="sec-title">세대별 <em style="color:var(--gold);">맞춤 경험</em></h2>
+  <p class="sec-sub" style="margin-bottom:2.5rem;">30대부터 50대까지, 각 세대의 라이프스타일에 맞는 뷰티 경험을 제공합니다.</p>
+  <div class="target-grid">
+    <div class="target-card">
+      <div class="target-age" style="color:#AFA9EC;">30대</div>
+      <div class="target-name" style="color:#7F77DD;">뷰티 입문 · 성장층</div>
+      <div class="kw-row">
+        <span class="kw" style="background:#1e1a3a;color:#AFA9EC;">입문 세트</span>
+        <span class="kw" style="background:#1e1a3a;color:#AFA9EC;">트렌드 컬러</span>
+        <span class="kw" style="background:#1e1a3a;color:#AFA9EC;">숏폼 클립</span>
+      </div>
+      <div class="target-desc">첫 럭셔리 브랜드 경험 · SNS 공유<br>저녁 20:00 타임 편성</div>
+    </div>
+    <div class="target-card">
+      <div class="target-age" style="color:#5DCAA5;">40대</div>
+      <div class="target-name" style="color:#1D9E75;">프리미엄 핵심 구매층</div>
+      <div class="kw-row">
+        <span class="kw" style="background:#0a1e18;color:#5DCAA5;">안티에이징</span>
+        <span class="kw" style="background:#0a1e18;color:#5DCAA5;">BA 1:1 상담</span>
+        <span class="kw" style="background:#0a1e18;color:#5DCAA5;">성분 분석</span>
+      </div>
+      <div class="target-desc">구매력 최고 구간 · 전문가 신뢰<br>오후 15:00 타임 편성</div>
+    </div>
+    <div class="target-card">
+      <div class="target-age" style="color:#ED93B1;">50대</div>
+      <div class="target-name" style="color:#D4537E;">충성 고객 · VIP층</div>
+      <div class="kw-row">
+        <span class="kw" style="background:#2a0f1a;color:#ED93B1;">VIP 전용</span>
+        <span class="kw" style="background:#2a0f1a;color:#ED93B1;">전화 CS</span>
+        <span class="kw" style="background:#2a0f1a;color:#ED93B1;">큰 글씨 UI</span>
+      </div>
+      <div class="target-desc">백화점 VIP 멤버십 연동<br>낮 12:00 타임 편성</div>
+    </div>
+  </div>
+</section>
+
+<!-- SCHEDULE -->
+<section class="schedule">
+  <div class="sec-eyebrow">LIVE SCHEDULE</div>
+  <h2 class="sec-title">정기 라이브 <em>편성표</em></h2>
+  <p class="sec-sub" style="margin-bottom:2.5rem;">연령대별 최적 시간대에 전문 콘텐츠를 방송합니다.</p>
+  <div class="live-grid">
+    <div class="live-card">
+      <div class="live-day-circle">월</div>
+      <div><div class="live-title">트렌드 메이크업</div><div class="live-desc">시즌 컬러 신제품 · SNS 인기 아이템</div><div class="live-time">저녁 20:00 — 30대 타겟</div></div>
+    </div>
+    <div class="live-card">
+      <div class="live-day-circle">수</div>
+      <div><div class="live-title">프리미엄 스킨케어</div><div class="live-desc">안티에이징 · BA 심층 상담 진행</div><div class="live-time">오후 15:00 — 40대 타겟</div></div>
+    </div>
+    <div class="live-card">
+      <div class="live-day-circle">금</div>
+      <div><div class="live-title">VIP 나이트</div><div class="live-desc">고단가 세트 · 멤버십 전용 특가</div><div class="live-time">낮 12:00 — 50대 타겟</div></div>
+    </div>
+    <div class="live-card">
+      <div class="live-day-circle">토</div>
+      <div><div class="live-title">신제품 쇼케이스</div><div class="live-desc">3사 신규 론칭 · 전연령 추천</div><div class="live-time">오전 10:00 — 전연령</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- JOIN -->
+<section class="join">
+  <div class="sec-eyebrow">입점안내</div>
+  <h2 class="sec-title">입점 신청 방법</h2>
+  <p class="sec-sub" style="margin-bottom:2rem;">뷰티관 입점 신청은 총 2단계로 이루어집니다.</p>
+  <div class="join-steps">
+    <div class="join-step">
+      <div class="step-num">1</div>
+      <div class="step-title">뷰티관 회원가입</div>
+      <div class="step-desc">계정을 공유한다면 이메일을 사용하여 가입해주세요.<br>기존 백화점 계정으로도 연동 가능합니다.</div>
+    </div>
+    <div class="join-step">
+      <div class="step-num">2</div>
+      <div class="step-title">입점 신청</div>
+      <div class="step-desc">· 뷰티, 스킨케어, 메이크업 카테고리 : 입점 심사 진행 (영업일 기준 3~5일 소요)<br>· 그 외 카테고리 : 자동 승인</div>
+    </div>
+  </div>
+  <div class="join-notice" style="margin-top:20px;">
+    <div class="join-notice-title">입점 안내 사항</div>
+    <div class="join-notice-desc">· 택배로 배송하는 상품이나 디지털 상품을 판매하고 있다면 입점할 수 있습니다.<br>· 뷰티, 스킨케어 카테고리로 입점 신청할 경우에는 별도의 입점 심사가 진행됩니다.<br>· 백화점 공식 입점 브랜드에 한해 심사 시 우선 검토됩니다.</div>
+  </div>
+</section>
+
+<!-- CONTACT -->
+<section class="contact">
+  <div class="sec-eyebrow">광고/제휴 문의</div>
+  <h2 class="sec-title" style="margin-bottom:0.5rem;">함께 성장할 파트너를 <em>기다립니다</em></h2>
+  <p class="sec-sub" style="margin-bottom:3rem;">구매 전환율을 높이고, 고객 관계를 강화하세요.</p>
+  <div class="contact-inner">
+    <div class="contact-left">
+      <div class="contact-checks">
+        <div class="check-item"><svg viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><polyline points="20 6 9 17 4 12"/></svg>간편한 연동</div>
+        <div class="check-item"><svg viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><polyline points="20 6 9 17 4 12"/></svg>고객 소통 강화</div>
+        <div class="check-item"><svg viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><polyline points="20 6 9 17 4 12"/></svg>강력한 마케팅 효과</div>
+      </div>
+      <div class="contact-process">
+        <div class="contact-process-title">도입 문의 후 진행 과정</div>
+        <div class="contact-process-item">1. 문의 접수 및 처리결과 회신<br>2. 담당자 연락 및 미팅 일정 조율<br>3. 계약 및 온보딩 진행</div>
+      </div>
+    </div>
+    <div class="contact-form">
+      <div class="form-row">
+        <div class="form-label">회사/기관명 <span class="form-req">*</span></div>
+        <input class="form-input" type="text" placeholder="회사명을 입력하세요">
+      </div>
+      <div class="form-row">
+        <div class="form-label">담당자명 <span class="form-req">*</span></div>
+        <input class="form-input" type="text" placeholder="담당자명을 입력하세요">
+      </div>
+      <div class="form-grid2">
+        <div>
+          <div class="form-label">연락처 <span class="form-req">*</span></div>
+          <input class="form-input" type="text" placeholder="010-0000-0000">
+        </div>
+        <div>
+          <div class="form-label">이메일 <span class="form-req">*</span></div>
+          <input class="form-input" type="email" placeholder="email@company.com">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-label">문의 내용 <span class="form-req">*</span></div>
+        <textarea class="form-textarea" placeholder="- 판매 희망 상품:&#10;- 희망 진행 시기:&#10;- 가용 예산:&#10;- 상세 내용:&#10;- 참고 URL:"></textarea>
+      </div>
+      <div class="form-agree-box">
+        <div class="form-agree-title">제휴 문의를 위한 정보수집 및 이용동의 <span>(필수)</span></div>
+        <div class="form-agree-desc">제휴 문의를 위해 필요한 최소한의 개인정보를 받고 있습니다. 동의를 거부할 경우 문의 접수 및 상담이 불가합니다.</div>
+      </div>
+      <div class="form-btns">
+        <button class="btn-cancel">닫기</button>
+        <button class="btn-submit">보내기</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CAREER -->
+<section class="career">
+  <div class="career-left">
+    <div class="career-eyebrow">CAREER</div>
+    <h2 class="career-title">언제 어디서나,<br>누구나 쉽게 사고파는<br><em>세상을 함께 꿈꿉니다</em></h2>
+    <p class="career-desc">새로운 뷰티 커머스를 만들어갈<br>뷰티관의 여정에 함께해요.</p>
+  </div>
+  <div class="career-right">
+    <div class="career-values">
+      <div class="career-value"><div class="cv-dot"></div><div class="cv-text">도전적인 문화와 수평적인 조직</div></div>
+      <div class="career-value"><div class="cv-dot"></div><div class="cv-text">뷰티와 커머스의 새로운 기준을 만드는 일</div></div>
+      <div class="career-value"><div class="cv-dot"></div><div class="cv-text">업계 최고 수준의 처우와 복지</div></div>
+    </div>
+    <button class="career-btn">채용 공고 바로가기 →</button>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta">
+  <div class="cta-left">
+    <h2 class="cta-title">지금 바로<br>시작하세요</h2>
+    <p class="cta-sub">앱 설치 후 첫 구매 시 5,000원 즉시 할인 쿠폰을 드립니다.</p>
+  </div>
+  <div class="cta-right">
+    <div class="cta-store-btns">
+      <button class="cta-btn-w">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="#b8924a"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
+        App Store
+      </button>
+      <button class="cta-btn-w">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="#b8924a"><path d="M3.18 23.76c.3.17.64.24.99.2l12.67-12.67L13.12 7.5 3.18 23.76zM20.8 10.55l-2.88-1.66-3.46 3.46 3.46 3.46 2.91-1.68c.83-.48.83-1.6-.03-2.58zM3.18.24C2.93.42 2.78.73 2.78 1.14v21.72c0 .41.15.72.4.9l.08.05 12.17-12.17v-.29L3.26.19l-.08.05zM16.85 13.15l-3.73 3.73-9.94 9.94c.35.04.71-.03 1.01-.22l11.13-6.43 1.53-.88v-.14z"/></svg>
+        Google Play
+      </button>
+    </div>
+    <button class="cta-btn-ol">입점 문의하기 →</button>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-top">
+    <a class="footer-link">회사소개</a>
+    <a class="footer-link">입점안내</a>
+    <a class="footer-link">B2B 솔루션</a>
+    <a class="footer-link">광고/제휴</a>
+    <a class="footer-link">채용(영입)</a>
+  </div>
+  <div class="sns-row">
+    <div class="sns-btn"><svg viewBox="0 0 24 24"><path d="M22.54 6.42a2.78 2.78 0 00-1.95-1.96C18.88 4 12 4 12 4s-6.88 0-8.59.46a2.78 2.78 0 00-1.95 1.96A29 29 0 001 12a29 29 0 00.46 5.58A2.78 2.78 0 003.41 19.6C5.12 20 12 20 12 20s6.88 0 8.59-.46a2.78 2.78 0 001.95-1.95A29 29 0 0023 12a29 29 0 00-.46-5.58z"/><polygon points="9.75 15.02 15.5 12 9.75 8.98 9.75 15.02" fill="#0a0907"/></svg></div>
+    <div class="sns-btn"><svg viewBox="0 0 24 24"><path d="M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z"/></svg></div>
+    <div class="sns-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="20" height="20" rx="5"/><path d="M16 11.37A4 4 0 1112.63 8 4 4 0 0116 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg></div>
+  </div>
+  <div class="footer-legal">
+    <a class="footer-leg">이용약관</a>
+    <a class="footer-leg">판매 이용 약관</a>
+    <a class="footer-leg">유료서비스이용약관</a>
+    <a class="footer-leg em">위치정보 이용 약관</a>
+    <a class="footer-leg em">개인(위치)정보 처리 방침</a>
+  </div>
+  <div class="footer-legal" style="margin-top:4px;">
+    <a class="footer-leg">서비스 운영정책</a>
+    <a class="footer-leg">청소년보호정책</a>
+    <a class="footer-leg">사업자정보확인</a>
+  </div>
+  <div class="footer-info">
+    (주)뷰티관 &nbsp;·&nbsp; 대표이사 : OOO &nbsp;·&nbsp; 사업자 등록번호 : 000-00-00000 &nbsp;·&nbsp; 통신판매신고 : 0000-성남분당A-0000<br>
+    주소 : 경기도 성남시 분당구 판교역로 152, 00층 &nbsp;·&nbsp; 대표전화 : 1522-0000 &nbsp;·&nbsp; 이메일 : help@beautegwan.co<br>
+    호스팅 서비스 제공 : (주)뷰티관
+  </div>
+  <div class="footer-notice">
+    (주)뷰티관은 통신판매중개자이며, 통신판매의 당사자가 아닙니다. 상품 정보 및 거래에 관한<br>
+    의무와 책임은 판매자에게 있습니다.
+  </div>
+  <div class="footer-copy">© 2025 뷰티관 Corp.</div>
+</footer>
+
+</body>
+</html>
