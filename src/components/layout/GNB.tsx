@@ -23,8 +23,8 @@ export default function GNB() {
       }}
     >
       <div className="max-w-[1280px] mx-auto px-6 flex items-center justify-between h-16">
-        <Link to="/" className="font-serif text-[22px] font-bold text-gold" aria-label="뷰티관 홈">
-          뷰티관
+        <Link to="/" className="font-serif text-[22px] font-bold text-gold" aria-label="뷰티그라운드 홈">
+          뷰티그라운드
         </Link>
 
         {/* 데스크톱 메뉴 */}
