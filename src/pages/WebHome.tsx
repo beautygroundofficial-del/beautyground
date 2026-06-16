@@ -1,6 +1,6 @@
 import GNB from '../components/layout/GNB'
 import Footer from '../components/layout/Footer'
-import Hero from '../components/web/Hero'
+import HeroSection from '../components/sections/HeroSection'
 import StatBar from '../components/web/StatBar'
 import IntroSection from '../components/web/IntroSection'
 import BASplitSection from '../components/web/BASplitSection'
@@ -18,7 +18,7 @@ export default function WebHome() {
     <>
       <GNB />
       <main>
-        <Hero />
+        <HeroSection />
         <StatBar />
         <IntroSection />
         <BASplitSection />
