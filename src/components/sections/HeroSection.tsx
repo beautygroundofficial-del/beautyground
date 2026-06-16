@@ -52,12 +52,49 @@ export default function HeroSection() {
         className="order-first md:order-last flex items-center justify-center w-full pt-20 pb-6 md:pt-0 md:pb-0 md:h-screen md:border-l md:border-white/[0.04]"
         aria-hidden="true"
       >
-        {/* 모바일: 메인 폰만 200px */}
-        <div className="md:hidden">
-          <PhoneMockup width={200} imageSrc={models[currentIndex]} imageVisible={visible} />
+        {/* 모바일: 두 폰 상하 배치, transform 없이 정면 */}
+        <div className="md:hidden flex flex-col items-center gap-4 w-full px-6">
+          <div
+            className="w-full max-w-[280px]"
+            style={{ filter: 'drop-shadow(0 8px 32px rgba(0,0,0,0.5))' }}
+          >
+            <PhoneMockup width={280} imageSrc={models[currentIndex]} imageVisible={visible} />
+          </div>
+
+          {/* 세컨드 폰 — 4분할 그리드 */}
+          <div
+            className="relative rounded-[28px] border-[5px] border-white/70 overflow-hidden w-full max-w-[280px]"
+            style={{ filter: 'drop-shadow(0 8px 32px rgba(0,0,0,0.5))' }}
+          >
+            <div className="absolute top-1.5 left-1/2 -translate-x-1/2 w-10 h-2.5 bg-[#111] rounded-full z-10" />
+            <div className="grid grid-cols-2">
+              {GRID_IMAGES.map(({ src, speed, delay }, i) => (
+                <div key={i} className="relative overflow-hidden" style={{ height: 140 }}>
+                  <img
+                    src={src}
+                    alt=""
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover',
+                      objectPosition: 'center top',
+                      animation: `nolling ${speed}s ease-in-out infinite`,
+                      animationDelay: `${delay}s`,
+                    }}
+                  />
+                  {i % 2 === 0 && (
+                    <div className="absolute right-0 top-0 bottom-0 w-px bg-white/30" />
+                  )}
+                  {i < 2 && (
+                    <div className="absolute bottom-0 left-0 right-0 h-px bg-white/30" />
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
 
-        {/* 데스크톱: 메인 폰 220px + 세컨드 폰 */}
+        {/* 데스크톱: 메인 폰 220px + 세컨드 폰 — 기존 레이아웃 유지 */}
         <div className="hidden md:flex items-center gap-6">
           <PhoneMockup width={220} imageSrc={models[currentIndex]} imageVisible={visible} />
 
