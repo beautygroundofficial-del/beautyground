@@ -11,6 +11,7 @@ import AppMyPage from './pages/AppMyPage'
 import AppCart from './pages/AppCart'
 import AppOrder from './pages/AppOrder'
 import PartnerRegister from './pages/PartnerRegister'
+import PartnerApplyComplete from './pages/PartnerApplyComplete'
 
 export default function App() {
   return (
@@ -21,6 +22,7 @@ export default function App() {
 
         {/* 입점 신청 */}
         <Route path="/partner/register" element={<PartnerRegister />} />
+        <Route path="/partner/apply/complete" element={<PartnerApplyComplete />} />
 
         {/* 앱 UI */}
         <Route path="/app/home" element={<AppHome />} />
