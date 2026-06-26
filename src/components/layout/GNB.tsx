@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import Button from '../common/Button'
 
 const NAV_LINKS = [
   { href: '/join', label: '입점안내' },
@@ -44,7 +43,6 @@ export default function GNB() {
           <Link to="/app/home" className="hidden md:block text-[13px] text-text-sub hover:text-gold transition-colors">
             앱 보기
           </Link>
-          <Button variant="gold" size="sm" label="입점하기" onClick={() => {}} />
 
           {/* 모바일 햄버거 */}
           <button
