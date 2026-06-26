@@ -5,15 +5,21 @@ const STEPS = [
   {
     step: '01',
     title: '회원가입',
-    desc: '뷰티관 파트너 포털에서 브랜드/백화점 담당자 계정을 생성합니다.',
+    desc: '뷰티그라운드 파트너 포털에서 브랜드/셀러 담당자 계정을 생성합니다.',
     icon: '👤',
   },
   {
     step: '02',
-    title: '입점신청',
-    desc: '브랜드 정보, 상품 카탈로그, BA 정보를 등록하고 입점 심사를 신청합니다.',
+    title: '입점 신청',
+    desc: '브랜드 정보와 서류를 제출하면 본사 심사 후 승인 안내를 드립니다.',
     icon: '📝',
   },
+]
+
+const BENEFITS = [
+  '백화점 3사 브랜드와 같은 무대에서 라이브 판매',
+  '간편한 상품·라이브 등록 대시보드 제공',
+  '투명한 매출·정산 관리',
 ]
 
 export default function JoinSection() {
@@ -25,11 +31,12 @@ export default function JoinSection() {
             JOIN US
           </span>
           <h2 className="font-serif text-[32px] md:text-[38px] font-bold text-text">
-            입점 안내
+            뷰티그라운드와 함께 라이브로 판매하세요
           </h2>
-          <p className="text-text-sub text-[15px] mt-3">간단한 2단계로 뷰티관에 입점하세요</p>
+          <p className="text-text-sub text-[15px] mt-3">간단한 2단계로 입점을 시작하세요</p>
         </div>
 
+        {/* 2단계 프로세스 */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
           {STEPS.map(({ step, title, desc, icon }) => (
             <div
@@ -56,16 +63,24 @@ export default function JoinSection() {
           ))}
         </div>
 
-        {/* 안내 박스 */}
+        {/* 혜택 체크리스트 */}
         <div
           className="bg-cream rounded-md p-6 border-l-[3px]"
           style={{ borderLeftColor: '#b8924a' }}
         >
-          <p className="text-[14px] font-semibold text-text mb-1">입점 안내</p>
-          <ul className="text-[13px] text-text-sub space-y-1.5">
-            <li>• 롯데·신세계·현대 백화점 공식 파트너 브랜드에 한해 입점 신청이 가능합니다.</li>
-            <li>• 입점 심사는 신청 후 영업일 기준 5~7일 내 완료됩니다.</li>
-            <li>• 공식 BA 출연이 필수이며, 사전 교육 후 라이브를 진행합니다.</li>
+          <p className="text-[14px] font-semibold text-text mb-3">파트너 혜택</p>
+          <ul className="space-y-2">
+            {BENEFITS.map((b) => (
+              <li key={b} className="flex items-start gap-2.5 text-[14px] text-text-sub">
+                <span
+                  className="w-5 h-5 mt-0.5 rounded-full bg-gold/20 flex items-center justify-center text-gold text-[12px] flex-shrink-0"
+                  aria-hidden="true"
+                >
+                  ✓
+                </span>
+                {b}
+              </li>
+            ))}
           </ul>
         </div>
 
