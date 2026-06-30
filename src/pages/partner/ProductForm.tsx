@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { IconPhoto, IconToggleRight, IconToggleLeft } from '@tabler/icons-react'
+import { IconUpload, IconToggleRight, IconToggleLeft } from '@tabler/icons-react'
 import { supabase } from '../../lib/supabase'
 import { getMyPartner } from '../../lib/partner'
 import type { Product } from '../../lib/types'
@@ -13,12 +13,20 @@ export default function ProductForm() {
   const { id } = useParams<{ id: string }>()
   const isEdit = Boolean(id)
   const navigate = useNavigate()
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const [loading, setLoading] = useState<boolean>(isEdit)
   const [submitting, setSubmitting] = useState<boolean>(false)
   const [error, setError] = useState<string>('')
   const [liveEnabled, setLiveEnabled] = useState(false)
 
+  // 파일 업로드 상태
+  const [partnerId, setPartnerId] = useState<string>('')
+  const [uploading, setUploading] = useState(false)
+  const [uploadError, setUploadError] = useState('')
+  const [dragOver, setDragOver] = useState(false)
+
+  // 상품 필드
   const [name, setName] = useState<string>('')
   const [price, setPrice] = useState<string>('')
   const [salePrice, setSalePrice] = useState<string>('')
@@ -28,6 +36,12 @@ export default function ProductForm() {
   const [description, setDescription] = useState<string>('')
   const [status, setStatus] = useState<Product['status']>('on_sale')
 
+  // 파트너 id 미리 가져오기 (업로드 경로에 사용)
+  useEffect(() => {
+    getMyPartner().then(p => { if (p) setPartnerId(p.id) })
+  }, [])
+
+  // 수정 모드: 기존 상품 로드
   useEffect(() => {
     if (!isEdit) return
     let active = true
@@ -48,6 +62,39 @@ export default function ProductForm() {
 
     return () => { active = false }
   }, [id, isEdit])
+
+  // 파일 업로드 처리
+  const handleFileUpload = async (file: File) => {
+    setUploadError('')
+
+    if (!file.type.startsWith('image/')) {
+      setUploadError('이미지 파일만 업로드할 수 있습니다.')
+      return
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setUploadError('이미지는 5MB 이하만 업로드할 수 있습니다.')
+      return
+    }
+
+    setUploading(true)
+    const folder = partnerId || 'temp'
+    const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_')
+    const path = `${folder}/${Date.now()}_${safeName}`
+
+    const { error: uploadErr } = await supabase.storage
+      .from('product-images')
+      .upload(path, file)
+
+    if (uploadErr) {
+      setUploadError('업로드에 실패했습니다. 다시 시도해 주세요.')
+      setUploading(false)
+      return
+    }
+
+    const { data } = supabase.storage.from('product-images').getPublicUrl(path)
+    setThumbnailUrl(data.publicUrl)
+    setUploading(false)
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -100,20 +147,66 @@ export default function ProductForm() {
         <div className="space-y-4">
           <div className="bg-white rounded-[14px] border border-[#e5e0d8] p-6">
             <h3 className="text-[13px] font-bold text-[#111] mb-4">상품 이미지</h3>
-            <div className="w-full aspect-square bg-[#f7f4ef] rounded-xl border-2 border-dashed border-[#e5e0d8] flex flex-col items-center justify-center mb-3 overflow-hidden">
-              {thumbnailUrl ? (
+
+            {/* 숨겨진 파일 인풋 */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={e => {
+                const file = e.target.files?.[0]
+                if (file) handleFileUpload(file)
+                e.target.value = ''
+              }}
+            />
+
+            {/* 업로드 박스 (클릭 또는 드래그) */}
+            <div
+              onClick={() => !uploading && fileInputRef.current?.click()}
+              onDragOver={e => { e.preventDefault(); setDragOver(true) }}
+              onDragLeave={() => setDragOver(false)}
+              onDrop={e => {
+                e.preventDefault()
+                setDragOver(false)
+                const file = e.dataTransfer.files[0]
+                if (file && !uploading) handleFileUpload(file)
+              }}
+              className={`w-full aspect-square rounded-xl border-2 border-dashed flex flex-col items-center justify-center mb-3 overflow-hidden transition-colors select-none ${
+                uploading
+                  ? 'cursor-wait border-[#e5e0d8] bg-[#f7f4ef]'
+                  : dragOver
+                  ? 'cursor-copy border-[#b8924a] bg-[#fdf9f5]'
+                  : thumbnailUrl
+                  ? 'cursor-pointer border-[#e5e0d8] bg-[#f7f4ef]'
+                  : 'cursor-pointer border-[#e5e0d8] bg-[#f7f4ef] hover:border-[#b8924a] hover:bg-[#fdf9f5]'
+              }`}
+            >
+              {uploading ? (
+                <p className="text-[13px] text-[#9a9080]">업로드 중...</p>
+              ) : thumbnailUrl ? (
                 <img src={thumbnailUrl} alt="썸네일" className="w-full h-full object-cover" />
               ) : (
                 <>
-                  <IconPhoto size={28} className="text-[#d0c9be] mb-2" />
-                  <p className="text-[12px] text-[#9a9080]">이미지 URL을 입력하세요</p>
+                  <IconUpload size={28} className="text-[#d0c9be] mb-2" />
+                  <p className="text-[13px] font-medium text-[#9a9080]">클릭 또는 드래그</p>
+                  <p className="text-[11px] text-[#bbb] mt-1">대표 이미지 업로드 (5MB 이하)</p>
                 </>
               )}
             </div>
+
+            {uploadError && (
+              <p className="text-[11px] text-red-500 mb-3">{uploadError}</p>
+            )}
+
+            {/* 기존 URL 직접 입력 — 유지 */}
+            <label className="block text-[11px] font-semibold text-[#9a9080] mb-1.5">
+              또는 이미지 URL 직접 입력
+            </label>
             <input
               type="text"
               value={thumbnailUrl}
-              onChange={e => setThumbnailUrl(e.target.value)}
+              onChange={e => { setThumbnailUrl(e.target.value); setUploadError('') }}
               placeholder="https://... 이미지 URL"
               className={inputCls}
             />
@@ -201,7 +294,7 @@ export default function ProductForm() {
             </button>
             <button
               type="submit"
-              disabled={submitting}
+              disabled={submitting || uploading}
               className="flex-1 py-2.5 bg-[#b8924a] hover:bg-[#a07c3b] disabled:opacity-60 text-white font-semibold rounded-lg text-[13px] transition-colors"
             >
               {submitting ? '저장 중...' : isEdit ? '수정하기' : '등록하기'}
