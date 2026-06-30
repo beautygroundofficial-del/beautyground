@@ -26,6 +26,7 @@ import LiveForm from './pages/partner/LiveForm'
 import LiveDetail from './pages/partner/LiveDetail'
 import PartnerOrders from './pages/partner/Orders'
 import PartnerSettlement from './pages/partner/Settlement'
+import PartnerProfile from './pages/partner/Profile'
 
 // 관리자
 import AdminApplications from './pages/admin/Applications'
@@ -59,6 +60,7 @@ export default function App() {
             <Route path="/partner/live/:id" element={<LiveDetail />} />
             <Route path="/partner/orders" element={<PartnerOrders />} />
             <Route path="/partner/settlement" element={<PartnerSettlement />} />
+            <Route path="/partner/profile" element={<PartnerProfile />} />
           </Route>
           <Route path="/admin/applications" element={<AdminApplications />} />
         </Route>

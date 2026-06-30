@@ -1,17 +1,13 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
+import { IconPhoto, IconToggleRight, IconToggleLeft } from '@tabler/icons-react'
 import { supabase } from '../../lib/supabase'
 import { getMyPartner } from '../../lib/partner'
 import type { Product } from '../../lib/types'
 import { PRODUCT_CATEGORIES } from '../../lib/types'
-import Button from '../../components/common/Button'
 
-const cardStyle = { borderColor: '#e5e0d8', borderWidth: '0.5px' }
-
-const inputClass =
-  'w-full bg-white border border-cream-2 rounded-md px-4 py-3 text-[14px] text-text placeholder:text-text-hint focus:outline-none focus:shadow-focus transition'
-
-type Status = Product['status']
+const inputCls =
+  'w-full border border-[#e5e0d8] rounded-lg px-3.5 py-2.5 text-[13px] text-[#111] placeholder:text-[#bbb] focus:outline-none focus:border-[#b8924a] transition-colors bg-white'
 
 export default function ProductForm() {
   const { id } = useParams<{ id: string }>()
@@ -21,6 +17,7 @@ export default function ProductForm() {
   const [loading, setLoading] = useState<boolean>(isEdit)
   const [submitting, setSubmitting] = useState<boolean>(false)
   const [error, setError] = useState<string>('')
+  const [liveEnabled, setLiveEnabled] = useState(false)
 
   const [name, setName] = useState<string>('')
   const [price, setPrice] = useState<string>('')
@@ -29,59 +26,38 @@ export default function ProductForm() {
   const [stock, setStock] = useState<string>('0')
   const [thumbnailUrl, setThumbnailUrl] = useState<string>('')
   const [description, setDescription] = useState<string>('')
-  const [status, setStatus] = useState<Status>('on_sale')
+  const [status, setStatus] = useState<Product['status']>('on_sale')
 
   useEffect(() => {
     if (!isEdit) return
     let active = true
 
-    const load = async () => {
-      const { data } = await supabase
-        .from('products')
-        .select('*')
-        .eq('id', id)
-        .single()
-
-      if (!active) return
-
-      if (data) {
-        const product = data as Product
-        setName(product.name)
-        setPrice(String(product.price))
-        setSalePrice(product.sale_price != null ? String(product.sale_price) : '')
-        setCategory(product.category ?? '')
-        setStock(String(product.stock))
-        setThumbnailUrl(product.thumbnail_url ?? '')
-        setDescription(product.description ?? '')
-        setStatus(product.status)
-      }
+    supabase.from('products').select('*').eq('id', id).single().then(({ data }) => {
+      if (!active || !data) return
+      const p = data as Product
+      setName(p.name)
+      setPrice(String(p.price))
+      setSalePrice(p.sale_price != null ? String(p.sale_price) : '')
+      setCategory(p.category ?? '')
+      setStock(String(p.stock))
+      setThumbnailUrl(p.thumbnail_url ?? '')
+      setDescription(p.description ?? '')
+      setStatus(p.status)
       setLoading(false)
-    }
+    })
 
-    load()
-    return () => {
-      active = false
-    }
+    return () => { active = false }
   }, [id, isEdit])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
 
-    if (!name.trim()) {
-      setError('상품명을 입력해 주세요.')
-      return
-    }
+    if (!name.trim()) { setError('상품명을 입력해 주세요.'); return }
     const priceNum = Number(price)
-    if (!price || Number.isNaN(priceNum) || priceNum < 0) {
-      setError('정가를 0 이상 숫자로 입력해 주세요.')
-      return
-    }
+    if (!price || Number.isNaN(priceNum) || priceNum < 0) { setError('정가를 0 이상 숫자로 입력해 주세요.'); return }
     const stockNum = Number(stock)
-    if (Number.isNaN(stockNum) || stockNum < 0) {
-      setError('재고를 0 이상 숫자로 입력해 주세요.')
-      return
-    }
+    if (Number.isNaN(stockNum) || stockNum < 0) { setError('재고를 0 이상 숫자로 입력해 주세요.'); return }
 
     const payload = {
       name: name.trim(),
@@ -97,199 +73,142 @@ export default function ProductForm() {
     setSubmitting(true)
 
     if (isEdit) {
-      const { error: updateError } = await supabase
-        .from('products')
-        .update(payload)
-        .eq('id', id)
-
-      if (updateError) {
-        setError(updateError.message)
-        setSubmitting(false)
-        return
-      }
+      const { error: err } = await supabase.from('products').update(payload).eq('id', id)
+      if (err) { setError(err.message); setSubmitting(false); return }
     } else {
       const partner = await getMyPartner()
-      if (!partner) {
-        setError('입점 승인된 파트너만 상품을 등록할 수 있습니다.')
-        setSubmitting(false)
-        return
-      }
-
-      const { error: insertError } = await supabase
-        .from('products')
-        .insert({ ...payload, partner_id: partner.id })
-
-      if (insertError) {
-        setError(insertError.message)
-        setSubmitting(false)
-        return
-      }
+      if (!partner) { setError('입점 승인된 파트너만 상품을 등록할 수 있습니다.'); setSubmitting(false); return }
+      const { error: err } = await supabase.from('products').insert({ ...payload, partner_id: partner.id })
+      if (err) { setError(err.message); setSubmitting(false); return }
     }
 
     navigate('/partner/products')
   }
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-24">
+        <p className="text-[14px] text-[#9a9080]">불러오는 중...</p>
+      </div>
+    )
+  }
+
   return (
-    <div>
-      <h1 className="text-[22px] font-bold text-text mb-6">
-        {isEdit ? '상품 수정' : '상품 등록'}
-      </h1>
-
-      {loading ? (
-        <div
-          className="bg-white rounded-md border p-8 text-center text-[14px] text-text-sub max-w-[640px]"
-          style={cardStyle}
-        >
-          불러오는 중…
-        </div>
-      ) : (
-        <form
-          onSubmit={handleSubmit}
-          className="bg-white rounded-md border p-6 space-y-4 max-w-[640px]"
-          style={cardStyle}
-        >
-          <div>
-            <label className="block text-[13px] font-medium text-text mb-2">
-              상품명 <span className="text-gold">*</span>
-            </label>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="상품명을 입력하세요"
-              className={inputClass}
-              required
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-[13px] font-medium text-text mb-2">
-                정가 <span className="text-gold">*</span>
-              </label>
-              <input
-                type="number"
-                min={0}
-                value={price}
-                onChange={(e) => setPrice(e.target.value)}
-                placeholder="0"
-                className={inputClass}
-                required
-              />
+    <form onSubmit={handleSubmit}>
+      <div className="grid grid-cols-1 lg:grid-cols-[2fr_3fr] gap-6">
+        {/* 좌측: 이미지 + 라이브 특가 */}
+        <div className="space-y-4">
+          <div className="bg-white rounded-[14px] border border-[#e5e0d8] p-6">
+            <h3 className="text-[13px] font-bold text-[#111] mb-4">상품 이미지</h3>
+            <div className="w-full aspect-square bg-[#f7f4ef] rounded-xl border-2 border-dashed border-[#e5e0d8] flex flex-col items-center justify-center mb-3 overflow-hidden">
+              {thumbnailUrl ? (
+                <img src={thumbnailUrl} alt="썸네일" className="w-full h-full object-cover" />
+              ) : (
+                <>
+                  <IconPhoto size={28} className="text-[#d0c9be] mb-2" />
+                  <p className="text-[12px] text-[#9a9080]">이미지 URL을 입력하세요</p>
+                </>
+              )}
             </div>
-            <div>
-              <label className="block text-[13px] font-medium text-text mb-2">
-                판매가
-              </label>
-              <input
-                type="number"
-                min={0}
-                value={salePrice}
-                onChange={(e) => setSalePrice(e.target.value)}
-                placeholder="할인가 (선택)"
-                className={inputClass}
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-[13px] font-medium text-text mb-2">
-                카테고리
-              </label>
-              <select
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-                className={inputClass}
-              >
-                <option value="">선택 안 함</option>
-                {PRODUCT_CATEGORIES.map((c) => (
-                  <option key={c} value={c}>
-                    {c}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-[13px] font-medium text-text mb-2">
-                재고
-              </label>
-              <input
-                type="number"
-                min={0}
-                value={stock}
-                onChange={(e) => setStock(e.target.value)}
-                placeholder="0"
-                className={inputClass}
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-[13px] font-medium text-text mb-2">
-              썸네일 URL
-            </label>
             <input
               type="text"
               value={thumbnailUrl}
-              onChange={(e) => setThumbnailUrl(e.target.value)}
-              placeholder="https://…"
-              className={inputClass}
+              onChange={e => setThumbnailUrl(e.target.value)}
+              placeholder="https://... 이미지 URL"
+              className={inputCls}
             />
           </div>
 
+          <div className="bg-white rounded-[14px] border border-[#e5e0d8] p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-[13px] font-bold text-[#111]">라이브 전용 특가</p>
+                <p className="text-[11px] text-[#9a9080] mt-0.5">라이브 예약 시 설정 가능</p>
+              </div>
+              <button type="button" onClick={() => setLiveEnabled(!liveEnabled)}>
+                {liveEnabled
+                  ? <IconToggleRight size={30} className="text-[#b8924a]" />
+                  : <IconToggleLeft size={30} className="text-[#d0c9be]" />}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* 우측: 상품 정보 */}
+        <div className="bg-white rounded-[14px] border border-[#e5e0d8] p-6 space-y-5">
+          <h3 className="text-[13px] font-bold text-[#111]">상품 정보</h3>
+
           <div>
-            <label className="block text-[13px] font-medium text-text mb-2">
-              상품 설명
-            </label>
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="상품 설명을 입력하세요"
-              rows={4}
-              className={`${inputClass} resize-none`}
-            />
+            <label className="block text-[12px] font-semibold text-[#555] mb-1.5">상품명 *</label>
+            <input value={name} onChange={e => setName(e.target.value)} placeholder="상품명 입력" className={inputCls} />
           </div>
 
           <div>
-            <label className="block text-[13px] font-medium text-text mb-2">
-              판매 상태
-            </label>
-            <select
-              value={status}
-              onChange={(e) => setStatus(e.target.value as Status)}
-              className={inputClass}
-            >
+            <label className="block text-[12px] font-semibold text-[#555] mb-1.5">카테고리</label>
+            <select value={category} onChange={e => setCategory(e.target.value)} className={inputCls}>
+              <option value="">선택 안 함</option>
+              {PRODUCT_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-[12px] font-semibold text-[#555] mb-1.5">정가 (원) *</label>
+              <input type="number" min={0} value={price} onChange={e => setPrice(e.target.value)} placeholder="0" className={inputCls} />
+            </div>
+            <div>
+              <label className="block text-[12px] font-semibold text-[#555] mb-1.5">판매가 (원)</label>
+              <input type="number" min={0} value={salePrice} onChange={e => setSalePrice(e.target.value)} placeholder="선택" className={inputCls} />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-[12px] font-semibold text-[#555] mb-1.5">재고 수량</label>
+            <input type="number" min={0} value={stock} onChange={e => setStock(e.target.value)} placeholder="0" className={inputCls} />
+          </div>
+
+          <div>
+            <label className="block text-[12px] font-semibold text-[#555] mb-1.5">판매 상태</label>
+            <select value={status} onChange={e => setStatus(e.target.value as Product['status'])} className={inputCls}>
               <option value="on_sale">판매중</option>
               <option value="sold_out">품절</option>
               <option value="hidden">숨김</option>
             </select>
           </div>
 
-          {error && (
-            <p className="text-[13px] text-red-500 bg-red-50 rounded-md px-4 py-3">
-              {error}
-            </p>
-          )}
-
-          <div className="flex items-center gap-3 pt-2">
-            <Button
-              type="submit"
-              variant="gold"
-              size="md"
-              label={submitting ? '저장 중…' : '저장'}
-              disabled={submitting}
-            />
-            <Button
-              type="button"
-              variant="cancel"
-              size="md"
-              label="취소"
-              onClick={() => navigate('/partner/products')}
+          <div>
+            <label className="block text-[12px] font-semibold text-[#555] mb-1.5">상품 설명</label>
+            <textarea
+              value={description}
+              onChange={e => setDescription(e.target.value)}
+              rows={5}
+              placeholder="상품 설명을 입력하세요"
+              className={`${inputCls} resize-none`}
             />
           </div>
-        </form>
-      )}
-    </div>
+
+          {error && (
+            <p className="text-[12px] text-red-500 bg-red-50 rounded-lg px-4 py-3">{error}</p>
+          )}
+
+          <div className="flex gap-3 pt-2">
+            <button
+              type="button"
+              onClick={() => navigate('/partner/products')}
+              className="px-6 py-2.5 border border-[#e5e0d8] text-[#555] rounded-lg text-[13px] hover:bg-[#f7f4ef] transition-colors"
+            >
+              취소
+            </button>
+            <button
+              type="submit"
+              disabled={submitting}
+              className="flex-1 py-2.5 bg-[#b8924a] hover:bg-[#a07c3b] disabled:opacity-60 text-white font-semibold rounded-lg text-[13px] transition-colors"
+            >
+              {submitting ? '저장 중...' : isEdit ? '수정하기' : '등록하기'}
+            </button>
+          </div>
+        </div>
+      </div>
+    </form>
   )
 }
