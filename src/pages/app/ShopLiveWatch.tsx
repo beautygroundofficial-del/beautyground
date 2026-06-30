@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import type { Live, Product } from '../../lib/types'
 import { won } from '../../lib/format'
+import { useLiveChat } from '../../hooks/useLiveChat'
 import AppHeader from '../../components/layout/AppHeader'
 import BottomNav from '../../components/layout/BottomNav'
 
@@ -28,6 +29,21 @@ export default function ShopLiveWatch() {
   const [submitting, setSubmitting] = useState<boolean>(false)
   const [submitError, setSubmitError] = useState<string>('')
   const [success, setSuccess] = useState<boolean>(false)
+
+  // 실시간 채팅 (판매자 LiveDetail 과 동일 훅/채널 공유 → 양방향)
+  const { messages, loading: chatLoading, isLoggedIn, sendMessage: sendChat } = useLiveChat(id)
+  const [chatInput, setChatInput] = useState<string>('')
+  const chatEndRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [messages])
+
+  const sendChatMessage = async () => {
+    if (!chatInput.trim()) return
+    const ok = await sendChat(chatInput)
+    if (ok) setChatInput('')
+  }
 
   useEffect(() => {
     let active = true
@@ -245,6 +261,63 @@ export default function ShopLiveWatch() {
               실제 결제(PG) 연동은 추후 제공됩니다. 현재는 주문 접수까지
               진행됩니다.
             </p>
+
+            {/* 실시간 채팅 */}
+            <div
+              className="bg-white rounded-md border mt-6"
+              style={{ borderColor: '#e5e0d8', borderWidth: '0.5px' }}
+            >
+              <div className="px-4 py-3 border-b border-cream-2">
+                <h2 className="text-[15px] font-bold text-text">실시간 채팅</h2>
+              </div>
+
+              <div className="px-4 py-3 max-h-[280px] overflow-y-auto flex flex-col gap-2">
+                {chatLoading ? (
+                  <p className="text-center py-6 text-[13px] text-text-hint">채팅 불러오는 중…</p>
+                ) : messages.length === 0 ? (
+                  <p className="text-center py-6 text-[13px] text-text-hint">첫 메시지를 남겨보세요</p>
+                ) : (
+                  messages.map((m) => (
+                    <div key={m.id} className="flex gap-2 items-start">
+                      <span className="shrink-0 w-6 h-6 rounded-full bg-gold/15 text-gold text-[11px] font-bold flex items-center justify-center uppercase">
+                        {(m.nickname ?? '익')[0]}
+                      </span>
+                      <p className="text-[13px] text-text leading-snug">
+                        <span className="text-text-hint font-medium mr-1">{m.nickname ?? '익명'}</span>
+                        {m.message}
+                      </p>
+                    </div>
+                  ))
+                )}
+                <div ref={chatEndRef} />
+              </div>
+
+              <div className="px-4 py-3 border-t border-cream-2">
+                {!isLoggedIn && (
+                  <p className="text-[11px] text-text-hint text-center mb-2">
+                    로그인 후 채팅 참여 가능합니다 (읽기는 누구나 가능)
+                  </p>
+                )}
+                <div className="flex gap-2">
+                  <input
+                    value={chatInput}
+                    onChange={(e) => setChatInput(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') sendChatMessage() }}
+                    disabled={!isLoggedIn}
+                    placeholder={isLoggedIn ? '메시지를 입력하세요…' : '로그인 후 채팅 참여 가능'}
+                    className="flex-1 bg-white border border-cream-2 rounded-pill px-4 py-2 text-[14px] text-text placeholder:text-text-hint focus:outline-none focus:shadow-focus transition disabled:bg-cream-3 disabled:cursor-not-allowed"
+                  />
+                  <button
+                    type="button"
+                    onClick={sendChatMessage}
+                    disabled={!isLoggedIn}
+                    className="shrink-0 rounded-pill bg-gold text-white hover:bg-gold-light disabled:opacity-50 disabled:cursor-not-allowed text-[13px] font-medium px-5 py-2 transition-colors"
+                  >
+                    전송
+                  </button>
+                </div>
+              </div>
+            </div>
           </>
         )}
       </main>
