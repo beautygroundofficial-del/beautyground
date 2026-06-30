@@ -27,13 +27,19 @@ export function useLiveChat(liveId: string | undefined): UseLiveChat {
   const [userId, setUserId] = useState<string | null>(null)
   const seenIds = useRef<Set<number>>(new Set())
 
-  // 현재 로그인 유저 확인
+  // 현재 로그인 유저 확인 (+ 세션 변화 반영)
   useEffect(() => {
     let active = true
     supabase.auth.getUser().then(({ data }) => {
       if (active) setUserId(data.user?.id ?? null)
     })
-    return () => { active = false }
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUserId(session?.user?.id ?? null)
+    })
+    return () => {
+      active = false
+      sub.subscription.unsubscribe()
+    }
   }, [])
 
   // 메시지 로드 + 실시간 구독
@@ -81,20 +87,30 @@ export function useLiveChat(liveId: string | undefined): UseLiveChat {
     const trimmed = text.trim()
     if (!trimmed || !liveId) return false
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-    if (!user) return false // 비로그인 차단
+    // (1) 로그인 유저 정확히 가져오기
+    const { data, error: authErr } = await supabase.auth.getUser()
+    const user = data?.user
+    if (authErr || !user) {
+      console.warn('[chat] no session', authErr) // 비로그인/세션없음
+      return false
+    }
 
+    // (2) 닉네임 = 이메일 @ 앞부분
     const nickname = (user.email ?? '').split('@')[0] || '익명'
+
+    // (3) insert — user_id 에 반드시 user.id (RLS with check 통과 핵심)
     const { error } = await supabase.from('chat_messages').insert({
       live_id: liveId,
-      user_id: user.id, // RLS(user_id = auth.uid()) 통과 위해 필수
+      user_id: user.id,
       nickname,
       message: trimmed,
     })
+    if (error) {
+      console.error('[chat] insert failed:', error.message) // RLS면 여기 찍힘
+      return false
+    }
     // 낙관적 추가 안 함 — INSERT 구독으로 본인 메시지도 수신됨
-    return !error
+    return true
   }
 
   return { messages, loading, isLoggedIn: userId !== null, sendMessage }
