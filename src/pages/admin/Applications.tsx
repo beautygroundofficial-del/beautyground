@@ -161,13 +161,15 @@ export default function AdminApplications() {
                         {app.brand_name}
                       </td>
                       <td className="px-4 py-3 text-text-sub">
-                        {app.rep_name ?? '-'}
+                        {app.owner_name ?? '-'}
                       </td>
                       <td className="px-4 py-3 text-text-sub whitespace-nowrap">
                         {app.phone}
                       </td>
                       <td className="px-4 py-3 text-text-sub">
-                        {app.category ?? '-'}
+                        {app.category && app.category.length > 0
+                          ? app.category.join(', ')
+                          : '-'}
                       </td>
                       <td className="px-4 py-3">
                         <span

@@ -7,11 +7,11 @@ export interface PartnerApplication {
   brand_name: string
   company_name: string | null
   biz_number: string | null
-  rep_name: string | null
+  owner_name: string | null
   phone: string
   email: string
-  category: string | null
-  description: string | null
+  category: string[] | null // text[] (ARRAY)
+  message: string | null
   doc_url: string | null
   status: 'pending' | 'approved' | 'rejected'
 }

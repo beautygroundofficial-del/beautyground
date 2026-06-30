@@ -10,11 +10,11 @@ interface FormData {
   brand_name: string
   company_name: string
   biz_number: string
-  rep_name: string
+  owner_name: string
   phone: string
   email: string
   category: string
-  description: string
+  message: string
   agreed: boolean
 }
 
@@ -28,11 +28,11 @@ const INITIAL_FORM: FormData = {
   brand_name: '',
   company_name: '',
   biz_number: '',
-  rep_name: '',
+  owner_name: '',
   phone: '',
   email: '',
   category: '',
-  description: '',
+  message: '',
   agreed: false,
 }
 
@@ -64,17 +64,33 @@ export default function PartnerApply() {
       data: { user },
     } = await supabase.auth.getUser()
 
-    const { agreed, ...rest } = form
-    void agreed
-    const payload = { ...rest, user_id: user?.id ?? null }
+    // 실제 테이블 컬럼명에 맞춰 매핑 (id/created_at 은 DB 기본값이라 제외)
+    const payload = {
+      brand_name: form.brand_name,
+      company_name: form.company_name || null,
+      biz_number: form.biz_number || null,
+      owner_name: form.owner_name || null,
+      phone: form.phone,
+      email: form.email,
+      category: form.category ? [form.category] : [], // category 는 text[] (ARRAY)
+      message: form.message || null,
+      status: 'pending',
+      user_id: user?.id ?? null,
+    }
 
     const { error: insertError } = await supabase
       .from('partner_applications')
-      .insert(payload)
+      .insert([payload])
 
     if (insertError) {
+      console.error('partner_applications insert error:', {
+        message: insertError.message,
+        details: insertError.details,
+        hint: insertError.hint,
+        code: insertError.code,
+      })
       setSubmitting(false)
-      setError('신청 접수 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.')
+      setError(`신청 접수 중 오류가 발생했습니다. (${insertError.message})`)
       return
     }
 
@@ -130,10 +146,10 @@ export default function PartnerApply() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label htmlFor="rep_name" className="block text-[13px] font-medium text-text mb-1.5">
+                  <label htmlFor="owner_name" className="block text-[13px] font-medium text-text mb-1.5">
                     대표자명
                   </label>
-                  <input id="rep_name" name="rep_name" type="text" value={form.rep_name} onChange={handleChange} placeholder="홍길동" className={field} />
+                  <input id="owner_name" name="owner_name" type="text" value={form.owner_name} onChange={handleChange} placeholder="홍길동" className={field} />
                 </div>
                 <div>
                   <label htmlFor="category" className="block text-[13px] font-medium text-text mb-1.5">
@@ -166,10 +182,10 @@ export default function PartnerApply() {
               </div>
 
               <div>
-                <label htmlFor="description" className="block text-[13px] font-medium text-text mb-1.5">
+                <label htmlFor="message" className="block text-[13px] font-medium text-text mb-1.5">
                   브랜드 소개
                 </label>
-                <textarea id="description" name="description" rows={4} value={form.description} onChange={handleChange} placeholder="브랜드 소개, 주요 상품, 라이브 희망 일정 등을 자유롭게 입력해 주세요" className={`${field} resize-none`} />
+                <textarea id="message" name="message" rows={4} value={form.message} onChange={handleChange} placeholder="브랜드 소개, 주요 상품, 라이브 희망 일정 등을 자유롭게 입력해 주세요" className={`${field} resize-none`} />
               </div>
 
               <div className="bg-cream rounded-md p-5 border-l-[3px]" style={{ borderLeftColor: '#b8924a' }}>
