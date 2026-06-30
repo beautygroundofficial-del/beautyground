@@ -1,44 +1,37 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { IconPlus, IconChevronRight, IconVideo, IconPackage, IconCash } from '@tabler/icons-react'
 import { supabase } from '../../lib/supabase'
 import { getMyPartner } from '../../lib/partner'
-import type { Order, Partner } from '../../lib/types'
-import { won, formatDateTime } from '../../lib/format'
-import Button from '../../components/common/Button'
+import type { Order, Partner, Live } from '../../lib/types'
+import StatsCard from '../../components/partner/StatsCard'
 
-const CARD_STYLE = { borderColor: '#e5e0d8', borderWidth: '0.5px' } as const
-
-const STATUS_LABEL: Record<Order['status'], string> = {
-  paid: '결제완료',
-  shipped: '배송중',
-  done: '완료',
-  cancelled: '취소',
+const LIVE_STATUS_MAP: Record<Live['status'], { label: string; bg: string; text: string }> = {
+  scheduled: { label: '예정', bg: 'bg-[#FAEEDA]', text: 'text-[#633806]' },
+  live:      { label: '진행중', bg: 'bg-[#FBEAF0]', text: 'text-[#993556]' },
+  ended:     { label: '완료', bg: 'bg-[#EEEDFE]', text: 'text-[#3C3489]' },
 }
 
-const STATUS_CLASS: Record<Order['status'], string> = {
-  paid: 'bg-gold/15 text-gold',
-  shipped: 'bg-cream-3 text-text-sub',
-  done: 'bg-green-100 text-green-700',
-  cancelled: 'bg-gray-100 text-gray-500',
+const ORDER_STATUS_MAP: Record<Order['status'], { label: string; bg: string; text: string }> = {
+  paid:      { label: '결제완료', bg: 'bg-[#FAEEDA]', text: 'text-[#633806]' },
+  shipped:   { label: '배송중',   bg: 'bg-[#EEEDFE]', text: 'text-[#3C3489]' },
+  done:      { label: '완료',     bg: 'bg-[#E1F5EE]', text: 'text-[#085041]' },
+  cancelled: { label: '취소',     bg: 'bg-[#FAECE7]', text: 'text-[#712B13]' },
 }
 
-function StatusBadge({ status }: { status: Order['status'] }) {
-  return (
-    <span
-      className={`inline-block px-2 py-0.5 rounded-pill text-[12px] ${STATUS_CLASS[status]}`}
-    >
-      {STATUS_LABEL[status]}
-    </span>
-  )
+function formatScheduled(iso: string | null) {
+  if (!iso) return '-'
+  const d = new Date(iso)
+  return `${d.getMonth() + 1}/${d.getDate()} ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`
 }
 
 export default function PartnerDashboard() {
-  const [loading, setLoading] = useState<boolean>(true)
+  const [loading, setLoading] = useState(true)
   const [partner, setPartner] = useState<Partner | null>(null)
-  const [monthSales, setMonthSales] = useState<number>(0)
-  const [orderCount, setOrderCount] = useState<number>(0)
-  const [productCount, setProductCount] = useState<number>(0)
-  const [liveCount, setLiveCount] = useState<number>(0)
+  const [monthSales, setMonthSales] = useState(0)
+  const [orderCount, setOrderCount] = useState(0)
+  const [productCount, setProductCount] = useState(0)
+  const [scheduledLives, setScheduledLives] = useState<Live[]>([])
   const [recentOrders, setRecentOrders] = useState<Order[]>([])
 
   useEffect(() => {
@@ -58,10 +51,10 @@ export default function PartnerDashboard() {
       const now = new Date()
       const startISO = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
 
-      const [salesRes, orderRes, productRes, liveRes, recentRes] = await Promise.all([
+      const [salesRes, orderRes, productRes, livesRes, recentRes] = await Promise.all([
         supabase
           .from('orders')
-          .select('amount,created_at,status')
+          .select('amount,status')
           .eq('partner_id', p.id)
           .gte('created_at', startISO),
         supabase
@@ -74,9 +67,11 @@ export default function PartnerDashboard() {
           .eq('partner_id', p.id),
         supabase
           .from('lives')
-          .select('*', { count: 'exact', head: true })
+          .select('*')
           .eq('partner_id', p.id)
-          .eq('status', 'scheduled'),
+          .eq('status', 'scheduled')
+          .order('scheduled_at', { ascending: true })
+          .limit(3),
         supabase
           .from('orders')
           .select('*, products(name)')
@@ -87,10 +82,7 @@ export default function PartnerDashboard() {
 
       if (!active) return
 
-      const salesRows = (salesRes.data ?? []) as Pick<
-        Order,
-        'amount' | 'status'
-      >[]
+      const salesRows = (salesRes.data ?? []) as Pick<Order, 'amount' | 'status'>[]
       const total = salesRows
         .filter((o) => ['paid', 'shipped', 'done'].includes(o.status))
         .reduce((sum, o) => sum + (o.amount ?? 0), 0)
@@ -98,119 +90,187 @@ export default function PartnerDashboard() {
       setMonthSales(total)
       setOrderCount(orderRes.count ?? 0)
       setProductCount(productRes.count ?? 0)
-      setLiveCount(liveRes.count ?? 0)
+      setScheduledLives((livesRes.data ?? []) as Live[])
       setRecentOrders((recentRes.data ?? []) as Order[])
       setLoading(false)
     }
 
     load()
-    return () => {
-      active = false
-    }
+    return () => { active = false }
   }, [])
 
   if (loading) {
     return (
-      <div>
-        <h1 className="text-[22px] font-bold text-text mb-6">대시보드</h1>
-        <div className="text-[14px] text-text-sub">불러오는 중...</div>
+      <div className="flex items-center justify-center py-24">
+        <p className="text-[14px] text-[#9a9080]">불러오는 중...</p>
       </div>
     )
   }
 
   if (!partner) {
     return (
-      <div>
-        <h1 className="text-[22px] font-bold text-text mb-6">대시보드</h1>
-        <div className="bg-white rounded-md border p-8 text-center" style={CARD_STYLE}>
-          <p className="text-[16px] font-semibold text-text mb-2">입점 승인 대기 중입니다</p>
-          <p className="text-[14px] text-text-sub">
-            입점 심사가 완료되면 파트너 센터를 이용하실 수 있습니다.
-          </p>
-        </div>
+      <div className="max-w-md mx-auto mt-16 bg-white rounded-[14px] border border-[#e5e0d8] p-10 text-center">
+        <p className="text-[16px] font-semibold text-[#111] mb-2">입점 승인 대기 중입니다</p>
+        <p className="text-[14px] text-[#9a9080]">
+          입점 심사가 완료되면 파트너 센터를 이용하실 수 있습니다.
+        </p>
       </div>
     )
   }
 
-  const summaryCards: { label: string; value: string }[] = [
-    { label: '이번 달 매출', value: won(monthSales) },
-    { label: '누적 주문', value: `${orderCount}건` },
-    { label: '등록 상품 수', value: `${productCount}개` },
-    { label: '예정 라이브 수', value: `${liveCount}건` },
-  ]
-
   return (
-    <div>
-      <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
-        <h1 className="text-[22px] font-bold text-text">대시보드</h1>
-        <div className="flex items-center gap-2">
-          <Link to="/partner/products/new">
-            <Button variant="gold" size="sm" label="상품 등록" />
-          </Link>
-          <Link to="/partner/live/new">
-            <Button variant="outline" size="sm" label="라이브 예약" />
-          </Link>
-        </div>
+    <>
+      {/* 통계 카드 4개 */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <StatsCard label="이번 달 매출" value={monthSales} unit="원" color="#b8924a" />
+        <StatsCard label="총 주문 수" value={orderCount} unit="건" />
+        <StatsCard label="등록 상품 수" value={productCount} unit="개" />
+        <StatsCard label="예정된 라이브" value={scheduledLives.length} unit="건" />
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-        {summaryCards.map((card) => (
-          <div
-            key={card.label}
-            className="bg-white rounded-md border p-5"
-            style={CARD_STYLE}
-          >
-            <p className="text-[13px] text-text-sub mb-2">{card.label}</p>
-            <p className="text-[20px] font-bold text-text">{card.value}</p>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+        {/* 예정된 라이브 */}
+        <div className="lg:col-span-1 bg-white rounded-[14px] border border-[#e5e0d8] p-6">
+          <div className="flex items-center justify-between mb-5">
+            <h2 className="text-[14px] font-bold text-[#111]">예정된 라이브</h2>
+            <Link
+              to="/partner/live/new"
+              className="flex items-center gap-1 text-[12px] text-[#b8924a] hover:underline"
+            >
+              <IconPlus size={13} />
+              라이브 예약
+            </Link>
           </div>
-        ))}
-      </div>
 
-      <div className="bg-white rounded-md border p-6" style={CARD_STYLE}>
-        <h2 className="text-[16px] font-semibold text-text mb-4">최근 주문 5건</h2>
-        <div className="overflow-x-auto">
-          <table className="w-full text-[14px]">
-            <thead>
-              <tr className="text-left text-text-hint border-b" style={CARD_STYLE}>
-                <th className="py-3 pr-4 font-medium whitespace-nowrap">주문일</th>
-                <th className="py-3 pr-4 font-medium whitespace-nowrap">상품</th>
-                <th className="py-3 pr-4 font-medium whitespace-nowrap">구매자</th>
-                <th className="py-3 pr-4 font-medium whitespace-nowrap">수량</th>
-                <th className="py-3 pr-4 font-medium whitespace-nowrap">금액</th>
-                <th className="py-3 font-medium whitespace-nowrap">상태</th>
-              </tr>
-            </thead>
-            <tbody>
-              {recentOrders.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="py-8 text-center text-text-hint">
-                    주문 내역이 없습니다.
-                  </td>
+          {scheduledLives.length === 0 ? (
+            <div className="text-center py-8">
+              <IconVideo size={32} className="text-[#e5e0d8] mx-auto mb-2" />
+              <p className="text-[13px] text-[#9a9080]">예정된 라이브가 없습니다.</p>
+              <Link
+                to="/partner/live/new"
+                className="text-[12px] text-[#b8924a] hover:underline mt-1 inline-block"
+              >
+                라이브 예약하기
+              </Link>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {scheduledLives.map((live) => {
+                const badge = LIVE_STATUS_MAP[live.status]
+                return (
+                  <Link
+                    key={live.id}
+                    to={`/partner/live/${live.id}`}
+                    className="block p-4 bg-[#f7f4ef] rounded-xl hover:bg-[#f0ece6] transition-colors"
+                  >
+                    <div className="flex items-start justify-between mb-1">
+                      <p className="text-[13px] font-semibold text-[#111] leading-tight">
+                        {live.title}
+                      </p>
+                      <span
+                        className={`ml-2 shrink-0 text-[11px] font-medium px-2 py-0.5 rounded ${badge.bg} ${badge.text}`}
+                      >
+                        {badge.label}
+                      </span>
+                    </div>
+                    <p className="text-[12px] text-[#9a9080]">
+                      {formatScheduled(live.scheduled_at)}
+                    </p>
+                  </Link>
+                )
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* 최근 주문 */}
+        <div className="lg:col-span-2 bg-white rounded-[14px] border border-[#e5e0d8] p-6">
+          <div className="flex items-center justify-between mb-5">
+            <h2 className="text-[14px] font-bold text-[#111]">최근 주문</h2>
+            <Link
+              to="/partner/orders"
+              className="flex items-center gap-1 text-[12px] text-[#b8924a] hover:underline"
+            >
+              전체 보기 <IconChevronRight size={13} />
+            </Link>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-[#eee]">
+                  {['주문번호', '상품명', '금액', '상태', '주문일'].map((col) => (
+                    <th
+                      key={col}
+                      className="text-left text-[11px] text-[#9a9080] uppercase tracking-wider pb-3 font-medium pr-4"
+                    >
+                      {col}
+                    </th>
+                  ))}
                 </tr>
-              ) : (
-                recentOrders.map((o) => (
-                  <tr key={o.id} className="border-b" style={CARD_STYLE}>
-                    <td className="py-3 pr-4 text-text-sub whitespace-nowrap">
-                      {formatDateTime(o.created_at)}
-                    </td>
-                    <td className="py-3 pr-4 text-text">
-                      {(o as any).products?.name ?? '-'}
-                    </td>
-                    <td className="py-3 pr-4 text-text">{o.buyer_name ?? '-'}</td>
-                    <td className="py-3 pr-4 text-text">{o.quantity}</td>
-                    <td className="py-3 pr-4 text-text whitespace-nowrap">
-                      {won(o.amount)}
-                    </td>
-                    <td className="py-3">
-                      <StatusBadge status={o.status} />
+              </thead>
+              <tbody>
+                {recentOrders.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="py-10 text-center text-[13px] text-[#9a9080]">
+                      주문 내역이 없습니다.
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                ) : (
+                  recentOrders.map((order) => {
+                    const badge = ORDER_STATUS_MAP[order.status]
+                    const d = new Date(order.created_at)
+                    return (
+                      <tr
+                        key={order.id}
+                        className="border-b border-[#eee] hover:bg-[#fdf3e7] transition-colors"
+                      >
+                        <td className="py-3.5 pr-4 text-[12px] text-[#555] font-mono">
+                          {order.id.slice(0, 8)}
+                        </td>
+                        <td className="py-3.5 pr-4 text-[13px] text-[#111] max-w-[140px] truncate">
+                          {(order as any).products?.name ?? '-'}
+                        </td>
+                        <td className="py-3.5 pr-4 text-[13px] text-[#111] font-medium">
+                          {order.amount.toLocaleString()}원
+                        </td>
+                        <td className="py-3.5 pr-4">
+                          <span
+                            className={`text-[11px] font-medium px-2 py-0.5 rounded ${badge.bg} ${badge.text}`}
+                          >
+                            {badge.label}
+                          </span>
+                        </td>
+                        <td className="py-3.5 text-[12px] text-[#9a9080]">
+                          {d.getMonth() + 1}/{d.getDate()}
+                        </td>
+                      </tr>
+                    )
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
-    </div>
+
+      {/* 빠른 실행 버튼 */}
+      <div className="grid grid-cols-3 gap-4">
+        {[
+          { label: '상품 등록하기', to: '/partner/products/new', icon: IconPackage },
+          { label: '라이브 예약하기', to: '/partner/live/new', icon: IconVideo },
+          { label: '정산 내역 확인', to: '/partner/settlement', icon: IconCash },
+        ].map(({ label, to, icon: Icon }) => (
+          <Link
+            key={to}
+            to={to}
+            className="flex items-center justify-center gap-2 bg-white border border-[#e5e0d8] rounded-xl py-4 text-[13px] font-medium text-[#555] hover:border-[#b8924a] hover:text-[#b8924a] transition-colors"
+          >
+            <Icon size={18} />
+            {label}
+          </Link>
+        ))}
+      </div>
+    </>
   )
 }
