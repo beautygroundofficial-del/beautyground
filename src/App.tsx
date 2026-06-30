@@ -59,6 +59,7 @@ export default function App() {
             <Route path="/partner/products/:id/edit" element={<ProductForm />} />
             <Route path="/partner/live" element={<PartnerLives />} />
             <Route path="/partner/live/new" element={<LiveForm />} />
+            <Route path="/partner/live/:id/edit" element={<LiveForm />} />
             <Route path="/partner/live/:id" element={<LiveDetail />} />
             <Route path="/partner/orders" element={<PartnerOrders />} />
             <Route path="/partner/settlement" element={<PartnerSettlement />} />

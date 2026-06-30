@@ -110,6 +110,14 @@ export default function LiveDetail() {
           {live.status === 'live' && <span className="w-1.5 h-1.5 rounded-full bg-[#993556] animate-pulse" />}
           {badge.label}
         </span>
+        {live.status === 'scheduled' && (
+          <Link
+            to={`/partner/live/${live.id}/edit`}
+            className="shrink-0 text-[12px] text-[#9a9080] hover:text-[#b8924a] hover:underline"
+          >
+            수정
+          </Link>
+        )}
       </div>
 
       {/* 3컬럼 그리드 */}

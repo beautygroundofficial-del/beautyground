@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { IconPlus, IconVideo } from '@tabler/icons-react'
+import { IconPlus, IconVideo, IconPencil, IconTrash } from '@tabler/icons-react'
 import { supabase } from '../../lib/supabase'
 import { getMyPartner } from '../../lib/partner'
 import type { Live } from '../../lib/types'
@@ -32,6 +32,8 @@ export default function PartnerLives() {
   const [noPartner, setNoPartner] = useState(false)
   const [lives, setLives] = useState<Live[]>([])
   const [filter, setFilter] = useState<StatusFilter>('all')
+  const [confirmDel, setConfirmDel] = useState<Live | null>(null)
+  const [deleting, setDeleting] = useState(false)
 
   useEffect(() => {
     let active = true
@@ -53,6 +55,15 @@ export default function PartnerLives() {
   }, [])
 
   const visible = filter === 'all' ? lives : lives.filter(l => l.status === filter)
+
+  const handleDelete = async () => {
+    if (!confirmDel) return
+    setDeleting(true)
+    const { error } = await supabase.from('lives').delete().eq('id', confirmDel.id)
+    if (!error) setLives(prev => prev.filter(l => l.id !== confirmDel.id))
+    setDeleting(false)
+    setConfirmDel(null)
+  }
 
   if (loading) {
     return (
@@ -181,10 +192,56 @@ export default function PartnerLives() {
                       </Link>
                     )}
                   </div>
+
+                  {/* 수정 / 삭제 */}
+                  <div className="flex gap-2 mt-2">
+                    {live.status === 'scheduled' && (
+                      <Link
+                        to={`/partner/live/${live.id}/edit`}
+                        className="flex-1 flex items-center justify-center gap-1 text-[12px] text-[#555] border border-[#e5e0d8] py-1.5 rounded-lg hover:border-[#b8924a] hover:text-[#b8924a] transition-colors"
+                      >
+                        <IconPencil size={13} />수정
+                      </Link>
+                    )}
+                    <button
+                      onClick={() => setConfirmDel(live)}
+                      className="flex-1 flex items-center justify-center gap-1 text-[12px] text-red-500 border border-[#f0d6d6] py-1.5 rounded-lg hover:bg-red-50 transition-colors"
+                    >
+                      <IconTrash size={13} />삭제
+                    </button>
+                  </div>
                 </div>
               </div>
             )
           })}
+        </div>
+      )}
+
+      {/* 삭제 확인 모달 */}
+      {confirmDel && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" role="dialog" aria-modal="true">
+          <div className="bg-white rounded-[14px] p-6 max-w-sm w-full">
+            <p className="text-[15px] font-bold text-[#111] mb-1">라이브를 삭제할까요?</p>
+            <p className="text-[13px] text-[#9a9080] mb-5">
+              "{confirmDel.title}" 라이브가 영구 삭제됩니다.
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setConfirmDel(null)}
+                disabled={deleting}
+                className="flex-1 py-2.5 border border-[#e5e0d8] text-[#555] rounded-lg text-[13px] hover:bg-[#f7f4ef] transition-colors"
+              >
+                취소
+              </button>
+              <button
+                onClick={handleDelete}
+                disabled={deleting}
+                className="flex-1 py-2.5 bg-red-600 hover:bg-red-700 disabled:opacity-60 text-white font-semibold rounded-lg text-[13px] transition-colors"
+              >
+                {deleting ? '삭제 중...' : '삭제'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </>

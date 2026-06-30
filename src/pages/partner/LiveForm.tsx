@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { IconCalendar, IconPackage, IconCheck, IconTag } from '@tabler/icons-react'
 import { supabase } from '../../lib/supabase'
 import { getMyPartner } from '../../lib/partner'
+import type { Live } from '../../lib/types'
 
 const inputCls =
   'w-full border border-[#e5e0d8] rounded-lg px-3.5 py-2.5 text-[13px] text-[#111] placeholder:text-[#bbb] focus:outline-none focus:border-[#b8924a] transition-colors bg-white'
@@ -17,6 +18,8 @@ interface ProductOption {
 
 export default function LiveForm() {
   const navigate = useNavigate()
+  const { id } = useParams<{ id: string }>()
+  const isEdit = Boolean(id)
   const [loading, setLoading] = useState(true)
   const [pending, setPending] = useState(false)
   const [partnerId, setPartnerId] = useState('')
@@ -46,11 +49,30 @@ export default function LiveForm() {
         .eq('status', 'on_sale')
       if (!active) return
       setProducts((data as ProductOption[]) ?? [])
+
+      // 수정 모드: 기존 라이브 로드
+      if (isEdit && id) {
+        const { data: liveRow } = await supabase.from('lives').select('*').eq('id', id).single()
+        if (!active) return
+        const lr = liveRow as Live | null
+        if (lr) {
+          setTitle(lr.title)
+          setThumbnailUrl(lr.thumbnail_url ?? '')
+          setSelectedIds(lr.product_ids ?? [])
+          if (lr.scheduled_at) {
+            const d = new Date(lr.scheduled_at)
+            const pad = (n: number) => String(n).padStart(2, '0')
+            setSchedDate(`${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`)
+            setSchedTime(`${pad(d.getHours())}:${pad(d.getMinutes())}`)
+          }
+        }
+      }
+
       setLoading(false)
     }
     load()
     return () => { active = false }
-  }, [])
+  }, [id, isEdit])
 
   const toggleProduct = (id: string) => {
     setSelectedIds(prev => prev.includes(id) ? prev.filter(p => p !== id) : [...prev, id])
@@ -66,14 +88,16 @@ export default function LiveForm() {
 
     setSubmitting(true)
     const scheduledAt = new Date(`${schedDate}T${schedTime}:00`).toISOString()
-    const { error: err } = await supabase.from('lives').insert({
-      partner_id: partnerId,
+    const fields = {
       title: title.trim(),
       scheduled_at: scheduledAt,
       thumbnail_url: thumbnailUrl || null,
       product_ids: selectedIds,
-      status: 'scheduled',
-    })
+    }
+
+    const { error: err } = isEdit && id
+      ? await supabase.from('lives').update(fields).eq('id', id)
+      : await supabase.from('lives').insert({ ...fields, partner_id: partnerId, status: 'scheduled' })
 
     if (err) { setError('라이브 저장에 실패했습니다. 다시 시도해 주세요.'); setSubmitting(false); return }
     navigate('/partner/live')
@@ -280,7 +304,7 @@ export default function LiveForm() {
           disabled={submitting}
           className="flex-1 py-2.5 bg-[#b8924a] hover:bg-[#a07c3b] disabled:opacity-60 text-white font-semibold rounded-lg text-[13px] transition-colors"
         >
-          {submitting ? '저장 중...' : '라이브 예약'}
+          {submitting ? '저장 중...' : isEdit ? '라이브 수정' : '라이브 예약'}
         </button>
       </div>
     </form>
