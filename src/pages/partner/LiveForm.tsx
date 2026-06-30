@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { IconCalendar, IconPackage } from '@tabler/icons-react'
+import { IconCalendar, IconPackage, IconCheck, IconTag } from '@tabler/icons-react'
 import { supabase } from '../../lib/supabase'
 import { getMyPartner } from '../../lib/partner'
 
@@ -10,6 +10,9 @@ const inputCls =
 interface ProductOption {
   id: string
   name: string
+  thumbnail_url: string | null
+  price: number
+  sale_price: number | null
 }
 
 export default function LiveForm() {
@@ -20,7 +23,10 @@ export default function LiveForm() {
   const [products, setProducts] = useState<ProductOption[]>([])
 
   const [title, setTitle] = useState('')
-  const [scheduledLocal, setScheduledLocal] = useState('')
+  const [schedDate, setSchedDate] = useState('')
+  const [schedTime, setSchedTime] = useState('')
+  const [duration, setDuration] = useState('60')
+  const [description, setDescription] = useState('')
   const [thumbnailUrl, setThumbnailUrl] = useState('')
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [submitting, setSubmitting] = useState(false)
@@ -32,9 +38,12 @@ export default function LiveForm() {
       const partner = await getMyPartner()
       if (!active) return
       if (!partner) { setPending(true); setLoading(false); return }
-
       setPartnerId(partner.id)
-      const { data } = await supabase.from('products').select('id,name').eq('partner_id', partner.id)
+      const { data } = await supabase
+        .from('products')
+        .select('id,name,thumbnail_url,price,sale_price')
+        .eq('partner_id', partner.id)
+        .eq('status', 'on_sale')
       if (!active) return
       setProducts((data as ProductOption[]) ?? [])
       setLoading(false)
@@ -53,13 +62,14 @@ export default function LiveForm() {
     setError('')
 
     if (!title.trim()) { setError('라이브 제목을 입력해 주세요.'); return }
-    if (!scheduledLocal) { setError('방송 일시를 입력해 주세요.'); return }
+    if (!schedDate || !schedTime) { setError('방송 일시를 입력해 주세요.'); return }
 
     setSubmitting(true)
+    const scheduledAt = new Date(`${schedDate}T${schedTime}:00`).toISOString()
     const { error: err } = await supabase.from('lives').insert({
       partner_id: partnerId,
       title: title.trim(),
-      scheduled_at: new Date(scheduledLocal).toISOString(),
+      scheduled_at: scheduledAt,
       thumbnail_url: thumbnailUrl || null,
       product_ids: selectedIds,
       status: 'scheduled',
@@ -88,29 +98,63 @@ export default function LiveForm() {
 
   return (
     <form onSubmit={handleSubmit} className="max-w-2xl space-y-5">
+      {/* 방송 기본 정보 */}
       <div className="bg-white rounded-[14px] border border-[#e5e0d8] p-6 space-y-5">
-        <h3 className="text-[13px] font-bold text-[#111]">기본 정보</h3>
+        <h3 className="text-[14px] font-bold text-[#111]">방송 기본 정보</h3>
 
         <div>
-          <label className="block text-[12px] font-semibold text-[#555] mb-1.5">라이브 제목 *</label>
+          <label className="block text-[12px] font-semibold text-[#555] mb-1.5">방송 제목 *</label>
           <input
             type="text"
             value={title}
             onChange={e => setTitle(e.target.value)}
-            placeholder="라이브 제목을 입력하세요"
+            placeholder='예: "브랜드와 함께하는 스킨케어 특집"'
             className={inputCls}
           />
         </div>
 
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="flex items-center gap-1.5 text-[12px] font-semibold text-[#555] mb-1.5">
+              <IconCalendar size={13} />방송 예정일 *
+            </label>
+            <input
+              type="date"
+              value={schedDate}
+              onChange={e => setSchedDate(e.target.value)}
+              className={inputCls}
+            />
+          </div>
+          <div>
+            <label className="block text-[12px] font-semibold text-[#555] mb-1.5">방송 예정 시간 *</label>
+            <input
+              type="time"
+              value={schedTime}
+              onChange={e => setSchedTime(e.target.value)}
+              className={inputCls}
+            />
+          </div>
+        </div>
+
         <div>
-          <label className="flex items-center gap-1.5 text-[12px] font-semibold text-[#555] mb-1.5">
-            <IconCalendar size={13} />방송 일시 *
-          </label>
-          <input
-            type="datetime-local"
-            value={scheduledLocal}
-            onChange={e => setScheduledLocal(e.target.value)}
-            className={inputCls}
+          <label className="block text-[12px] font-semibold text-[#555] mb-1.5">예상 방송 시간</label>
+          <select value={duration} onChange={e => setDuration(e.target.value)} className={inputCls}>
+            <option value="30">30분</option>
+            <option value="60">1시간</option>
+            <option value="90">1시간 30분</option>
+            <option value="120">2시간</option>
+            <option value="180">3시간</option>
+          </select>
+        </div>
+
+        <div>
+          <label className="block text-[12px] font-semibold text-[#555] mb-1.5">방송 설명</label>
+          <textarea
+            value={description}
+            onChange={e => setDescription(e.target.value)}
+            rows={3}
+            placeholder="방송 내용을 간략히 소개해주세요"
+            className={`${inputCls} resize-none`}
           />
         </div>
 
@@ -129,9 +173,10 @@ export default function LiveForm() {
         </div>
       </div>
 
+      {/* 판매 상품 */}
       <div className="bg-white rounded-[14px] border border-[#e5e0d8] p-6">
-        <h3 className="flex items-center gap-1.5 text-[13px] font-bold text-[#111] mb-4">
-          <IconPackage size={14} />판매 상품
+        <h3 className="flex items-center gap-1.5 text-[14px] font-bold text-[#111] mb-4">
+          <IconPackage size={14} />판매 상품 선택
         </h3>
 
         {products.length === 0 ? (
@@ -142,26 +187,80 @@ export default function LiveForm() {
             </Link>
           </p>
         ) : (
-          <div className="flex flex-wrap gap-2">
+          <div className="space-y-2">
             {products.map(product => {
               const selected = selectedIds.includes(product.id)
+              const displayPrice = product.sale_price ?? product.price
               return (
-                <button
+                <div
                   key={product.id}
-                  type="button"
                   onClick={() => toggleProduct(product.id)}
-                  className={`px-3.5 py-2 rounded-lg text-[13px] border transition-colors ${
-                    selected
-                      ? 'bg-[#b8924a] border-[#b8924a] text-white font-medium'
-                      : 'bg-white border-[#e5e0d8] text-[#555] hover:border-[#b8924a]'
+                  className={`flex items-center gap-4 p-4 rounded-xl border cursor-pointer transition-colors ${
+                    selected ? 'border-[#b8924a] bg-[#fdf8f0]' : 'border-[#e5e0d8] hover:border-[#b8924a]'
                   }`}
                 >
-                  {selected ? '✓ ' : ''}{product.name}
-                </button>
+                  <div className={`w-5 h-5 rounded flex items-center justify-center border transition-colors shrink-0 ${
+                    selected ? 'bg-[#b8924a] border-[#b8924a]' : 'border-[#e5e0d8]'
+                  }`}>
+                    {selected && <IconCheck size={12} color="white" />}
+                  </div>
+                  <div className="w-12 h-12 bg-[#f7f4ef] rounded-lg flex items-center justify-center overflow-hidden shrink-0">
+                    {product.thumbnail_url
+                      ? <img src={product.thumbnail_url} alt={product.name} className="w-full h-full object-cover" />
+                      : <span className="text-[10px] text-[#bbb]">이미지</span>}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[13px] font-semibold text-[#111] truncate">{product.name}</p>
+                    <p className="text-[12px] text-[#9a9080]">{displayPrice.toLocaleString()}원</p>
+                  </div>
+                </div>
               )
             })}
           </div>
         )}
+
+        {selectedIds.length > 0 && (
+          <p className="text-[12px] text-[#b8924a] mt-3">{selectedIds.length}개 상품 선택됨</p>
+        )}
+      </div>
+
+      {/* 쿠폰 설정 (UI only - 추후 지원 예정) */}
+      <div className="bg-white rounded-[14px] border border-[#e5e0d8] p-6 space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="flex items-center gap-1.5 text-[14px] font-bold text-[#111]">
+            <IconTag size={14} />라이브 전용 쿠폰 (선택)
+          </h3>
+          <span className="text-[11px] text-[#9a9080] bg-[#f7f4ef] px-2 py-0.5 rounded">준비 중</span>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="block text-[12px] font-semibold text-[#555] mb-1.5">할인 금액 또는 할인율</label>
+            <input
+              disabled
+              placeholder="예: 5000 또는 10%"
+              className={`${inputCls} opacity-50 cursor-not-allowed`}
+            />
+          </div>
+          <div>
+            <label className="block text-[12px] font-semibold text-[#555] mb-1.5">최소 구매 금액 (원)</label>
+            <input
+              disabled
+              type="number"
+              placeholder="0"
+              className={`${inputCls} opacity-50 cursor-not-allowed`}
+            />
+          </div>
+        </div>
+        <div>
+          <label className="block text-[12px] font-semibold text-[#555] mb-1.5">수량 제한</label>
+          <input
+            disabled
+            type="number"
+            placeholder="0 (무제한)"
+            className={`${inputCls} opacity-50 cursor-not-allowed`}
+          />
+        </div>
+        <p className="text-[11px] text-[#9a9080]">쿠폰 기능은 추후 지원 예정입니다.</p>
       </div>
 
       {error && (
