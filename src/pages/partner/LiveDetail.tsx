@@ -3,12 +3,7 @@ import { Link, useParams } from 'react-router-dom'
 import { IconArrowLeft, IconVideo, IconSend, IconPin, IconShoppingBag } from '@tabler/icons-react'
 import { supabase } from '../../lib/supabase'
 import type { Live, Product } from '../../lib/types'
-
-interface ChatMsg {
-  id: number
-  user: string
-  text: string
-}
+import { useLiveChat } from '../../hooks/useLiveChat'
 
 const STATUS: Record<Live['status'], { label: string; bg: string; text: string }> = {
   scheduled: { label: '예정',  bg: 'bg-[#FAEEDA]', text: 'text-[#633806]' },
@@ -23,8 +18,8 @@ export default function LiveDetail() {
   const [products, setProducts] = useState<Product[]>([])
   const [updating, setUpdating] = useState(false)
 
-  // 채팅 상태 (로컬 플레이스홀더)
-  const [messages, setMessages] = useState<ChatMsg[]>([])
+  // 실시간 채팅 (Supabase Realtime)
+  const { messages, loading: chatLoading, isLoggedIn, sendMessage: sendChat } = useLiveChat(id)
   const [chatInput, setChatInput] = useState('')
   const [pinnedMsg, setPinnedMsg] = useState('')
   const chatEndRef = useRef<HTMLDivElement>(null)
@@ -63,10 +58,10 @@ export default function LiveDetail() {
     setUpdating(false)
   }
 
-  const sendMessage = () => {
+  const sendMessage = async () => {
     if (!chatInput.trim()) return
-    setMessages(prev => [...prev, { id: Date.now(), user: '파트너', text: chatInput.trim() }])
-    setChatInput('')
+    const ok = await sendChat(chatInput)
+    if (ok) setChatInput('')
   }
 
   const pinMessage = () => {
@@ -201,19 +196,19 @@ export default function LiveDetail() {
           </div>
 
           <div className="flex-1 overflow-y-auto p-4 space-y-2">
-            {messages.length === 0 ? (
-              <div className="text-center py-8 text-[#9a9080] text-[13px]">
-                채팅 메시지가 없습니다.
-              </div>
+            {chatLoading ? (
+              <div className="text-center py-8 text-[#9a9080] text-[13px]">채팅 불러오는 중...</div>
+            ) : messages.length === 0 ? (
+              <div className="text-center py-8 text-[#9a9080] text-[13px]">첫 메시지를 남겨보세요</div>
             ) : (
               messages.map(msg => (
                 <div key={msg.id} className="flex gap-2">
-                  <div className="w-6 h-6 rounded-full bg-[#b8924a] flex items-center justify-center text-[10px] text-white shrink-0 mt-0.5">
-                    P
+                  <div className="w-6 h-6 rounded-full bg-[#b8924a] flex items-center justify-center text-[10px] text-white shrink-0 mt-0.5 uppercase">
+                    {(msg.nickname ?? '익')[0]}
                   </div>
                   <div>
-                    <span className="text-[11px] text-[#9a9080] font-medium">{msg.user} </span>
-                    <span className="text-[13px] text-[#333]">{msg.text}</span>
+                    <span className="text-[11px] text-[#9a9080] font-medium">{msg.nickname ?? '익명'} </span>
+                    <span className="text-[13px] text-[#333]">{msg.message}</span>
                   </div>
                 </div>
               ))
@@ -221,27 +216,37 @@ export default function LiveDetail() {
             <div ref={chatEndRef} />
           </div>
 
-          <div className="px-4 py-3 border-t border-[#eee] flex gap-2 shrink-0">
-            <input
-              value={chatInput}
-              onChange={e => setChatInput(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && sendMessage()}
-              placeholder="공지 메시지 입력..."
-              className="flex-1 border border-[#e5e0d8] rounded-lg px-3 py-2 text-[13px] focus:outline-none focus:border-[#b8924a]"
-            />
-            <button
-              onClick={pinMessage}
-              className="w-9 h-9 flex items-center justify-center bg-[#f7f4ef] text-[#b8924a] rounded-lg hover:bg-[#eee] transition-colors"
-              title="공지 고정"
-            >
-              <IconPin size={16} />
-            </button>
-            <button
-              onClick={sendMessage}
-              className="w-9 h-9 flex items-center justify-center bg-[#b8924a] text-white rounded-lg hover:bg-[#a07c3b] transition-colors"
-            >
-              <IconSend size={16} />
-            </button>
+          <div className="px-4 py-3 border-t border-[#eee] shrink-0">
+            {!isLoggedIn && (
+              <p className="text-[11px] text-[#9a9080] text-center mb-2">
+                로그인 후 채팅 참여 가능합니다 (읽기는 누구나 가능)
+              </p>
+            )}
+            <div className="flex gap-2">
+              <input
+                value={chatInput}
+                onChange={e => setChatInput(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') sendMessage() }}
+                disabled={!isLoggedIn}
+                placeholder={isLoggedIn ? '메시지를 입력하세요...' : '로그인 후 채팅 참여 가능'}
+                className="flex-1 border border-[#e5e0d8] rounded-lg px-3 py-2 text-[13px] focus:outline-none focus:border-[#b8924a] disabled:bg-[#f7f4ef] disabled:cursor-not-allowed"
+              />
+              <button
+                onClick={pinMessage}
+                disabled={!isLoggedIn}
+                className="w-9 h-9 flex items-center justify-center bg-[#f7f4ef] text-[#b8924a] rounded-lg hover:bg-[#eee] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                title="공지 고정"
+              >
+                <IconPin size={16} />
+              </button>
+              <button
+                onClick={sendMessage}
+                disabled={!isLoggedIn}
+                className="w-9 h-9 flex items-center justify-center bg-[#b8924a] text-white rounded-lg hover:bg-[#a07c3b] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                <IconSend size={16} />
+              </button>
+            </div>
           </div>
         </div>
 
