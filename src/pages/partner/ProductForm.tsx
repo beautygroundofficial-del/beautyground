@@ -1,8 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { IconUpload, IconToggleRight, IconToggleLeft } from '@tabler/icons-react'
+import {
+  IconUpload, IconToggleRight, IconToggleLeft,
+  IconArrowUp, IconArrowDown, IconTrash, IconScissors,
+} from '@tabler/icons-react'
 import { supabase } from '../../lib/supabase'
 import { getMyPartner } from '../../lib/partner'
+import { splitAndUploadLongImage } from '../../lib/splitLongImage'
 import type { Product } from '../../lib/types'
 import { PRODUCT_CATEGORIES } from '../../lib/types'
 
@@ -13,18 +17,28 @@ export default function ProductForm() {
   const { id } = useParams<{ id: string }>()
   const isEdit = Boolean(id)
   const navigate = useNavigate()
+
+  // 대표 이미지 업로드
   const fileInputRef = useRef<HTMLInputElement>(null)
+  // 자동 분할 업로드
+  const splitFileRef = useRef<HTMLInputElement>(null)
 
   const [loading, setLoading] = useState<boolean>(isEdit)
   const [submitting, setSubmitting] = useState<boolean>(false)
   const [error, setError] = useState<string>('')
   const [liveEnabled, setLiveEnabled] = useState(false)
 
-  // 파일 업로드 상태
+  // 파트너 정보
   const [partnerId, setPartnerId] = useState<string>('')
+
+  // 대표 이미지 업로드 상태
   const [uploading, setUploading] = useState(false)
   const [uploadError, setUploadError] = useState('')
   const [dragOver, setDragOver] = useState(false)
+
+  // 분할 업로드 상태
+  const [splitProgress, setSplitProgress] = useState<{ done: number; total: number } | null>(null)
+  const [splitError, setSplitError] = useState('')
 
   // 상품 필드
   const [name, setName] = useState<string>('')
@@ -35,8 +49,9 @@ export default function ProductForm() {
   const [thumbnailUrl, setThumbnailUrl] = useState<string>('')
   const [description, setDescription] = useState<string>('')
   const [status, setStatus] = useState<Product['status']>('on_sale')
+  const [detailImages, setDetailImages] = useState<string[]>([])
 
-  // 파트너 id 미리 가져오기 (업로드 경로에 사용)
+  // 파트너 ID 미리 가져오기
   useEffect(() => {
     getMyPartner().then(p => { if (p) setPartnerId(p.id) })
   }, [])
@@ -45,7 +60,6 @@ export default function ProductForm() {
   useEffect(() => {
     if (!isEdit) return
     let active = true
-
     supabase.from('products').select('*').eq('id', id).single().then(({ data }) => {
       if (!active || !data) return
       const p = data as Product
@@ -57,49 +71,68 @@ export default function ProductForm() {
       setThumbnailUrl(p.thumbnail_url ?? '')
       setDescription(p.description ?? '')
       setStatus(p.status)
+      setDetailImages(p.detail_images ?? [])
       setLoading(false)
     })
-
     return () => { active = false }
   }, [id, isEdit])
 
-  // 파일 업로드 처리
+  // ── 대표 이미지 업로드 ──────────────────────────────────────────────────────
   const handleFileUpload = async (file: File) => {
     setUploadError('')
-
-    if (!file.type.startsWith('image/')) {
-      setUploadError('이미지 파일만 업로드할 수 있습니다.')
-      return
-    }
-    if (file.size > 5 * 1024 * 1024) {
-      setUploadError('이미지는 5MB 이하만 업로드할 수 있습니다.')
-      return
-    }
-
+    if (!file.type.startsWith('image/')) { setUploadError('이미지 파일만 업로드할 수 있습니다.'); return }
+    if (file.size > 5 * 1024 * 1024) { setUploadError('이미지는 5MB 이하만 업로드할 수 있습니다.'); return }
     setUploading(true)
     const folder = partnerId || 'temp'
     const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_')
     const path = `${folder}/${Date.now()}_${safeName}`
-
-    const { error: uploadErr } = await supabase.storage
-      .from('product-images')
-      .upload(path, file)
-
-    if (uploadErr) {
-      setUploadError('업로드에 실패했습니다. 다시 시도해 주세요.')
-      setUploading(false)
-      return
-    }
-
+    const { error: uploadErr } = await supabase.storage.from('product-images').upload(path, file)
+    if (uploadErr) { setUploadError('업로드에 실패했습니다. 다시 시도해 주세요.'); setUploading(false); return }
     const { data } = supabase.storage.from('product-images').getPublicUrl(path)
     setThumbnailUrl(data.publicUrl)
     setUploading(false)
   }
 
+  // ── 자동 분할 업로드 ────────────────────────────────────────────────────────
+  const handleSplitFile = async (file: File) => {
+    setSplitError('')
+    if (!file.type.startsWith('image/')) { setSplitError('이미지 파일만 선택해 주세요.'); return }
+    setSplitProgress({ done: 0, total: 0 })
+    try {
+      const keyPrefix = partnerId
+        ? `${partnerId}/detail_${Date.now()}`
+        : `temp/detail_${Date.now()}`
+      const urls = await splitAndUploadLongImage(file, keyPrefix, (done, total) => {
+        setSplitProgress({ done, total })
+      })
+      setDetailImages(prev => [...prev, ...urls])
+    } catch {
+      setSplitError('이미지 분할 업로드에 실패했습니다. Storage 버킷 설정을 확인해 주세요.')
+    } finally {
+      setSplitProgress(null)
+    }
+  }
+
+  // ── 상세 이미지 목록 조작 ────────────────────────────────────────────────────
+  const addDetailImage = () => setDetailImages(prev => [...prev, ''])
+  const removeDetailImage = (i: number) =>
+    setDetailImages(prev => prev.filter((_, idx) => idx !== i))
+  const updateDetailImage = (i: number, val: string) =>
+    setDetailImages(prev => prev.map((u, idx) => idx === i ? val : u))
+  const moveDetailImage = (i: number, dir: -1 | 1) => {
+    setDetailImages(prev => {
+      const next = [...prev]
+      const j = i + dir
+      if (j < 0 || j >= next.length) return prev
+      ;[next[i], next[j]] = [next[j], next[i]]
+      return next
+    })
+  }
+
+  // ── 폼 제출 ──────────────────────────────────────────────────────────────────
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
-
     if (!name.trim()) { setError('상품명을 입력해 주세요.'); return }
     const priceNum = Number(price)
     if (!price || Number.isNaN(priceNum) || priceNum < 0) { setError('정가를 0 이상 숫자로 입력해 주세요.'); return }
@@ -115,10 +148,10 @@ export default function ProductForm() {
       description: description || null,
       stock: stockNum,
       status,
+      detail_images: detailImages.filter(u => u.trim() !== ''),
     }
 
     setSubmitting(true)
-
     if (isEdit) {
       const { error: err } = await supabase.from('products').update(payload).eq('id', id)
       if (err) { setError(err.message); setSubmitting(false); return }
@@ -128,7 +161,6 @@ export default function ProductForm() {
       const { error: err } = await supabase.from('products').insert({ ...payload, partner_id: partner.id })
       if (err) { setError(err.message); setSubmitting(false); return }
     }
-
     navigate('/partner/products')
   }
 
@@ -141,14 +173,15 @@ export default function ProductForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit}>
+    <form onSubmit={handleSubmit} className="space-y-6">
+      {/* ── 2컬럼: 대표이미지 + 상품정보 ──────────────────────────────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-[2fr_3fr] gap-6">
-        {/* 좌측: 이미지 + 라이브 특가 */}
+
+        {/* 좌측: 대표 이미지 + 라이브 특가 */}
         <div className="space-y-4">
           <div className="bg-white rounded-[14px] border border-[#e5e0d8] p-6">
-            <h3 className="text-[13px] font-bold text-[#111] mb-4">상품 이미지</h3>
+            <h3 className="text-[13px] font-bold text-[#111] mb-4">상품 이미지 (대표)</h3>
 
-            {/* 숨겨진 파일 인풋 */}
             <input
               ref={fileInputRef}
               type="file"
@@ -161,25 +194,20 @@ export default function ProductForm() {
               }}
             />
 
-            {/* 업로드 박스 (클릭 또는 드래그) */}
             <div
               onClick={() => !uploading && fileInputRef.current?.click()}
               onDragOver={e => { e.preventDefault(); setDragOver(true) }}
               onDragLeave={() => setDragOver(false)}
               onDrop={e => {
-                e.preventDefault()
-                setDragOver(false)
+                e.preventDefault(); setDragOver(false)
                 const file = e.dataTransfer.files[0]
                 if (file && !uploading) handleFileUpload(file)
               }}
               className={`w-full aspect-square rounded-xl border-2 border-dashed flex flex-col items-center justify-center mb-3 overflow-hidden transition-colors select-none ${
-                uploading
-                  ? 'cursor-wait border-[#e5e0d8] bg-[#f7f4ef]'
-                  : dragOver
-                  ? 'cursor-copy border-[#b8924a] bg-[#fdf9f5]'
-                  : thumbnailUrl
-                  ? 'cursor-pointer border-[#e5e0d8] bg-[#f7f4ef]'
-                  : 'cursor-pointer border-[#e5e0d8] bg-[#f7f4ef] hover:border-[#b8924a] hover:bg-[#fdf9f5]'
+                uploading ? 'cursor-wait border-[#e5e0d8] bg-[#f7f4ef]'
+                : dragOver ? 'cursor-copy border-[#b8924a] bg-[#fdf9f5]'
+                : thumbnailUrl ? 'cursor-pointer border-[#e5e0d8] bg-[#f7f4ef]'
+                : 'cursor-pointer border-[#e5e0d8] bg-[#f7f4ef] hover:border-[#b8924a] hover:bg-[#fdf9f5]'
               }`}
             >
               {uploading ? (
@@ -195,11 +223,8 @@ export default function ProductForm() {
               )}
             </div>
 
-            {uploadError && (
-              <p className="text-[11px] text-red-500 mb-3">{uploadError}</p>
-            )}
+            {uploadError && <p className="text-[11px] text-red-500 mb-3">{uploadError}</p>}
 
-            {/* 기존 URL 직접 입력 — 유지 */}
             <label className="block text-[11px] font-semibold text-[#9a9080] mb-1.5">
               또는 이미지 URL 직접 입력
             </label>
@@ -279,28 +304,136 @@ export default function ProductForm() {
               className={`${inputCls} resize-none`}
             />
           </div>
-
-          {error && (
-            <p className="text-[12px] text-red-500 bg-red-50 rounded-lg px-4 py-3">{error}</p>
-          )}
-
-          <div className="flex gap-3 pt-2">
-            <button
-              type="button"
-              onClick={() => navigate('/partner/products')}
-              className="px-6 py-2.5 border border-[#e5e0d8] text-[#555] rounded-lg text-[13px] hover:bg-[#f7f4ef] transition-colors"
-            >
-              취소
-            </button>
-            <button
-              type="submit"
-              disabled={submitting || uploading}
-              className="flex-1 py-2.5 bg-[#b8924a] hover:bg-[#a07c3b] disabled:opacity-60 text-white font-semibold rounded-lg text-[13px] transition-colors"
-            >
-              {submitting ? '저장 중...' : isEdit ? '수정하기' : '등록하기'}
-            </button>
-          </div>
         </div>
+      </div>
+
+      {/* ── 상세 이미지 (여러 장) ─────────────────────────────────────────────── */}
+      <div className="bg-white rounded-[14px] border border-[#e5e0d8] p-6">
+        <h3 className="text-[13px] font-bold text-[#111] mb-4">상세 이미지 (여러 장)</h3>
+
+        {/* PART B: 긴 이미지 자동 분할 업로드 */}
+        <input
+          ref={splitFileRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={e => {
+            const file = e.target.files?.[0]
+            if (file) handleSplitFile(file)
+            e.target.value = ''
+          }}
+        />
+        <div
+          onClick={() => !splitProgress && splitFileRef.current?.click()}
+          className={`w-full rounded-xl border-2 border-dashed p-5 flex flex-col items-center justify-center mb-5 transition-colors select-none ${
+            splitProgress
+              ? 'cursor-wait border-[#e5e0d8] bg-[#f7f4ef]'
+              : 'cursor-pointer border-[#e5e0d8] hover:border-[#b8924a] hover:bg-[#fdf9f5]'
+          }`}
+        >
+          {splitProgress ? (
+            <div className="text-center">
+              <p className="text-[13px] font-medium text-[#b8924a] mb-1">분할 업로드 중...</p>
+              <p className="text-[12px] text-[#9a9080]">
+                {splitProgress.total === 0
+                  ? '이미지 분석 중...'
+                  : `${splitProgress.done} / ${splitProgress.total} 조각`}
+              </p>
+            </div>
+          ) : (
+            <>
+              <IconScissors size={24} className="text-[#d0c9be] mb-2" />
+              <p className="text-[13px] font-medium text-[#9a9080]">긴 상세이미지 올려서 자동 분할</p>
+              <p className="text-[11px] text-[#bbb] mt-1">
+                1장의 긴 이미지를 {Math.floor(1500)}px 조각으로 잘라 업로드 → 지연로딩 적용
+              </p>
+            </>
+          )}
+        </div>
+
+        {splitError && (
+          <p className="text-[11px] text-red-500 bg-red-50 rounded-lg px-3 py-2 mb-4">{splitError}</p>
+        )}
+
+        {/* URL 행 목록 */}
+        <div className="space-y-2 mb-3">
+          {detailImages.map((url, i) => (
+            <div key={i} className="flex items-center gap-2">
+              {/* 미리보기 */}
+              <div className="w-12 h-12 shrink-0 rounded-lg bg-[#f7f4ef] border border-[#e5e0d8] overflow-hidden flex items-center justify-center text-[10px] text-[#bbb]">
+                {url.trim()
+                  ? <img src={url} alt={`상세 ${i + 1}`} className="w-full h-full object-cover" onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
+                  : `${i + 1}`}
+              </div>
+
+              {/* URL 입력 */}
+              <input
+                type="text"
+                value={url}
+                onChange={e => updateDetailImage(i, e.target.value)}
+                placeholder="이미지 주소 붙여넣기"
+                className={`${inputCls} flex-1`}
+              />
+
+              {/* 위/아래/삭제 */}
+              <button
+                type="button"
+                onClick={() => moveDetailImage(i, -1)}
+                disabled={i === 0}
+                className="w-7 h-7 flex items-center justify-center rounded border border-[#e5e0d8] text-[#9a9080] hover:border-[#b8924a] hover:text-[#b8924a] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                title="위로"
+              >
+                <IconArrowUp size={13} />
+              </button>
+              <button
+                type="button"
+                onClick={() => moveDetailImage(i, 1)}
+                disabled={i === detailImages.length - 1}
+                className="w-7 h-7 flex items-center justify-center rounded border border-[#e5e0d8] text-[#9a9080] hover:border-[#b8924a] hover:text-[#b8924a] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                title="아래로"
+              >
+                <IconArrowDown size={13} />
+              </button>
+              <button
+                type="button"
+                onClick={() => removeDetailImage(i)}
+                className="w-7 h-7 flex items-center justify-center rounded border border-[#e5e0d8] text-red-400 hover:border-red-300 transition-colors"
+                title="삭제"
+              >
+                <IconTrash size={13} />
+              </button>
+            </div>
+          ))}
+        </div>
+
+        <button
+          type="button"
+          onClick={addDetailImage}
+          className="text-[12px] text-[#b8924a] font-medium border border-[#b8924a] rounded-lg px-4 py-1.5 hover:bg-[#fdf9f5] transition-colors"
+        >
+          + 이미지 추가
+        </button>
+      </div>
+
+      {/* ── 에러 + 제출 버튼 ────────────────────────────────────────────────── */}
+      {error && (
+        <p className="text-[12px] text-red-500 bg-red-50 rounded-lg px-4 py-3">{error}</p>
+      )}
+      <div className="flex gap-3">
+        <button
+          type="button"
+          onClick={() => navigate('/partner/products')}
+          className="px-6 py-2.5 border border-[#e5e0d8] text-[#555] rounded-lg text-[13px] hover:bg-[#f7f4ef] transition-colors"
+        >
+          취소
+        </button>
+        <button
+          type="submit"
+          disabled={submitting || uploading || !!splitProgress}
+          className="flex-1 py-2.5 bg-[#b8924a] hover:bg-[#a07c3b] disabled:opacity-60 text-white font-semibold rounded-lg text-[13px] transition-colors"
+        >
+          {submitting ? '저장 중...' : isEdit ? '수정하기' : '등록하기'}
+        </button>
       </div>
     </form>
   )

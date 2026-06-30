@@ -53,6 +53,13 @@ export default function PartnerProductCard({ product, onDelete, onToggleHide }: 
 
         <div className="flex gap-1.5 mt-3 pt-3 border-t border-[#eee]">
           <Link
+            to={`/partner/products/${product.id}`}
+            className="flex items-center justify-center px-2.5 border border-[#e5e0d8] rounded-lg text-[#9a9080] hover:border-[#b8924a] hover:text-[#b8924a] transition-colors"
+            title="상세보기"
+          >
+            <IconEye size={13} />
+          </Link>
+          <Link
             to={`/partner/products/${product.id}/edit`}
             className="flex-1 flex items-center justify-center gap-1 text-[11px] text-[#555] border border-[#e5e0d8] rounded-lg py-1.5 hover:border-[#b8924a] hover:text-[#b8924a] transition-colors"
           >

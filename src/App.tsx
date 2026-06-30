@@ -20,6 +20,7 @@ import RequireAuth from './components/partner/RequireAuth'
 import PartnerLayout from './components/partner/PartnerLayout'
 import PartnerDashboard from './pages/partner/Dashboard'
 import PartnerProducts from './pages/partner/Products'
+import ProductDetail from './pages/partner/ProductDetail'
 import ProductForm from './pages/partner/ProductForm'
 import PartnerLives from './pages/partner/Lives'
 import LiveForm from './pages/partner/LiveForm'
@@ -54,6 +55,7 @@ export default function App() {
             <Route path="/partner/dashboard" element={<PartnerDashboard />} />
             <Route path="/partner/products" element={<PartnerProducts />} />
             <Route path="/partner/products/new" element={<ProductForm />} />
+            <Route path="/partner/products/:id" element={<ProductDetail />} />
             <Route path="/partner/products/:id/edit" element={<ProductForm />} />
             <Route path="/partner/live" element={<PartnerLives />} />
             <Route path="/partner/live/new" element={<LiveForm />} />
