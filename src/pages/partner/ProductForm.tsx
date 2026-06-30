@@ -51,6 +51,11 @@ export default function ProductForm() {
   const [status, setStatus] = useState<Product['status']>('on_sale')
   const [detailImages, setDetailImages] = useState<string[]>([])
 
+  // 상품 페이지 URL 자동 기입
+  const [pageUrl, setPageUrl] = useState<string>('')
+  const [scraping, setScraping] = useState(false)
+  const [scrapeMsg, setScrapeMsg] = useState<{ type: 'ok' | 'err'; text: string } | null>(null)
+
   // 파트너 ID 미리 가져오기
   useEffect(() => {
     getMyPartner().then(p => { if (p) setPartnerId(p.id) })
@@ -127,6 +132,39 @@ export default function ProductForm() {
       ;[next[i], next[j]] = [next[j], next[i]]
       return next
     })
+  }
+
+  // ── 상품 페이지 URL → 자동 기입 ──────────────────────────────────────────────
+  const handleScrape = async () => {
+    const target = pageUrl.trim()
+    if (!target) { setScrapeMsg({ type: 'err', text: '상품 페이지 URL 을 입력해 주세요.' }); return }
+    setScraping(true)
+    setScrapeMsg(null)
+    try {
+      const resp = await fetch('/api/scrape-product', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: target }),
+      })
+      const json = await resp.json()
+      if (!json?.ok || !json?.data) {
+        setScrapeMsg({ type: 'err', text: '자동 불러오기 실패. 직접 입력해 주세요.' })
+        return
+      }
+      // 값이 null 인 항목은 기존값 유지
+      const d = json.data
+      if (d.name) setName(d.name)
+      if (d.category && (PRODUCT_CATEGORIES as readonly string[]).includes(d.category)) setCategory(d.category)
+      if (d.price != null) setPrice(String(d.price))
+      if (d.sale_price != null) setSalePrice(String(d.sale_price))
+      if (d.description) setDescription(d.description)
+      if (d.thumbnail_url) { setThumbnailUrl(d.thumbnail_url); setUploadError('') }
+      setScrapeMsg({ type: 'ok', text: '불러왔어요. 확인 후 등록/수정하세요.' })
+    } catch {
+      setScrapeMsg({ type: 'err', text: '자동 불러오기 실패. 직접 입력해 주세요.' })
+    } finally {
+      setScraping(false)
+    }
   }
 
   // ── 폼 제출 ──────────────────────────────────────────────────────────────────
@@ -226,13 +264,13 @@ export default function ProductForm() {
             {uploadError && <p className="text-[11px] text-red-500 mb-3">{uploadError}</p>}
 
             <label className="block text-[11px] font-semibold text-[#9a9080] mb-1.5">
-              또는 이미지 URL 직접 입력
+              이미지 URL 직접 입력
             </label>
             <input
               type="text"
               value={thumbnailUrl}
               onChange={e => { setThumbnailUrl(e.target.value); setUploadError('') }}
-              placeholder="https://... 이미지 URL"
+              placeholder="https://...jpg (이미지 파일 주소)"
               className={inputCls}
             />
           </div>
@@ -255,6 +293,38 @@ export default function ProductForm() {
         {/* 우측: 상품 정보 */}
         <div className="bg-white rounded-[14px] border border-[#e5e0d8] p-6 space-y-5">
           <h3 className="text-[13px] font-bold text-[#111]">상품 정보</h3>
+
+          {/* 상품 페이지 URL 자동 기입 */}
+          <div className="rounded-xl border border-[#e5e0d8] bg-[#faf8f4] p-4">
+            <label className="block text-[12px] font-semibold text-[#555] mb-1.5">상품 페이지 URL</label>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={pageUrl}
+                onChange={e => setPageUrl(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleScrape() } }}
+                placeholder="상품 페이지 URL 붙여넣기 (예: https://...Detail/...)"
+                className={`${inputCls} flex-1`}
+              />
+              <button
+                type="button"
+                onClick={handleScrape}
+                disabled={scraping}
+                className="shrink-0 px-4 py-2.5 bg-[#b8924a] hover:bg-[#a07c3b] disabled:opacity-60 text-white font-semibold rounded-lg text-[13px] transition-colors whitespace-nowrap"
+              >
+                {scraping ? '불러오는 중...' : '불러오기'}
+              </button>
+            </div>
+            <p className="text-[11px] text-[#9a9080] mt-1.5 leading-relaxed">
+              상품 페이지 주소를 넣으면 상품명·가격·설명·이미지가 자동 입력됩니다.
+              (이미지 파일 주소가 아니라 상품 페이지 주소)
+            </p>
+            {scrapeMsg && (
+              <p className={`text-[11px] mt-1.5 font-medium ${scrapeMsg.type === 'ok' ? 'text-[#085041]' : 'text-red-500'}`}>
+                {scrapeMsg.text}
+              </p>
+            )}
+          </div>
 
           <div>
             <label className="block text-[12px] font-semibold text-[#555] mb-1.5">상품명 *</label>

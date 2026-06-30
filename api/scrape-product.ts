@@ -1,0 +1,166 @@
+import type { VercelRequest, VercelResponse } from '@vercel/node'
+import * as cheerio from 'cheerio'
+import { GoogleGenAI } from '@google/genai'
+
+// 상품 카테고리 (폼 드롭다운과 일치)
+const CATEGORIES = ['스킨케어', '메이크업', '향수', '헤어·바디', '이너뷰티', '뷰티 디바이스', '기타']
+
+const BROWSER_UA =
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36'
+
+// 상대경로 → 절대경로 + 이미지 URL 의 대괄호 인코딩
+function normalizeImage(src: string | undefined, base: string): string | null {
+  if (!src) return null
+  let abs = src.trim()
+  if (!abs) return null
+  try {
+    abs = new URL(abs, base).href
+  } catch {
+    /* base 와 합치지 못하면 원본 유지 */
+  }
+  return abs.replace(/\[/g, '%5B').replace(/\]/g, '%5D')
+}
+
+// 숫자(가격) 정규화: number 또는 "33,000원" 같은 문자열 → 정수
+function toIntOrNull(v: unknown): number | null {
+  if (v == null) return null
+  if (typeof v === 'number') return Number.isFinite(v) ? Math.round(v) : null
+  const digits = String(v).replace(/[^0-9]/g, '')
+  if (!digits) return null
+  const n = parseInt(digits, 10)
+  return Number.isFinite(n) ? n : null
+}
+
+interface ScrapeData {
+  name: string | null
+  price: number | null
+  sale_price: number | null
+  description: string | null
+  thumbnail_url: string | null
+  category: string | null
+}
+
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+  if (req.method !== 'POST') {
+    res.status(405).json({ ok: false, error: 'POST 요청만 허용됩니다.' })
+    return
+  }
+
+  // body 파싱 (문자열로 올 수도 있어 방어적으로 처리)
+  let body: unknown = req.body
+  if (typeof body === 'string') {
+    try {
+      body = JSON.parse(body)
+    } catch {
+      body = {}
+    }
+  }
+  const url = (body as { url?: string } | null)?.url?.trim()
+
+  if (!url || !/^https?:\/\//i.test(url)) {
+    res.status(400).json({ ok: false, error: '올바른 상품 페이지 URL 을 입력해 주세요.' })
+    return
+  }
+
+  // 1) 페이지 HTML 가져오기
+  let html: string
+  try {
+    const resp = await fetch(url, {
+      headers: {
+        'User-Agent': BROWSER_UA,
+        'Accept-Language': 'ko-KR,ko;q=0.9,en;q=0.8',
+        Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+      },
+    })
+    if (!resp.ok) {
+      res.status(200).json({ ok: false, error: `페이지를 불러오지 못했습니다 (HTTP ${resp.status}).` })
+      return
+    }
+    html = await resp.text()
+  } catch {
+    res.status(200).json({ ok: false, error: '페이지에 접근하지 못했습니다.' })
+    return
+  }
+
+  // 2) 메타 태그 추출 (og:title / og:image / description)
+  const $ = cheerio.load(html)
+  const meta = (sel: string) => $(sel).attr('content')?.trim() || ''
+
+  const ogTitle = meta('meta[property="og:title"]') || $('title').first().text().trim()
+  const ogImage =
+    meta('meta[property="og:image"]') ||
+    meta('meta[name="og:image"]') ||
+    meta('meta[property="og:image:url"]')
+  const metaDesc =
+    meta('meta[property="og:description"]') || meta('meta[name="description"]')
+
+  const thumbnailUrl = normalizeImage(ogImage, url)
+
+  // 본문 텍스트(노이즈 제거 후 일부) — Gemini 가격/카테고리 추출용
+  $('script, style, noscript, svg, iframe').remove()
+  const bodyText = $('body').text().replace(/\s+/g, ' ').trim().slice(0, 12000)
+
+  // 3) Gemini 로 가격/카테고리/상품명/설명 정밀 추출 (키 없거나 실패해도 og 값으로 대체)
+  let ai: Partial<ScrapeData> = {}
+  const apiKey = process.env.GEMINI_API_KEY
+  if (apiKey) {
+    try {
+      const genAI = new GoogleGenAI({ apiKey })
+      const prompt = `다음은 한 쇼핑몰 "상품 상세 페이지"의 메타데이터와 본문 텍스트다.
+이 페이지의 "메인 상품 1개"에 대한 정보만 추출하라.
+페이지 하단의 "추천 상품 / 함께 본 상품 / 연관 상품" 영역의 다른 상품 정보는 절대 포함하지 마라.
+
+반드시 아래 키만 가진 JSON 객체로만 답하라(설명·코드블록 금지):
+{
+  "name": 메인 상품명(문자열) 또는 null,
+  "price": 정가(할인 전 가격, 숫자만, 원 단위 정수) 또는 null,
+  "sale_price": 판매가(실제 판매/할인가, 숫자만, 정수) 또는 null,
+  "description": 상품 핵심 설명 2~4문장(문자열) 또는 null,
+  "category": 다음 중 하나로만 분류 ["스킨케어","메이크업","향수","헤어·바디","이너뷰티","뷰티 디바이스","기타"] 또는 null
+}
+규칙:
+- price 와 sale_price 가 같으면 sale_price 는 null.
+- 정가만 있으면 price 에 넣고 sale_price 는 null.
+- 숫자에 콤마/원/통화기호를 넣지 말 것(예: 33000).
+
+[og:title]
+${ogTitle}
+
+[meta description]
+${metaDesc}
+
+[본문 텍스트]
+${bodyText}`
+
+      const result = await genAI.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: prompt,
+        config: { responseMimeType: 'application/json' },
+      })
+
+      const raw = (result.text ?? '').replace(/```(?:json)?\s*/g, '').replace(/```/g, '').trim()
+      const objMatch = raw.match(/\{[\s\S]*\}/)
+      if (objMatch) {
+        ai = JSON.parse(objMatch[0]) as Partial<ScrapeData>
+      }
+    } catch (e) {
+      console.error('[scrape-product] Gemini 실패:', e)
+      // 무시하고 og 값으로 진행
+    }
+  }
+
+  // 4) 병합 (Gemini 우선, 없으면 og/meta 값)
+  const category =
+    ai.category && CATEGORIES.includes(ai.category) ? ai.category : null
+
+  const data: ScrapeData = {
+    name: (ai.name && String(ai.name).trim()) || ogTitle || null,
+    price: toIntOrNull(ai.price),
+    sale_price: toIntOrNull(ai.sale_price),
+    description: (ai.description && String(ai.description).trim()) || metaDesc || null,
+    thumbnail_url: thumbnailUrl,
+    category,
+  }
+
+  res.status(200).json({ ok: true, data })
+}
