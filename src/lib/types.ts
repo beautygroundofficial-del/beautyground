@@ -44,6 +44,7 @@ export interface Live {
   id: string
   partner_id: string | null
   title: string
+  description: string | null
   scheduled_at: string | null
   status: 'scheduled' | 'live' | 'ended'
   thumbnail_url: string | null

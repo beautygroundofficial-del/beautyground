@@ -115,6 +115,12 @@ export default function LiveDetail() {
         )}
       </div>
 
+      {live.description && (
+        <p className="text-[13px] text-[#555] leading-relaxed mb-4 whitespace-pre-line">
+          {live.description}
+        </p>
+      )}
+
       {/* 3컬럼 그리드 */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:h-[calc(100vh-160px)]">
 

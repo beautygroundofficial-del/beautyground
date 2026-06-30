@@ -194,9 +194,14 @@ export default function ShopLiveWatch() {
             <h1 className="text-[18px] font-bold text-text mb-1">
               {live.title}
             </h1>
-            <p className="text-[12px] text-text-hint mb-5">
+            <p className="text-[12px] text-text-hint mb-3">
               {statusLabel[live.status]}
             </p>
+            {live.description && (
+              <p className="text-[14px] text-text-sub leading-relaxed mb-5 whitespace-pre-line">
+                {live.description}
+              </p>
+            )}
 
             <h2 className="text-[15px] font-bold text-text mb-3">판매 상품</h2>
 

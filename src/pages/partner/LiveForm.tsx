@@ -57,6 +57,7 @@ export default function LiveForm() {
         const lr = liveRow as Live | null
         if (lr) {
           setTitle(lr.title)
+          setDescription(lr.description ?? '')
           setThumbnailUrl(lr.thumbnail_url ?? '')
           setSelectedIds(lr.product_ids ?? [])
           if (lr.scheduled_at) {
@@ -90,6 +91,7 @@ export default function LiveForm() {
     const scheduledAt = new Date(`${schedDate}T${schedTime}:00`).toISOString()
     const fields = {
       title: title.trim(),
+      description: description.trim() || null,
       scheduled_at: scheduledAt,
       thumbnail_url: thumbnailUrl || null,
       product_ids: selectedIds,
