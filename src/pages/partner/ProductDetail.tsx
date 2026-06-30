@@ -50,7 +50,7 @@ export default function ProductDetail() {
     : null
 
   return (
-    <div className="max-w-2xl">
+    <div className="max-w-[720px] mx-auto px-4">
       {/* 브레드크럼 */}
       <div className="flex items-center justify-between gap-4 mb-6">
         <Link
