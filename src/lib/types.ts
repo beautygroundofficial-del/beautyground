@@ -14,6 +14,9 @@ export interface PartnerApplication {
   message: string | null
   doc_url: string | null
   status: 'pending' | 'approved' | 'rejected'
+  privacy_agreed: boolean | null
+  terms_agreed: boolean | null
+  agreed_at: string | null
 }
 
 export interface Partner {

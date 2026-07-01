@@ -182,6 +182,9 @@ export default function PartnerRegister() {
       phone: form.phone.trim(),
       status: 'pending',
       user_id: signUpData.user?.id ?? null,
+      privacy_agreed: true,
+      terms_agreed: true,
+      agreed_at: new Date().toISOString(),
     }
 
     const { error: insertError } = await supabase
