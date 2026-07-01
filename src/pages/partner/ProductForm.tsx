@@ -158,8 +158,27 @@ export default function ProductForm() {
       if (d.price != null) setPrice(String(d.price))
       if (d.sale_price != null) setSalePrice(String(d.sale_price))
       if (d.description) setDescription(d.description)
-      if (d.thumbnail_url) { setThumbnailUrl(d.thumbnail_url); setUploadError('') }
-      setScrapeMsg({ type: 'ok', text: '불러왔어요. 확인 후 등록/수정하세요.' })
+
+      // 이미지 여러 장: 대표 = 첫 장, 상세 이미지 = 전체(기존 입력 뒤에 이어붙임)
+      const imgs: string[] = Array.isArray(d.images)
+        ? d.images.filter((u: unknown): u is string => typeof u === 'string' && u.trim() !== '')
+        : (d.thumbnail_url ? [d.thumbnail_url] : [])
+      if (imgs.length > 0) {
+        setThumbnailUrl(imgs[0])
+        setUploadError('')
+        setDetailImages(prev => {
+          const existing = prev.filter(u => u.trim() !== '')
+          const seen = new Set(existing)
+          const added = imgs.filter(u => !seen.has(u))
+          return [...existing, ...added]
+        })
+      } else if (d.thumbnail_url) {
+        setThumbnailUrl(d.thumbnail_url)
+        setUploadError('')
+      }
+
+      const imgNote = imgs.length > 1 ? ` (이미지 ${imgs.length}장)` : ''
+      setScrapeMsg({ type: 'ok', text: `불러왔어요. 확인 후 등록/수정하세요.${imgNote}` })
     } catch {
       setScrapeMsg({ type: 'err', text: '자동 불러오기 실패. 직접 입력해 주세요.' })
     } finally {

@@ -38,6 +38,7 @@ interface ScrapeData {
   description: string | null
   thumbnail_url: string | null
   category: string | null
+  images: string[]
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -95,6 +96,42 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     meta('meta[property="og:description"]') || meta('meta[name="description"]')
 
   const thumbnailUrl = normalizeImage(ogImage, url)
+
+  // 상품 이미지 여러 장 수집 (og:image + img 태그). 로고/아이콘/배너 등은 제외.
+  const rawImgs: string[] = []
+  const pushImg = (raw: string | undefined | null) => {
+    const n = normalizeImage(raw ?? undefined, url)
+    if (n && /^https?:\/\//i.test(n)) rawImgs.push(n)
+  }
+  // og:image (여러 개일 수 있음) → 대표 이미지 후보로 먼저
+  $('meta[property="og:image"], meta[name="og:image"], meta[property="og:image:url"]').each((_, el) => {
+    pushImg($(el).attr('content'))
+  })
+  // img 태그 (지연로딩 속성 포함), 상품 무관 이미지 제외
+  const EXCLUDE =
+    /logo|icon|banner|btn|button|sprite|blank|pixel|spacer|common|footer|header|\bnav\b|badge|cart|search|social|sns|arrow|star|rating|1x1/i
+  $('img').each((_, el) => {
+    const $el = $(el)
+    const src =
+      $el.attr('src') ||
+      $el.attr('data-src') ||
+      $el.attr('data-original') ||
+      $el.attr('data-lazy') ||
+      $el.attr('data-echo')
+    if (!src || src.startsWith('data:')) return
+    const hay = `${src} ${$el.attr('class') ?? ''} ${$el.attr('id') ?? ''} ${$el.attr('alt') ?? ''}`
+    if (EXCLUDE.test(hay)) return
+    pushImg(src)
+  })
+  // 중복 제거(순서 유지) + 개수 상한(20)
+  const seenImg = new Set<string>()
+  const images: string[] = []
+  for (const u of rawImgs) {
+    if (seenImg.has(u)) continue
+    seenImg.add(u)
+    images.push(u)
+    if (images.length >= 20) break
+  }
 
   // 본문 텍스트(노이즈 제거 후 일부) — Gemini 가격/카테고리 추출용
   $('script, style, noscript, svg, iframe').remove()
@@ -158,8 +195,9 @@ ${bodyText}`
     price: toIntOrNull(ai.price),
     sale_price: toIntOrNull(ai.sale_price),
     description: (ai.description && String(ai.description).trim()) || metaDesc || null,
-    thumbnail_url: thumbnailUrl,
+    thumbnail_url: images[0] ?? thumbnailUrl, // 대표 = 첫 이미지
     category,
+    images, // 상품 이미지 여러 장(순서 유지)
   }
 
   res.status(200).json({ ok: true, data })
