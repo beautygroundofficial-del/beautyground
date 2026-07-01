@@ -8,6 +8,7 @@ import AppProductDetail from './pages/AppProductDetail'
 import AppMyPage from './pages/AppMyPage'
 import AppCart from './pages/AppCart'
 import AppOrder from './pages/AppOrder'
+import CheckoutPage from './pages/CheckoutPage'
 
 // 파트너 인증/입점
 import PartnerRegister from './pages/partner/Register'
@@ -42,6 +43,9 @@ export default function App() {
       <Routes>
         {/* 웹 홈페이지 */}
         <Route path="/" element={<WebHome />} />
+
+        {/* 결제(테스트) */}
+        <Route path="/checkout" element={<CheckoutPage />} />
 
         {/* 입점: 회원가입 → 신청 → 완료 */}
         <Route path="/partner/register" element={<PartnerRegister />} />
