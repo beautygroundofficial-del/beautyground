@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import type { Live, Product } from '../../lib/types'
 import { won } from '../../lib/format'
+import { streamIframeSrc } from '../../lib/cloudflare'
 import { useLiveChat } from '../../hooks/useLiveChat'
 import AppHeader from '../../components/layout/AppHeader'
 import BottomNav from '../../components/layout/BottomNav'
@@ -128,6 +129,8 @@ export default function ShopLiveWatch() {
     setSuccess(true)
   }
 
+  const streamSrc = streamIframeSrc(live?.stream_uid)
+
   const inputClass =
     'w-full bg-white border border-cream-2 rounded-md px-4 py-3 text-[14px] text-text placeholder:text-text-hint focus:outline-none focus:shadow-focus transition'
 
@@ -161,7 +164,18 @@ export default function ShopLiveWatch() {
           <>
             {/* 비디오 영역 */}
             <div className="rounded-md overflow-hidden mb-4">
-              {live.stream_url ? (
+              {streamSrc ? (
+                <div className="relative w-full" style={{ paddingTop: '56.25%' }}>
+                  <iframe
+                    src={streamSrc}
+                    className="absolute inset-0 w-full h-full"
+                    style={{ border: 'none' }}
+                    allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;"
+                    allowFullScreen
+                    title="라이브 영상"
+                  />
+                </div>
+              ) : live.stream_url ? (
                 <video
                   controls
                   src={live.stream_url}

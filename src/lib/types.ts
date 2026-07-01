@@ -49,6 +49,8 @@ export interface Live {
   status: 'scheduled' | 'live' | 'ended'
   thumbnail_url: string | null
   stream_url: string | null
+  stream_uid: string | null
+  playback_url: string | null
   product_ids: string[] | null
   created_at: string
 }

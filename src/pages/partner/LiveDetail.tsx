@@ -4,6 +4,7 @@ import { IconArrowLeft, IconVideo, IconSend, IconPin, IconShoppingBag } from '@t
 import { supabase } from '../../lib/supabase'
 import type { Live, Product } from '../../lib/types'
 import { useLiveChat } from '../../hooks/useLiveChat'
+import { streamIframeSrc } from '../../lib/cloudflare'
 
 const STATUS: Record<Live['status'], { label: string; bg: string; text: string }> = {
   scheduled: { label: '예정',  bg: 'bg-[#FAEEDA]', text: 'text-[#633806]' },
@@ -90,6 +91,7 @@ export default function LiveDetail() {
   }
 
   const badge = STATUS[live.status]
+  const streamSrc = streamIframeSrc(live.stream_uid)
 
   return (
     <>
@@ -127,9 +129,22 @@ export default function LiveDetail() {
         {/* 좌측: 카메라 프리뷰 */}
         <div className="bg-[#0e0c08] rounded-[14px] p-5 flex flex-col min-h-[360px] lg:min-h-0">
           {/* 카메라 영역 */}
-          <div className="flex-1 bg-[#1a1814] rounded-xl flex flex-col items-center justify-center mb-4 relative">
-            <IconVideo size={40} className="text-[#333] mb-2" />
-            <p className="text-[12px] text-[#555]">카메라 프리뷰</p>
+          <div className="flex-1 bg-[#1a1814] rounded-xl flex flex-col items-center justify-center mb-4 relative overflow-hidden">
+            {streamSrc ? (
+              <iframe
+                src={streamSrc}
+                className="absolute inset-0 w-full h-full"
+                style={{ border: 'none' }}
+                allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;"
+                allowFullScreen
+                title="라이브 미리보기"
+              />
+            ) : (
+              <>
+                <IconVideo size={40} className="text-[#333] mb-2" />
+                <p className="text-[12px] text-[#555]">카메라 프리뷰</p>
+              </>
+            )}
 
             {live.status === 'live' && (
               <div className="absolute top-3 left-3 flex items-center gap-2">
