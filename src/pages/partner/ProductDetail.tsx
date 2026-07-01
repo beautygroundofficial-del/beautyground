@@ -14,6 +14,7 @@ export default function ProductDetail() {
   const { id } = useParams<{ id: string }>()
   const [loading, setLoading] = useState(true)
   const [product, setProduct] = useState<Product | null>(null)
+  const [active, setActive] = useState(0)
 
   useEffect(() => {
     if (!id) { setLoading(false); return }
@@ -43,6 +44,13 @@ export default function ProductDetail() {
   }
 
   const badge = STATUS[product.status]
+  // 대표 이미지 갤러리 (없으면 thumbnail_url 로 폴백)
+  const gallery =
+    product.gallery_images && product.gallery_images.length > 0
+      ? product.gallery_images
+      : product.thumbnail_url
+      ? [product.thumbnail_url]
+      : []
   const sellPrice = product.sale_price ?? product.price
   const hasDiscount = product.sale_price != null && product.sale_price < product.price
   const discountRate = hasDiscount
@@ -71,13 +79,46 @@ export default function ProductDetail() {
 
       {/* 상품 헤더 */}
       <div className="bg-white rounded-[14px] border border-[#e5e0d8] overflow-hidden mb-6">
-        {product.thumbnail_url && (
-          <div className="aspect-square max-h-[400px] overflow-hidden flex items-center justify-center bg-[#f7f4ef]">
-            <img
-              src={product.thumbnail_url}
-              alt={product.name}
-              className="w-full h-full object-contain"
-            />
+        {gallery.length > 0 && (
+          <div>
+            {/* 큰 메인 이미지 */}
+            <div className="aspect-square max-h-[400px] overflow-hidden flex items-center justify-center bg-[#f7f4ef]">
+              <img
+                src={gallery[Math.min(active, gallery.length - 1)]}
+                alt={product.name}
+                className="w-full h-full object-contain"
+                onError={(e) => {
+                  const img = e.target as HTMLImageElement
+                  if (product.thumbnail_url && img.src !== product.thumbnail_url) {
+                    img.src = product.thumbnail_url
+                  }
+                }}
+              />
+            </div>
+
+            {/* 썸네일 줄 (2장 이상일 때) */}
+            {gallery.length > 1 && (
+              <div className="flex gap-2 overflow-x-auto p-3 border-t border-[#eee]">
+                {gallery.map((url, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => setActive(i)}
+                    className={`shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-colors ${
+                      i === active ? 'border-[#b8924a]' : 'border-[#e5e0d8] hover:border-[#b8924a]/60'
+                    }`}
+                    aria-label={`${i + 1}번째 이미지`}
+                  >
+                    <img
+                      src={url}
+                      alt={`${product.name} ${i + 1}`}
+                      className="w-full h-full object-cover"
+                      onError={(e) => { (e.target as HTMLImageElement).style.opacity = '0.3' }}
+                    />
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         )}
 

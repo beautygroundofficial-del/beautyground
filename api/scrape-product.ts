@@ -38,7 +38,19 @@ interface ScrapeData {
   description: string | null
   thumbnail_url: string | null
   category: string | null
+  gallery: string[]
   images: string[]
+}
+
+// URL 파일명(쿼리/해시 제외)
+function baseName(u: string): string {
+  const clean = u.split('?')[0].split('#')[0]
+  const parts = clean.split('/')
+  return parts[parts.length - 1] || clean
+}
+// Cafe24 등 큰 이미지 폴더(/big/, /extra/big/)인지
+function isBigFolder(u: string): boolean {
+  return /\/(?:extra\/)?big\//i.test(u)
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -133,6 +145,39 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (images.length >= 20) break
   }
 
+  // 대표 이미지 갤러리 전용 추출 (갤러리 컨테이너 안의 img 만)
+  // Cafe24: .xans-product-image(대표) + .xans-product-addimage(추가), 그 외 일반 갤러리 컨테이너
+  const GALLERY_SEL =
+    '.xans-product-image, .xans-product-addimage, .xans-product-mobileimage, [class*="gallery"], [class*="Gallery"], .thumbnail, .listImg, .swiper-wrapper, .prdImg'
+  const galleryRaw: string[] = []
+  $(GALLERY_SEL)
+    .find('img')
+    .each((_, el) => {
+      const $el = $(el)
+      const src =
+        $el.attr('src') ||
+        $el.attr('data-src') ||
+        $el.attr('data-original') ||
+        $el.attr('data-lazy')
+      if (!src || src.startsWith('data:')) return
+      const n = normalizeImage(src, url)
+      if (n && /^https?:\/\//i.test(n)) galleryRaw.push(n)
+    })
+  // 파일명 기준 dedupe — 같은 이미지의 small/big 중 big 폴더 버전 우선(치환 없이 실제 존재하는 URL만)
+  const galleryByBase = new Map<string, string>()
+  const galleryOrder: string[] = []
+  for (const u of galleryRaw) {
+    const b = baseName(u)
+    const existing = galleryByBase.get(b)
+    if (existing == null) {
+      galleryByBase.set(b, u)
+      galleryOrder.push(b)
+    } else if (!isBigFolder(existing) && isBigFolder(u)) {
+      galleryByBase.set(b, u) // 작은 폴더 → 큰 폴더 버전으로 승격
+    }
+  }
+  const gallery = galleryOrder.map((b) => galleryByBase.get(b)!).slice(0, 20)
+
   // 본문 텍스트(노이즈 제거 후 일부) — Gemini 가격/카테고리 추출용
   $('script, style, noscript, svg, iframe').remove()
   const bodyText = $('body').text().replace(/\s+/g, ' ').trim().slice(0, 12000)
@@ -195,9 +240,10 @@ ${bodyText}`
     price: toIntOrNull(ai.price),
     sale_price: toIntOrNull(ai.sale_price),
     description: (ai.description && String(ai.description).trim()) || metaDesc || null,
-    thumbnail_url: images[0] ?? thumbnailUrl, // 대표 = 첫 이미지
+    thumbnail_url: gallery[0] ?? images[0] ?? thumbnailUrl, // 대표 = 갤러리 첫 장
     category,
-    images, // 상품 이미지 여러 장(순서 유지)
+    gallery, // 대표 이미지 갤러리(순서 유지)
+    images, // 페이지 전체 이미지(상세/폴백용)
   }
 
   res.status(200).json({ ok: true, data })

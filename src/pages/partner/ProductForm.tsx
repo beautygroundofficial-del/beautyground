@@ -49,6 +49,7 @@ export default function ProductForm() {
   const [thumbnailUrl, setThumbnailUrl] = useState<string>('')
   const [description, setDescription] = useState<string>('')
   const [status, setStatus] = useState<Product['status']>('on_sale')
+  const [galleryImages, setGalleryImages] = useState<string[]>([])
   const [detailImages, setDetailImages] = useState<string[]>([])
 
   // 상품 페이지 URL 자동 기입
@@ -76,6 +77,7 @@ export default function ProductForm() {
       setThumbnailUrl(p.thumbnail_url ?? '')
       setDescription(p.description ?? '')
       setStatus(p.status)
+      setGalleryImages(p.gallery_images ?? [])
       setDetailImages(p.detail_images ?? [])
       setLoading(false)
     })
@@ -116,6 +118,22 @@ export default function ProductForm() {
     } finally {
       setSplitProgress(null)
     }
+  }
+
+  // ── 대표 이미지 갤러리 조작 ──────────────────────────────────────────────────
+  const addGalleryImage = () => setGalleryImages(prev => [...prev, ''])
+  const removeGalleryImage = (i: number) =>
+    setGalleryImages(prev => prev.filter((_, idx) => idx !== i))
+  const updateGalleryImage = (i: number, val: string) =>
+    setGalleryImages(prev => prev.map((u, idx) => idx === i ? val : u))
+  const moveGalleryImage = (i: number, dir: -1 | 1) => {
+    setGalleryImages(prev => {
+      const next = [...prev]
+      const j = i + dir
+      if (j < 0 || j >= next.length) return prev
+      ;[next[i], next[j]] = [next[j], next[i]]
+      return next
+    })
   }
 
   // ── 상세 이미지 목록 조작 ────────────────────────────────────────────────────
@@ -159,14 +177,15 @@ export default function ProductForm() {
       if (d.sale_price != null) setSalePrice(String(d.sale_price))
       if (d.description) setDescription(d.description)
 
-      // 이미지 여러 장: 대표 = 첫 장, 상세 이미지 = 전체(기존 입력 뒤에 이어붙임)
-      const imgs: string[] = Array.isArray(d.images)
-        ? d.images.filter((u: unknown): u is string => typeof u === 'string' && u.trim() !== '')
-        : (d.thumbnail_url ? [d.thumbnail_url] : [])
+      // 대표 이미지 갤러리: 스크랩한 갤러리(없으면 전체 이미지)를 갤러리 영역에 채움
+      const toStrArr = (v: unknown): string[] =>
+        Array.isArray(v) ? v.filter((u): u is string => typeof u === 'string' && u.trim() !== '') : []
+      const gallery = toStrArr(d.gallery)
+      const imgs = gallery.length > 0 ? gallery : toStrArr(d.images)
       if (imgs.length > 0) {
-        setThumbnailUrl(imgs[0])
+        setThumbnailUrl(imgs[0]) // 대표 = 갤러리 첫 장
         setUploadError('')
-        setDetailImages(prev => {
+        setGalleryImages(prev => {
           const existing = prev.filter(u => u.trim() !== '')
           const seen = new Set(existing)
           const added = imgs.filter(u => !seen.has(u))
@@ -177,7 +196,7 @@ export default function ProductForm() {
         setUploadError('')
       }
 
-      const imgNote = imgs.length > 1 ? ` (이미지 ${imgs.length}장)` : ''
+      const imgNote = imgs.length > 1 ? ` (대표 이미지 ${imgs.length}장)` : ''
       setScrapeMsg({ type: 'ok', text: `불러왔어요. 확인 후 등록/수정하세요.${imgNote}` })
     } catch {
       setScrapeMsg({ type: 'err', text: '자동 불러오기 실패. 직접 입력해 주세요.' })
@@ -196,15 +215,17 @@ export default function ProductForm() {
     const stockNum = Number(stock)
     if (Number.isNaN(stockNum) || stockNum < 0) { setError('재고를 0 이상 숫자로 입력해 주세요.'); return }
 
+    const gallery = galleryImages.filter(u => u.trim() !== '')
     const payload = {
       name: name.trim(),
       price: priceNum,
       sale_price: salePrice ? Number(salePrice) : null,
       category: category || null,
-      thumbnail_url: thumbnailUrl || null,
+      thumbnail_url: (thumbnailUrl.trim() || gallery[0]) || null, // 목록 대표컷 = 갤러리 첫 장
       description: description || null,
       stock: stockNum,
       status,
+      gallery_images: gallery,
       detail_images: detailImages.filter(u => u.trim() !== ''),
     }
 
@@ -394,6 +415,49 @@ export default function ProductForm() {
             />
           </div>
         </div>
+      </div>
+
+      {/* ── 대표 이미지 (여러 장) 갤러리 ─────────────────────────────────────── */}
+      <div className="bg-white rounded-[14px] border border-[#e5e0d8] p-6">
+        <h3 className="text-[13px] font-bold text-[#111] mb-1">대표 이미지 (여러 장)</h3>
+        <p className="text-[11px] text-[#9a9080] mb-4">
+          상세 화면에서 상단 큰 이미지 + 썸네일 줄로 표시됩니다. 첫 번째 이미지가 목록 카드 대표컷으로 사용됩니다.
+        </p>
+
+        <div className="space-y-2 mb-3">
+          {galleryImages.map((url, i) => (
+            <div key={i} className="flex items-center gap-2">
+              <div className="w-12 h-12 shrink-0 rounded-lg bg-[#f7f4ef] border border-[#e5e0d8] overflow-hidden flex items-center justify-center text-[10px] text-[#bbb] relative">
+                {url.trim()
+                  ? <img src={url} alt={`대표 ${i + 1}`} className="w-full h-full object-cover" onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
+                  : `${i + 1}`}
+                {i === 0 && url.trim() && (
+                  <span className="absolute bottom-0 inset-x-0 bg-[#b8924a] text-white text-[8px] text-center leading-tight">대표</span>
+                )}
+              </div>
+              <input
+                type="text"
+                value={url}
+                onChange={e => updateGalleryImage(i, e.target.value)}
+                placeholder="이미지 주소 붙여넣기"
+                className={`${inputCls} flex-1`}
+              />
+              <button type="button" onClick={() => moveGalleryImage(i, -1)} disabled={i === 0} className="w-7 h-7 flex items-center justify-center rounded border border-[#e5e0d8] text-[#9a9080] hover:border-[#b8924a] hover:text-[#b8924a] disabled:opacity-30 disabled:cursor-not-allowed transition-colors" title="위로">
+                <IconArrowUp size={13} />
+              </button>
+              <button type="button" onClick={() => moveGalleryImage(i, 1)} disabled={i === galleryImages.length - 1} className="w-7 h-7 flex items-center justify-center rounded border border-[#e5e0d8] text-[#9a9080] hover:border-[#b8924a] hover:text-[#b8924a] disabled:opacity-30 disabled:cursor-not-allowed transition-colors" title="아래로">
+                <IconArrowDown size={13} />
+              </button>
+              <button type="button" onClick={() => removeGalleryImage(i)} className="w-7 h-7 flex items-center justify-center rounded border border-[#e5e0d8] text-red-400 hover:border-red-300 transition-colors" title="삭제">
+                <IconTrash size={13} />
+              </button>
+            </div>
+          ))}
+        </div>
+
+        <button type="button" onClick={addGalleryImage} className="text-[12px] text-[#b8924a] font-medium border border-[#b8924a] rounded-lg px-4 py-1.5 hover:bg-[#fdf9f5] transition-colors">
+          + 이미지 추가
+        </button>
       </div>
 
       {/* ── 상세 이미지 (여러 장) ─────────────────────────────────────────────── */}

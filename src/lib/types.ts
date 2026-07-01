@@ -39,6 +39,7 @@ export interface Product {
   description: string | null
   stock: number
   status: 'on_sale' | 'sold_out' | 'hidden'
+  gallery_images: string[] | null
   detail_images: string[] | null
   created_at: string
 }
