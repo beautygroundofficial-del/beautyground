@@ -428,11 +428,11 @@ export default function AppProductDetail() {
         }
       />
 
-      {/* 데스크톱 2컬럼(왼쪽 이미지 / 오른쪽 구매정보), 모바일 세로 유지 */}
-      <div className="md:flex md:flex-wrap md:items-start md:gap-x-8 md:max-w-[1080px] md:mx-auto md:px-6 md:pt-4">
+      {/* 데스크톱 2컬럼(왼쪽 이미지+리뷰 / 오른쪽 구매박스 sticky), 모바일 세로 유지 */}
+      <div className="md:flex md:items-start md:gap-8 md:max-w-[1100px] md:mx-auto md:px-6 md:pt-4">
 
-      {/* 상품 이미지 (왼쪽 컬럼) */}
-      <div className="md:w-[400px] md:shrink-0">
+      {/* 왼쪽 컬럼: 이미지 갤러리 + 포토리뷰 */}
+      <div className="md:flex-1 md:min-w-0">
       {view.images.length > 0 ? (
         <div>
           <div className="aspect-square max-h-[380px] bg-cream flex items-center justify-center overflow-hidden">
@@ -466,15 +466,13 @@ export default function AppProductDetail() {
           <span className="text-[100px] opacity-60">{view.thumbIcon ?? '🧴'}</span>
         </div>
       )}
-      </div>{/* /왼쪽 이미지 컬럼 */}
 
-      {/* 포토리뷰 쇼케이스 — 모바일: 이미지 바로 아래 / 데스크톱: 2컬럼 아래 전체폭 */}
-      <div className="md:w-full md:order-last">
-        <PhotoReviewShowcase reviews={view.reviews} />
-      </div>
+      {/* 포토리뷰 쇼케이스 (왼쪽 컬럼, 이미지 아래) */}
+      <PhotoReviewShowcase reviews={view.reviews} />
+      </div>{/* /왼쪽 컬럼 */}
 
-      {/* 구매 박스 (오른쪽 컬럼) */}
-      <div className="px-4 pt-5 pb-4 md:flex-1 md:min-w-0 md:pt-0">
+      {/* 오른쪽 컬럼: 구매 박스 (데스크톱 sticky) */}
+      <div className="px-4 pt-5 pb-4 md:w-[380px] md:shrink-0 md:sticky md:top-4 md:pt-0">
         {view.brand && <p className="text-[13px] text-text-sub">{view.brand}</p>}
         <h1 className="text-[18px] font-bold text-text mt-1 leading-tight">{view.name}</h1>
 
