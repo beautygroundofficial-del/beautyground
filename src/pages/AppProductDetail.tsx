@@ -428,7 +428,11 @@ export default function AppProductDetail() {
         }
       />
 
-      {/* 상품 이미지 */}
+      {/* 데스크톱 2컬럼(왼쪽 이미지 / 오른쪽 구매정보), 모바일 세로 유지 */}
+      <div className="md:flex md:flex-wrap md:items-start md:gap-x-8 md:max-w-[1080px] md:mx-auto md:px-6 md:pt-4">
+
+      {/* 상품 이미지 (왼쪽 컬럼) */}
+      <div className="md:w-[400px] md:shrink-0">
       {view.images.length > 0 ? (
         <div>
           <div className="aspect-square max-h-[380px] bg-cream flex items-center justify-center overflow-hidden">
@@ -462,12 +466,15 @@ export default function AppProductDetail() {
           <span className="text-[100px] opacity-60">{view.thumbIcon ?? '🧴'}</span>
         </div>
       )}
+      </div>{/* /왼쪽 이미지 컬럼 */}
 
-      {/* 포토리뷰 쇼케이스 (대표 이미지 바로 아래) */}
-      <PhotoReviewShowcase reviews={view.reviews} />
+      {/* 포토리뷰 쇼케이스 — 모바일: 이미지 바로 아래 / 데스크톱: 2컬럼 아래 전체폭 */}
+      <div className="md:w-full md:order-last">
+        <PhotoReviewShowcase reviews={view.reviews} />
+      </div>
 
-      {/* 구매 박스 (STEP 4) */}
-      <div className="px-4 pt-5 pb-4">
+      {/* 구매 박스 (오른쪽 컬럼) */}
+      <div className="px-4 pt-5 pb-4 md:flex-1 md:min-w-0 md:pt-0">
         {view.brand && <p className="text-[13px] text-text-sub">{view.brand}</p>}
         <h1 className="text-[18px] font-bold text-text mt-1 leading-tight">{view.name}</h1>
 
@@ -546,6 +553,8 @@ export default function AppProductDetail() {
         <p className="text-[12px] text-text-hint mt-3">{SHIPPING_NOTICE}</p>
       </div>
 
+      </div>{/* /데스크톱 2컬럼 */}
+
       {/* 흐르는 구매 후기 띠 (STEP 3) */}
       <ReviewMarquee reviews={view.reviews} />
 
@@ -590,8 +599,8 @@ export default function AppProductDetail() {
         </div>
       )}
 
-      {/* 모바일 하단 sticky 구매 바 */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-cream-2 px-4 py-3 z-40">
+      {/* 모바일 하단 sticky 구매 바 (데스크톱은 우측 구매박스가 있어 숨김) */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-cream-2 px-4 py-3 z-40 md:hidden">
         <div className="flex items-center gap-3">
           <div className="shrink-0">
             <p className="text-[10px] text-text-hint leading-none mb-0.5">수량 {quantity}</p>
