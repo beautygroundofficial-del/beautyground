@@ -219,11 +219,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   const startedAt = Date.now()
+  const MAX_PAGES = 5
+  const WANT = 10 // 목표 수집 리뷰 수
 
-  // 1) 게시판 목록 1~2 페이지에서 행 수집 → articleId + 상품번호
+  // 1) 게시판 목록 순회 (product_no 필터 URL 우선). 대상 상품 후보를 WANT개 모으면 조기 종료.
+  //    - 필터가 동작하는 스킨: 1페이지에서 대상 리뷰가 채워져 바로 종료
+  //    - 필터가 무시되는 스킨: 최대 5페이지까지 훑어 대상 상품 리뷰를 더 확보
   const rows: ListRow[] = []
   const seenArticle = new Set<string>()
-  for (let page = 1; page <= 2; page++) {
+  const targetMatched = () => {
+    const withNo = rows.filter(r => r.productNo != null)
+    return withNo.length > 0
+      ? rows.filter(r => r.productNo === targetNo).length
+      : rows.length // 목록에서 상품번호를 못 읽는 스킨 → 전부 후보(상세에서 최종 판별)
+  }
+  for (let page = 1; page <= MAX_PAGES; page++) {
+    if (Date.now() - startedAt > TIME_BUDGET_MS) break
     const url = `${origin}/board/product/list.html?board_no=${REVIEW_BOARD_NO}&product_no=${targetNo}&page=${page}`
     const html = await fetchHtml(url)
     if (!html) break
@@ -234,6 +245,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       seenArticle.add(r.articleId)
       rows.push(r)
     }
+    if (targetMatched() >= WANT) break // 충분히 모음
   }
 
   if (rows.length === 0) {
@@ -257,9 +269,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   // 2) 후보 게시글 상세 조회 (동시 3개, 150ms 간격, 8초 예산). 상세 product_no 로 최종 매칭.
+  //    WANT개를 모으면 조기 종료.
   const collected: Review[] = []
   for (let i = 0; i < candidates.length; i += DETAIL_CONCURRENCY) {
     if (Date.now() - startedAt > TIME_BUDGET_MS) break
+    if (collected.length >= WANT) break
     const batch = candidates.slice(i, i + DETAIL_CONCURRENCY)
 
     const results = await Promise.allSettled(
