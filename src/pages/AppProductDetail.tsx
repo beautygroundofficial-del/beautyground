@@ -97,15 +97,18 @@ function ReviewMarquee({ reviews }: { reviews: ScrapedReview[] }) {
       <div className="review-marquee-viewport overflow-hidden">
         {/* 2벌 이어붙여 translateX(-50%) 로 끊김 없이 루프되도록 좌우 패딩 없이 gap 만 사용 */}
         <div className="review-marquee-track gap-3">
-          {loop.map((r, i) => (
+          {loop.map((r, i) => {
+            // 리뷰 사진(고객 업로드)만 사용 — 없으면 사진 영역 생략(상품 썸네일 대체 금지)
+            const pic = r.photos?.[0] ?? r.photo ?? null
+            return (
             <article
               key={i}
               aria-hidden={i >= reviews.length ? true : undefined}
               className="shrink-0 w-[240px] bg-white border border-cream-2 rounded-2xl p-3.5 flex gap-3"
             >
-              {r.photo && (
+              {pic && (
                 <img
-                  src={r.photo}
+                  src={pic}
                   alt=""
                   className="w-14 h-14 shrink-0 rounded-lg object-cover bg-cream"
                   onError={e => { (e.target as HTMLImageElement).style.display = 'none' }}
@@ -121,7 +124,8 @@ function ReviewMarquee({ reviews }: { reviews: ScrapedReview[] }) {
                 <p className="text-[12px] text-text-sub leading-snug line-clamp-2">{r.text}</p>
               </div>
             </article>
-          ))}
+            )
+          })}
         </div>
       </div>
     </div>

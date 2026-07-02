@@ -32,7 +32,8 @@ export interface Partner {
 export interface ScrapedReview {
   rating: number | null
   text: string
-  photo: string | null
+  photo: string | null // 하위호환: photos[0]
+  photos?: string[] // 리뷰 사진 여러 장 (게시글 상세의 /file_data/ 이미지)
   date: string | null
   author: string | null
 }
