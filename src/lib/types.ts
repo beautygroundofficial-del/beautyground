@@ -52,6 +52,7 @@ export interface Product {
   gallery_images: string[] | null
   detail_images: string[] | null
   scraped_reviews: ScrapedReview[] | null
+  source_url: string | null // 스크랩 원본 상품 페이지 URL(후기 재수집용)
   created_at: string
 }
 

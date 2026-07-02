@@ -92,6 +92,11 @@ export default function ProductForm() {
   const [scrapedReviews, setScrapedReviews] = useState<ScrapedReview[]>([])
   const [reviewsHidden, setReviewsHidden] = useState(false)
 
+  // 구매 후기 가져오기 (수동 재수집)
+  const [reviewUrl, setReviewUrl] = useState<string>('')
+  const [reviewFetching, setReviewFetching] = useState(false)
+  const [reviewMsg, setReviewMsg] = useState<{ type: 'ok' | 'err'; text: string } | null>(null)
+
   // 파트너 ID 미리 가져오기
   useEffect(() => {
     getMyPartner().then(p => { if (p) setPartnerId(p.id) })
@@ -115,6 +120,7 @@ export default function ProductForm() {
       setGalleryImages(p.gallery_images ?? [])
       setDetailImages(p.detail_images ?? [])
       setScrapedReviews(p.scraped_reviews ?? [])
+      setReviewUrl(p.source_url ?? '')
       setLoading(false)
     })
     return () => { active = false }
@@ -272,6 +278,21 @@ export default function ProductForm() {
     }
   }
 
+  // "구매 후기 가져오기" 박스 — 입력 URL 로 후기만 재수집
+  const handleFetchReviews = async () => {
+    const url = reviewUrl.trim()
+    if (!url) { setReviewMsg({ type: 'err', text: '상품 페이지 URL 을 입력해 주세요.' }); return }
+    setReviewFetching(true)
+    setReviewMsg(null)
+    const rv = await fetchReviews(url)
+    setReviewFetching(false)
+    if (rv.count > 0) {
+      setReviewMsg({ type: 'ok', text: `리뷰 ${rv.count}개 · 사진 ${rv.photos}장 수집됨` })
+    } else {
+      setReviewMsg({ type: 'err', text: '이 상품의 후기를 찾지 못했습니다' })
+    }
+  }
+
   // ── 상품 페이지 URL → 자동 기입 (방법 1) ─────────────────────────────────────
   const handleScrape = async () => {
     const target = pageUrl.trim()
@@ -284,6 +305,7 @@ export default function ProductForm() {
         setScrapeMsg({ type: 'err', text: '자동 불러오기 실패. 직접 입력해 주세요.' })
         return
       }
+      setReviewUrl(target)
       const rv = await fetchReviews(target)
       const imgNote = result.imgCount > 1 ? ` (대표 이미지 ${result.imgCount}장)` : ''
       const photoNote = rv.photos > 0 ? ` · 사진 ${rv.photos}장` : ''
@@ -307,6 +329,7 @@ export default function ProductForm() {
         setFindMsg({ type: 'err', text: '상세 정보를 불러오지 못했습니다. 상품 페이지 URL 을 직접 넣어 주세요.' })
         return
       }
+      setReviewUrl(url)
       const rv = await fetchReviews(url)
       const photoNote = rv.photos > 0 ? ` (사진 ${rv.photos}장)` : ''
       const reviewNote = rv.count > 0 ? ` 리뷰 ${rv.count}개도 함께 수집했습니다.${photoNote}` : ''
@@ -388,6 +411,7 @@ export default function ProductForm() {
       detail_images: detailImages.filter(u => u.trim() !== ''),
       // "리뷰 표시 안 함" 체크 시 저장하지 않음(null)
       scraped_reviews: reviewsHidden || scrapedReviews.length === 0 ? null : scrapedReviews,
+      source_url: reviewUrl.trim() || null, // 후기 재수집용 원본 URL
     }
 
     setSubmitting(true)
@@ -583,25 +607,47 @@ export default function ProductForm() {
             )}
           </div>
 
-          {/* 수집한 리뷰 상태 + 표시 여부 */}
-          {scrapedReviews.length > 0 && (
-            <div className="rounded-xl border border-[#e5e0d8] bg-[#faf8f4] p-4 flex items-center justify-between gap-3">
-              <p className="text-[12px] font-semibold text-[#555]">
-                리뷰 {scrapedReviews.length}개 수집됨
-                {countPhotos(scrapedReviews) > 0 && <span> · 사진 {countPhotos(scrapedReviews)}장</span>}
-                <span className="ml-1.5 font-normal text-[#9a9080]">상품 상세에 흐르는 후기로 표시됩니다.</span>
-              </p>
-              <label className="shrink-0 flex items-center gap-1.5 text-[11px] text-[#9a9080] cursor-pointer select-none">
-                <input
-                  type="checkbox"
-                  checked={reviewsHidden}
-                  onChange={e => setReviewsHidden(e.target.checked)}
-                  className="accent-[#b8924a]"
-                />
-                리뷰 표시 안 함
-              </label>
+          {/* 구매 후기 가져오기 */}
+          <div className="rounded-xl border border-[#e5e0d8] p-4">
+            <p className="text-[13px] font-bold text-[#111] mb-2.5">구매 후기 가져오기</p>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={reviewUrl}
+                onChange={e => setReviewUrl(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleFetchReviews() } }}
+                placeholder="업체 상품 페이지 주소를 붙여넣으세요"
+                className={`${inputCls} flex-1`}
+              />
+              <button
+                type="button"
+                onClick={handleFetchReviews}
+                disabled={reviewFetching}
+                className="shrink-0 inline-flex items-center gap-1.5 px-4 py-2.5 bg-[#b8924a] hover:bg-[#a07c3b] disabled:opacity-60 text-white font-semibold rounded-lg text-[13px] transition-colors whitespace-nowrap"
+              >
+                {reviewFetching && (
+                  <span className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" aria-hidden="true" />
+                )}
+                {reviewFetching ? '불러오는 중' : '후기 불러오기'}
+              </button>
             </div>
-          )}
+
+            {reviewMsg && (
+              <p className={`text-[12px] mt-2 font-medium ${reviewMsg.type === 'ok' ? 'text-[#085041]' : 'text-[#9a9080]'}`}>
+                {reviewMsg.type === 'ok' ? '✓ ' : ''}{reviewMsg.text}
+              </p>
+            )}
+
+            <label className="flex items-center gap-1.5 mt-3 text-[12px] text-[#9a9080] cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={reviewsHidden}
+                onChange={e => setReviewsHidden(e.target.checked)}
+                className="accent-[#b8924a]"
+              />
+              상세 페이지에 후기 표시 안 함
+            </label>
+          </div>
 
           <div>
             <label className="block text-[12px] font-semibold text-[#555] mb-1.5">상품명 *</label>
