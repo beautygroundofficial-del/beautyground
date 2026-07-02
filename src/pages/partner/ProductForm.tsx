@@ -67,7 +67,7 @@ export default function ProductForm() {
   const [price, setPrice] = useState<string>('')
   const [salePrice, setSalePrice] = useState<string>('')
   const [category, setCategory] = useState<string>('')
-  const [stock, setStock] = useState<string>('0')
+  const [stock, setStock] = useState<string>('100')
   const [thumbnailUrl, setThumbnailUrl] = useState<string>('')
   const [description, setDescription] = useState<string>('')
   const [status, setStatus] = useState<Product['status']>('on_sale')
@@ -194,6 +194,8 @@ export default function ProductForm() {
 
   const applyScrapeData = (d: ScrapeResult): { filled: number; imgCount: number } => {
     let filled = 0
+    // 재고가 비어있거나 0 이면 기본 100 으로 채움(사용자가 입력해 둔 값은 유지)
+    setStock(prev => (!prev.trim() || Number(prev) === 0 ? '100' : prev))
     // 값이 null/빈 항목은 기존값 유지
     if (d.name) { setName(d.name); filled++ }
     if (d.category && (PRODUCT_CATEGORIES as readonly string[]).includes(d.category)) { setCategory(d.category); filled++ }
