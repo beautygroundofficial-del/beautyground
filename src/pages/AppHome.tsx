@@ -173,7 +173,7 @@ export default function AppHome() {
           </button>
         </div>
         {prodLoading ? (
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
             {Array.from({ length: 4 }).map((_, i) => (
               <ShopProductCardSkeleton key={i} />
             ))}
@@ -181,7 +181,7 @@ export default function AppHome() {
         ) : newProducts.length === 0 ? (
           <p className="text-center py-8 text-text-hint text-[13px]">준비 중입니다</p>
         ) : (
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
             {newProducts.map((product) => (
               <button
                 key={product.id}

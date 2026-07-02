@@ -115,7 +115,7 @@ export default function AppCategoryDetail() {
 
       {/* 목록 */}
       {loading && products.length === 0 ? (
-        <div className="px-4 pt-3 grid grid-cols-2 gap-3">
+        <div className="px-4 pt-3 grid grid-cols-2 md:grid-cols-4 gap-3">
           {Array.from({ length: 6 }).map((_, i) => (
             <ShopProductCardSkeleton key={i} />
           ))}
@@ -131,7 +131,7 @@ export default function AppCategoryDetail() {
         </div>
       ) : (
         <>
-          <div className="px-4 pt-3 grid grid-cols-2 gap-3">
+          <div className="px-4 pt-3 grid grid-cols-2 md:grid-cols-4 gap-3">
             {products.map((product) => (
               <button
                 key={product.id}
