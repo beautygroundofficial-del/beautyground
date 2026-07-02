@@ -261,7 +261,10 @@ export default function ProductForm() {
     reviews.reduce((n, r) => n + (r.photos?.length ?? (r.photo ? 1 : 0)), 0)
 
   // 상품 상세 URL → /api/scrape-reviews 호출 → 리뷰 state 반영 (리뷰/사진 개수 반환)
-  const fetchReviews = async (url: string): Promise<{ count: number; photos: number }> => {
+  const fetchReviews = async (
+    url: string,
+    opts?: { keepOnEmpty?: boolean }
+  ): Promise<{ count: number; photos: number }> => {
     try {
       const resp = await fetch('/api/scrape-reviews', {
         method: 'POST',
@@ -270,10 +273,11 @@ export default function ProductForm() {
       })
       const json = await resp.json()
       const reviews: ScrapedReview[] = Array.isArray(json?.reviews) ? json.reviews : []
-      setScrapedReviews(reviews)
+      // keepOnEmpty: 0건이면 기존 수집분 유지(덮어쓰지 않음)
+      if (reviews.length > 0 || !opts?.keepOnEmpty) setScrapedReviews(reviews)
       return { count: reviews.length, photos: countPhotos(reviews) }
     } catch {
-      setScrapedReviews([])
+      if (!opts?.keepOnEmpty) setScrapedReviews([])
       return { count: 0, photos: 0 }
     }
   }
@@ -284,12 +288,13 @@ export default function ProductForm() {
     if (!url) { setReviewMsg({ type: 'err', text: '상품 페이지 URL 을 입력해 주세요.' }); return }
     setReviewFetching(true)
     setReviewMsg(null)
-    const rv = await fetchReviews(url)
+    const rv = await fetchReviews(url, { keepOnEmpty: true }) // 0건이면 기존 후기 유지
     setReviewFetching(false)
     if (rv.count > 0) {
       setReviewMsg({ type: 'ok', text: `리뷰 ${rv.count}개 · 사진 ${rv.photos}장 수집됨` })
     } else {
-      setReviewMsg({ type: 'err', text: '이 상품의 후기를 찾지 못했습니다' })
+      const keepNote = scrapedReviews.length > 0 ? ' (기존 후기는 유지됩니다)' : ''
+      setReviewMsg({ type: 'err', text: `후기를 찾지 못했습니다${keepNote}` })
     }
   }
 
