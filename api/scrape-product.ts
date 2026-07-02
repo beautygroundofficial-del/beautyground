@@ -21,6 +21,22 @@ function normalizeImage(src: string | undefined, base: string): string | null {
   return abs.replace(/\[/g, '%5B').replace(/\]/g, '%5D')
 }
 
+// 상품명 정제: 구분자 뒤 사이트명 제거 + 라벨("상품명/상품요약정보/소비자가/판매가") 잔여 제거
+function cleanProductName(raw: string | null | undefined): string {
+  let s = (raw ?? '').trim()
+  if (!s) return ''
+  // " - 사이트명", " | 사이트명" 형태에서 첫 구분자 앞부분만 사용
+  s = s.split(/\s+[-|–—]\s+/)[0].trim()
+  // 앞에 붙은 라벨 잔여 반복 제거 (예: "품요약정보 ...", "상품명 : ...")
+  const LABEL = /^(?:상품명|상품요약정보|품요약정보|요약정보|소비자가|판매가|정가|할인가|적립금)\s*[:：]?\s*/
+  let prev: string
+  do {
+    prev = s
+    s = s.replace(LABEL, '').trim()
+  } while (s !== prev && s)
+  return s.trim()
+}
+
 // 숫자(가격) 정규화: number 또는 "33,000원" 같은 문자열 → 정수
 function toIntOrNull(v: unknown): number | null {
   if (v == null) return null
@@ -102,6 +118,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const meta = (sel: string) => $(sel).attr('content')?.trim() || ''
 
   const ogTitle = meta('meta[property="og:title"]') || $('title').first().text().trim()
+  // og:title 없을 때만 쓰는 상품명 요소 후보 (라벨 섞이지 않게 이름 영역만)
+  const nameEl = (
+    $('#span_product_name').first().text() ||
+    $('.xans-product-detail .name').first().text() ||
+    $('.infoArea .name, .headingArea h2, .detailArea .name').first().text() ||
+    ''
+  ).replace(/\s+/g, ' ').trim()
   const ogImage =
     meta('meta[property="og:image"]') ||
     meta('meta[name="og:image"]') ||
@@ -279,7 +302,12 @@ ${bodyText}`
     ai.category && CATEGORIES.includes(ai.category) ? ai.category : null
 
   const data: ScrapeData = {
-    name: (ai.name && String(ai.name).trim()) || ogTitle || null,
+    // 상품명: og:title(정제) 1순위 → 상품명 요소(정제) → Gemini(정제) 순
+    name:
+      cleanProductName(ogTitle) ||
+      cleanProductName(nameEl) ||
+      cleanProductName(ai.name ? String(ai.name) : '') ||
+      null,
     price: toIntOrNull(ai.price),
     sale_price: toIntOrNull(ai.sale_price),
     description: (ai.description && String(ai.description).trim()) || metaDesc || null,

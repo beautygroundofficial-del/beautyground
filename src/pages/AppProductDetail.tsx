@@ -1,24 +1,186 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import BackHeader from '../components/layout/BackHeader'
 import BottomNav from '../components/layout/BottomNav'
-import ProductCard from '../components/product/ProductCard'
-import Badge from '../components/common/Badge'
-import { ALL_PRODUCTS, DEPT_COLOR } from '../constants'
+import { supabase } from '../lib/supabase'
+import type { Product, ScrapedReview } from '../lib/types'
+import { ALL_PRODUCTS, SHIPPING_NOTICE } from '../constants'
 
 const DETAIL_TABS = ['상품정보', '성분', '배송/반품']
+
+// 소비자 상세 렌더링용 통합 뷰모델 (DB 상품 / 목데이터 공통)
+interface ProductView {
+  name: string
+  brand: string
+  price: number // 판매가
+  originalPrice: number | null // 정가 (할인 있을 때만)
+  images: string[]
+  detailImages: string[]
+  description: string | null
+  stock: number | null // null = 재고 무제한(목데이터)
+  soldOut: boolean
+  reviews: ScrapedReview[]
+  // 목데이터 전용(이미지 없을 때 아이콘 표시)
+  thumbIcon?: string
+  thumbColor?: string
+}
+
+// DB 상품 → 뷰모델
+function fromDbProduct(p: Product, brand: string): ProductView {
+  const images =
+    p.gallery_images && p.gallery_images.length > 0
+      ? p.gallery_images
+      : p.thumbnail_url
+      ? [p.thumbnail_url]
+      : []
+  const sell = p.sale_price ?? p.price
+  const hasDiscount = p.sale_price != null && p.sale_price < p.price
+  return {
+    name: p.name,
+    brand,
+    price: sell,
+    originalPrice: hasDiscount ? p.price : null,
+    images,
+    detailImages: p.detail_images ?? [],
+    description: p.description,
+    stock: p.stock,
+    soldOut: p.status === 'sold_out' || p.stock <= 0,
+    reviews: p.scraped_reviews ?? [],
+  }
+}
+
+// 목데이터 상품 → 뷰모델
+function fromMock(m: (typeof ALL_PRODUCTS)[number]): ProductView {
+  return {
+    name: m.name,
+    brand: m.brand,
+    price: m.price,
+    originalPrice: m.originalPrice ?? null,
+    images: [],
+    detailImages: [],
+    description: null,
+    stock: null,
+    soldOut: false,
+    reviews: [],
+    thumbIcon: m.thumbIcon,
+    thumbColor: m.thumbColor,
+  }
+}
+
+// 평균 별점 (rating 있는 리뷰만)
+function avgRating(reviews: ScrapedReview[]): number | null {
+  const rated = reviews.filter(r => typeof r.rating === 'number') as (ScrapedReview & { rating: number })[]
+  if (rated.length === 0) return null
+  return Math.round((rated.reduce((s, r) => s + r.rating, 0) / rated.length) * 10) / 10
+}
+
+// ── 흐르는 구매 후기 띠 (STEP 3) ─────────────────────────────────────────────
+function ReviewMarquee({ reviews }: { reviews: ScrapedReview[] }) {
+  if (reviews.length === 0) return null
+  const avg = avgRating(reviews)
+  // 끊김 없는 루프를 위해 리스트를 2벌 이어붙임
+  const loop = [...reviews, ...reviews]
+
+  return (
+    <div className="py-5 border-t border-cream-2">
+      <div className="flex items-center gap-2 px-4 mb-3">
+        <h2 className="text-[15px] font-bold text-text">구매 후기</h2>
+        {avg != null && (
+          <span className="flex items-center gap-1 text-[13px] font-semibold text-gold">
+            <span aria-hidden="true">★</span>
+            {avg.toFixed(1)}
+          </span>
+        )}
+        <span className="text-[12px] text-text-hint">({reviews.length})</span>
+      </div>
+
+      <div className="review-marquee-viewport overflow-hidden">
+        {/* 2벌 이어붙여 translateX(-50%) 로 끊김 없이 루프되도록 좌우 패딩 없이 gap 만 사용 */}
+        <div className="review-marquee-track gap-3">
+          {loop.map((r, i) => (
+            <article
+              key={i}
+              aria-hidden={i >= reviews.length ? true : undefined}
+              className="shrink-0 w-[240px] bg-white border border-cream-2 rounded-2xl p-3.5 flex gap-3"
+            >
+              {r.photo && (
+                <img
+                  src={r.photo}
+                  alt=""
+                  className="w-14 h-14 shrink-0 rounded-lg object-cover bg-cream"
+                  onError={e => { (e.target as HTMLImageElement).style.display = 'none' }}
+                />
+              )}
+              <div className="min-w-0">
+                <div className="flex items-center gap-1.5 mb-1">
+                  <span className="text-gold text-[12px]" aria-hidden="true">
+                    {'★'.repeat(r.rating ?? 5)}
+                  </span>
+                  {r.author && <span className="text-[11px] text-text-hint truncate">{r.author}</span>}
+                </div>
+                <p className="text-[12px] text-text-sub leading-snug line-clamp-2">{r.text}</p>
+              </div>
+            </article>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
 
 export default function AppProductDetail() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const [quantity, setQuantity] = useState(1)
   const [activeTab, setActiveTab] = useState(0)
+  const [activeImg, setActiveImg] = useState(0)
   const [wished, setWished] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [view, setView] = useState<ProductView | null>(null)
+  const [toast, setToast] = useState('')
 
-  const product = ALL_PRODUCTS.find(p => p.id === Number(id))
-  const related = ALL_PRODUCTS.filter(p => p.id !== product?.id && p.deptKey === product?.deptKey).slice(0, 4)
+  // DB 상품 우선 로드, 숫자 id(목데이터)면 목데이터 폴백
+  useEffect(() => {
+    let active = true
+    const isNumeric = !!id && /^\d+$/.test(id)
 
-  if (!product) {
+    async function load() {
+      if (id && !isNumeric) {
+        const { data } = await supabase.from('products').select('*').eq('id', id).single()
+        if (data) {
+          const p = data as Product
+          let brand = ''
+          if (p.partner_id) {
+            const { data: pt } = await supabase.from('partners').select('brand_name').eq('id', p.partner_id).single()
+            brand = (pt as { brand_name?: string } | null)?.brand_name ?? ''
+          }
+          if (active) { setView(fromDbProduct(p, brand)); setLoading(false) }
+          return
+        }
+      }
+      // 폴백: 목데이터
+      const mock = ALL_PRODUCTS.find(p => p.id === Number(id))
+      if (active) { setView(mock ? fromMock(mock) : null); setLoading(false) }
+    }
+
+    load()
+    return () => { active = false }
+  }, [id])
+
+  const showToast = (msg: string) => {
+    setToast(msg)
+    window.setTimeout(() => setToast(''), 2000)
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <p className="text-text-hint text-[14px]">불러오는 중...</p>
+      </div>
+    )
+  }
+
+  if (!view) {
     return (
       <div className="min-h-screen bg-cream-4 flex items-center justify-center">
         <p className="text-text-hint">상품을 찾을 수 없습니다.</p>
@@ -26,26 +188,23 @@ export default function AppProductDetail() {
     )
   }
 
-  const deptStyle = DEPT_COLOR[product.deptKey]
-  const discountRate = product.originalPrice
-    ? Math.round((1 - product.price / product.originalPrice) * 100)
+  const discountRate = view.originalPrice
+    ? Math.round((1 - view.price / view.originalPrice) * 100)
     : 0
+  const maxQty = view.stock != null ? Math.max(1, view.stock) : 99
+  const total = view.price * quantity
+
+  const onBuy = () => showToast('결제 준비 중입니다')
 
   return (
     <div className="min-h-screen bg-white pb-32">
       <BackHeader
         rightElement={
           <div className="flex items-center gap-3">
-            <button
-              onClick={() => setWished(!wished)}
-              aria-label={wished ? '찜 해제' : '찜하기'}
-            >
+            <button onClick={() => setWished(!wished)} aria-label={wished ? '찜 해제' : '찜하기'}>
               <span className="text-xl" aria-hidden="true">{wished ? '❤️' : '🤍'}</span>
             </button>
-            <button
-              onClick={() => navigate('/app/cart')}
-              aria-label="장바구니"
-            >
+            <button onClick={() => navigate('/app/cart')} aria-label="장바구니">
               <span className="text-xl" aria-hidden="true">🛒</span>
             </button>
           </div>
@@ -53,52 +212,65 @@ export default function AppProductDetail() {
       />
 
       {/* 상품 이미지 */}
-      <div
-        className="h-[280px] flex items-center justify-center"
-        style={{ backgroundColor: product.thumbColor }}
-        aria-hidden="true"
-      >
-        <span className="text-[100px] opacity-60">{product.thumbIcon}</span>
-      </div>
-
-      {/* 상품 정보 */}
-      <div className="px-4 pt-5 pb-4">
-        <div className="flex items-center gap-2 mb-2">
-          <Badge type="dept" label={product.deptName} deptKey={product.deptKey} />
-          {discountRate > 0 && (
-            <span className="text-[11px] font-bold text-[#FF4757] bg-[#FF4757]/10 px-2 py-0.5 rounded-pill">
-              {discountRate}% 할인
-            </span>
-          )}
-        </div>
-        <p className="text-[13px] text-text-sub">{product.brand}</p>
-        <h1 className="text-[18px] font-bold text-text mt-1 leading-tight">{product.name}</h1>
-
-        <div className="flex items-end gap-2 mt-3">
-          <span className="text-[24px] font-bold text-text">
-            {product.price.toLocaleString('ko-KR')}원
-          </span>
-          {product.originalPrice && (
-            <span className="text-text-hint text-[15px] line-through pb-0.5">
-              {product.originalPrice.toLocaleString('ko-KR')}원
-            </span>
-          )}
-        </div>
-
-        {/* 혜택 요약 */}
-        <div className="mt-4 space-y-2">
-          {[
-            { icon: '💎', label: '멤버십 포인트', value: `${Math.floor(product.price * 0.01).toLocaleString('ko-KR')}P 적립` },
-            { icon: '🚀', label: '배송', value: '당일 배송 가능 (오후 2시 이전 주문)' },
-            { icon: '🏪', label: '판매처', value: product.deptName, color: deptStyle.text },
-          ].map(({ icon, label, value, color }) => (
-            <div key={label} className="flex items-start gap-3 text-[13px]">
-              <span className="flex-shrink-0 w-5 text-center" aria-hidden="true">{icon}</span>
-              <span className="text-text-sub w-24 flex-shrink-0">{label}</span>
-              <span className="text-text" style={color ? { color } : undefined}>{value}</span>
+      {view.images.length > 0 ? (
+        <div>
+          <div className="aspect-square max-h-[380px] bg-cream flex items-center justify-center overflow-hidden">
+            <img
+              src={view.images[Math.min(activeImg, view.images.length - 1)]}
+              alt={view.name}
+              className="w-full h-full object-contain"
+            />
+          </div>
+          {view.images.length > 1 && (
+            <div className="flex gap-2 overflow-x-auto px-4 py-3 scrollbar-hide">
+              {view.images.map((url, i) => (
+                <button
+                  key={i}
+                  onClick={() => setActiveImg(i)}
+                  className={`shrink-0 w-14 h-14 rounded-lg overflow-hidden border-2 transition-colors ${i === activeImg ? 'border-gold' : 'border-cream-2'}`}
+                  aria-label={`${i + 1}번째 이미지`}
+                >
+                  <img src={url} alt="" className="w-full h-full object-cover" />
+                </button>
+              ))}
             </div>
-          ))}
+          )}
         </div>
+      ) : (
+        <div
+          className="h-[280px] flex items-center justify-center"
+          style={{ backgroundColor: view.thumbColor ?? '#2a1a2e' }}
+          aria-hidden="true"
+        >
+          <span className="text-[100px] opacity-60">{view.thumbIcon ?? '🧴'}</span>
+        </div>
+      )}
+
+      {/* 구매 박스 (STEP 4) */}
+      <div className="px-4 pt-5 pb-4">
+        {view.brand && <p className="text-[13px] text-text-sub">{view.brand}</p>}
+        <h1 className="text-[18px] font-bold text-text mt-1 leading-tight">{view.name}</h1>
+
+        {/* 가격 */}
+        <div className="flex items-end gap-2 mt-3">
+          {discountRate > 0 && (
+            <span className="text-[22px] font-bold text-gold">{discountRate}%</span>
+          )}
+          <span className="text-[24px] font-bold text-text">
+            {view.price.toLocaleString('ko-KR')}원
+          </span>
+          {view.originalPrice && (
+            <span className="text-text-hint text-[15px] line-through pb-0.5">
+              {view.originalPrice.toLocaleString('ko-KR')}원
+            </span>
+          )}
+        </div>
+
+        {view.soldOut && (
+          <p className="mt-2 inline-block text-[12px] font-semibold text-[#633806] bg-[#FAEEDA] px-2.5 py-1 rounded-full">
+            일시 품절
+          </p>
+        )}
 
         {/* 수량 선택 */}
         <div className="mt-5 flex items-center justify-between py-4 border-t border-b border-cream-2">
@@ -106,9 +278,9 @@ export default function AppProductDetail() {
           <div className="flex items-center gap-3">
             <button
               onClick={() => setQuantity(Math.max(1, quantity - 1))}
-              className="w-9 h-9 rounded-full border border-cream-2 flex items-center justify-center text-text hover:bg-cream-2 transition-colors"
+              className="w-9 h-9 rounded-full border border-cream-2 flex items-center justify-center text-text hover:bg-cream-2 transition-colors disabled:opacity-40"
               aria-label="수량 감소"
-              disabled={quantity <= 1}
+              disabled={quantity <= 1 || view.soldOut}
             >
               <span aria-hidden="true">−</span>
             </button>
@@ -116,98 +288,111 @@ export default function AppProductDetail() {
               {quantity}
             </span>
             <button
-              onClick={() => setQuantity(quantity + 1)}
-              className="w-9 h-9 rounded-full border border-cream-2 flex items-center justify-center text-text hover:bg-cream-2 transition-colors"
+              onClick={() => setQuantity(Math.min(maxQty, quantity + 1))}
+              className="w-9 h-9 rounded-full border border-cream-2 flex items-center justify-center text-text hover:bg-cream-2 transition-colors disabled:opacity-40"
               aria-label="수량 증가"
+              disabled={quantity >= maxQty || view.soldOut}
             >
               <span aria-hidden="true">+</span>
             </button>
           </div>
         </div>
 
+        {/* 합계 */}
         <div className="flex items-center justify-between mt-3">
-          <span className="text-[14px] text-text-sub">총 금액</span>
-          <span className="text-[20px] font-bold text-gold">
-            {(product.price * quantity).toLocaleString('ko-KR')}원
-          </span>
+          <span className="text-[14px] text-text-sub">총 상품 금액</span>
+          <span className="text-[20px] font-bold text-gold">{total.toLocaleString('ko-KR')}원</span>
         </div>
+
+        {/* 버튼 2개 */}
+        <div className="flex gap-3 mt-4">
+          <button
+            onClick={() => navigate('/app/cart')}
+            disabled={view.soldOut}
+            className="flex-1 border border-gold text-gold font-semibold text-[14px] py-3.5 rounded-pill hover:bg-gold/5 transition-colors disabled:opacity-40"
+          >
+            장바구니
+          </button>
+          <button
+            onClick={onBuy}
+            disabled={view.soldOut}
+            className="flex-1 bg-gold text-white font-semibold text-[14px] py-3.5 rounded-pill hover:bg-gold-light transition-colors disabled:opacity-40"
+          >
+            {view.soldOut ? '일시 품절' : '구매하기'}
+          </button>
+        </div>
+
+        {/* 배송 안내 */}
+        <p className="text-[12px] text-text-hint mt-3">{SHIPPING_NOTICE}</p>
       </div>
 
-      {/* 상세 탭 */}
-      <div className="border-t border-cream-2">
-        <div className="flex border-b border-cream-2">
-          {DETAIL_TABS.map((tab, i) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(i)}
-              className={`flex-1 py-3 text-[13px] font-medium relative ${activeTab === i ? 'text-text' : 'text-text-hint'}`}
-              aria-pressed={activeTab === i}
-            >
-              {tab}
-              {activeTab === i && (
-                <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-gold rounded-full" aria-hidden="true" />
-              )}
-            </button>
+      {/* 흐르는 구매 후기 띠 (STEP 3) */}
+      <ReviewMarquee reviews={view.reviews} />
+
+      {/* 상세 이미지 (DB 상품) */}
+      {view.detailImages.length > 0 && (
+        <div className="border-t border-cream-2">
+          {view.detailImages.map((url, i) => (
+            <img key={i} src={url} alt={`상세 이미지 ${i + 1}`} loading="lazy" className="w-full h-auto block" />
           ))}
         </div>
-        <div className="px-4 py-5 text-[13px] text-text-sub leading-relaxed">
-          {activeTab === 0 && (
-            <p>
-              {product.brand}의 {product.name}은 피부 깊숙이 영양을 공급하며, 탄력 있고 촉촉한 피부를 만들어줍니다.
-              공식 BA의 전문적인 피부 상담을 통해 나에게 맞는 사용법을 안내받으세요.
-            </p>
-          )}
-          {activeTab === 1 && (
-            <p>
-              정제수, 부틸렌글라이콜, 글리세린, 나이아신아마이드, 판테놀, 향료<br />
-              (주요 성분 기준, 전성분은 제품 포장 참조)
-            </p>
-          )}
-          {activeTab === 2 && (
-            <div className="space-y-2">
-              <p>• 배송: CJ대한통운, 주문 후 1~2 영업일 출고</p>
-              <p>• 당일 배송: 오후 2시 이전 주문 시 당일 발송</p>
-              <p>• 무료 배송: 50,000원 이상 구매 시</p>
-              <p>• 반품: 수령 후 7일 이내 가능 (개봉 상품 반품 불가)</p>
-            </div>
-          )}
-        </div>
-      </div>
+      )}
 
-      {/* 관련 상품 */}
-      {related.length > 0 && (
-        <div className="px-4 py-4 border-t border-cream-2">
-          <h2 className="text-[15px] font-bold text-text mb-3">같은 백화점관 상품</h2>
-          <div className="grid grid-cols-2 gap-3">
-            {related.map(p => (
+      {/* 상세 탭 (목데이터 안내용) */}
+      {view.images.length === 0 && (
+        <div className="border-t border-cream-2">
+          <div className="flex border-b border-cream-2">
+            {DETAIL_TABS.map((tab, i) => (
               <button
-                key={p.id}
-                onClick={() => navigate(`/app/product/${p.id}`)}
-                className="text-left focus:outline-none focus:shadow-focus rounded-md"
-                aria-label={`${p.brand} ${p.name}`}
+                key={tab}
+                onClick={() => setActiveTab(i)}
+                className={`flex-1 py-3 text-[13px] font-medium relative ${activeTab === i ? 'text-text' : 'text-text-hint'}`}
+                aria-pressed={activeTab === i}
               >
-                <ProductCard {...p} />
+                {tab}
+                {activeTab === i && (
+                  <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-gold rounded-full" aria-hidden="true" />
+                )}
               </button>
             ))}
+          </div>
+          <div className="px-4 py-5 text-[13px] text-text-sub leading-relaxed">
+            {activeTab === 0 && <p>{view.description ?? `${view.brand} ${view.name} 상품입니다.`}</p>}
+            {activeTab === 1 && <p>전성분은 제품 포장을 참조해 주세요.</p>}
+            {activeTab === 2 && (
+              <div className="space-y-2">
+                <p>• 배송: 주문 후 1~2 영업일 출고</p>
+                <p>• {SHIPPING_NOTICE}</p>
+                <p>• 반품: 수령 후 7일 이내 가능 (개봉 상품 반품 불가)</p>
+              </div>
+            )}
           </div>
         </div>
       )}
 
-      {/* 하단 구매 바 */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-cream-2 px-4 py-3 flex gap-3 z-40">
-        <button
-          onClick={() => navigate('/app/cart')}
-          className="flex-1 bg-cream-3 text-text-sub font-semibold text-[14px] py-3.5 rounded-pill hover:bg-cream-2 transition-colors"
-        >
-          장바구니
-        </button>
-        <button
-          onClick={() => navigate('/app/order')}
-          className="flex-1 bg-gold text-white font-semibold text-[14px] py-3.5 rounded-pill hover:bg-gold-light transition-colors"
-        >
-          바로 구매
-        </button>
+      {/* 모바일 하단 sticky 구매 바 */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-cream-2 px-4 py-3 z-40">
+        <div className="flex items-center gap-3">
+          <div className="shrink-0">
+            <p className="text-[10px] text-text-hint leading-none mb-0.5">수량 {quantity}</p>
+            <p className="text-[15px] font-bold text-gold leading-none">{total.toLocaleString('ko-KR')}원</p>
+          </div>
+          <button
+            onClick={onBuy}
+            disabled={view.soldOut}
+            className="flex-1 bg-gold text-white font-semibold text-[14px] py-3 rounded-pill hover:bg-gold-light transition-colors disabled:opacity-40"
+          >
+            {view.soldOut ? '일시 품절' : '구매하기'}
+          </button>
+        </div>
       </div>
+
+      {/* 토스트 */}
+      {toast && (
+        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 bg-text text-white text-[13px] px-4 py-2.5 rounded-full shadow-lg">
+          {toast}
+        </div>
+      )}
 
       <BottomNav />
     </div>

@@ -7,7 +7,7 @@ import {
 import { supabase } from '../../lib/supabase'
 import { getMyPartner } from '../../lib/partner'
 import { splitAndUploadLongImage } from '../../lib/splitLongImage'
-import type { Product } from '../../lib/types'
+import type { Product, ScrapedReview } from '../../lib/types'
 import { PRODUCT_CATEGORIES } from '../../lib/types'
 
 const inputCls =
@@ -88,6 +88,10 @@ export default function ProductForm() {
   const [showCandidates, setShowCandidates] = useState(false)
   const [autofillBanner, setAutofillBanner] = useState<string>('')
 
+  // 수집한 리뷰
+  const [scrapedReviews, setScrapedReviews] = useState<ScrapedReview[]>([])
+  const [reviewsHidden, setReviewsHidden] = useState(false)
+
   // 파트너 ID 미리 가져오기
   useEffect(() => {
     getMyPartner().then(p => { if (p) setPartnerId(p.id) })
@@ -110,6 +114,7 @@ export default function ProductForm() {
       setStatus(p.status)
       setGalleryImages(p.gallery_images ?? [])
       setDetailImages(p.detail_images ?? [])
+      setScrapedReviews(p.scraped_reviews ?? [])
       setLoading(false)
     })
     return () => { active = false }
@@ -243,6 +248,24 @@ export default function ProductForm() {
     return applyScrapeData(json.data as ScrapeResult)
   }
 
+  // 상품 상세 URL → /api/scrape-reviews 호출 → 리뷰 state 반영 (수집 개수 반환)
+  const fetchReviews = async (url: string): Promise<number> => {
+    try {
+      const resp = await fetch('/api/scrape-reviews', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ productUrl: url }),
+      })
+      const json = await resp.json()
+      const reviews: ScrapedReview[] = Array.isArray(json?.reviews) ? json.reviews : []
+      setScrapedReviews(reviews)
+      return reviews.length
+    } catch {
+      setScrapedReviews([])
+      return 0
+    }
+  }
+
   // ── 상품 페이지 URL → 자동 기입 (방법 1) ─────────────────────────────────────
   const handleScrape = async () => {
     const target = pageUrl.trim()
@@ -255,8 +278,10 @@ export default function ProductForm() {
         setScrapeMsg({ type: 'err', text: '자동 불러오기 실패. 직접 입력해 주세요.' })
         return
       }
+      const reviewCount = await fetchReviews(target)
       const imgNote = result.imgCount > 1 ? ` (대표 이미지 ${result.imgCount}장)` : ''
-      setScrapeMsg({ type: 'ok', text: `불러왔어요. 확인 후 등록/수정하세요.${imgNote}` })
+      const reviewNote = reviewCount > 0 ? ` · 리뷰 ${reviewCount}개 수집됨` : ''
+      setScrapeMsg({ type: 'ok', text: `불러왔어요. 확인 후 등록/수정하세요.${imgNote}${reviewNote}` })
     } catch {
       setScrapeMsg({ type: 'err', text: '자동 불러오기 실패. 직접 입력해 주세요.' })
     } finally {
@@ -275,7 +300,9 @@ export default function ProductForm() {
         setFindMsg({ type: 'err', text: '상세 정보를 불러오지 못했습니다. 상품 페이지 URL 을 직접 넣어 주세요.' })
         return
       }
-      setAutofillBanner(`${result.filled}개 항목을 자동으로 채웠습니다. 확인 후 수정하고 등록해 주세요.`)
+      const reviewCount = await fetchReviews(url)
+      const reviewNote = reviewCount > 0 ? ` 리뷰 ${reviewCount}개도 함께 수집했습니다.` : ''
+      setAutofillBanner(`${result.filled}개 항목을 자동으로 채웠습니다.${reviewNote} 확인 후 수정하고 등록해 주세요.`)
     } catch {
       setFindMsg({ type: 'err', text: '상세 정보를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.' })
     } finally {
@@ -351,6 +378,8 @@ export default function ProductForm() {
       status,
       gallery_images: gallery,
       detail_images: detailImages.filter(u => u.trim() !== ''),
+      // "리뷰 표시 안 함" 체크 시 저장하지 않음(null)
+      scraped_reviews: reviewsHidden || scrapedReviews.length === 0 ? null : scrapedReviews,
     }
 
     setSubmitting(true)
@@ -545,6 +574,25 @@ export default function ProductForm() {
               </p>
             )}
           </div>
+
+          {/* 수집한 리뷰 상태 + 표시 여부 */}
+          {scrapedReviews.length > 0 && (
+            <div className="rounded-xl border border-[#e5e0d8] bg-[#faf8f4] p-4 flex items-center justify-between gap-3">
+              <p className="text-[12px] font-semibold text-[#555]">
+                리뷰 {scrapedReviews.length}개 수집됨
+                <span className="ml-1.5 font-normal text-[#9a9080]">상품 상세에 흐르는 후기로 표시됩니다.</span>
+              </p>
+              <label className="shrink-0 flex items-center gap-1.5 text-[11px] text-[#9a9080] cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={reviewsHidden}
+                  onChange={e => setReviewsHidden(e.target.checked)}
+                  className="accent-[#b8924a]"
+                />
+                리뷰 표시 안 함
+              </label>
+            </div>
+          )}
 
           <div>
             <label className="block text-[12px] font-semibold text-[#555] mb-1.5">상품명 *</label>

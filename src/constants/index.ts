@@ -354,3 +354,8 @@ export const CATEGORY_LABEL: Record<string, string> = {
   hair: '헤어케어',
   body: '바디케어',
 }
+
+// 배송 정책 (추후 설정 화면에서 조정 가능하도록 상수로 분리)
+export const SHIPPING_FEE = 3000
+export const FREE_SHIPPING_THRESHOLD = 50000
+export const SHIPPING_NOTICE = '배송비 3,000원 · 50,000원 이상 무료'

@@ -75,3 +75,25 @@
   50%  { object-position: center bottom; }
   100% { object-position: center top; }
 }
+
+/* 구매 후기 흐르는 띠 (오른쪽 → 왼쪽 무한 루프) */
+@keyframes review-marquee {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+.review-marquee-track {
+  display: inline-flex;
+  width: max-content;
+  animation: review-marquee 35s linear infinite;
+}
+.review-marquee-viewport:hover .review-marquee-track {
+  animation-play-state: paused;
+}
+@media (prefers-reduced-motion: reduce) {
+  .review-marquee-track {
+    animation: none;
+  }
+  .review-marquee-viewport {
+    overflow-x: auto;
+  }
+}

@@ -28,6 +28,15 @@ export interface Partner {
   created_at: string
 }
 
+// 업체 리뷰 게시판에서 수집한 리뷰 1건 (scrape-reviews 응답 및 products.scraped_reviews 저장 형태)
+export interface ScrapedReview {
+  rating: number | null
+  text: string
+  photo: string | null
+  date: string | null
+  author: string | null
+}
+
 export interface Product {
   id: string
   partner_id: string | null
@@ -41,6 +50,7 @@ export interface Product {
   status: 'on_sale' | 'sold_out' | 'hidden'
   gallery_images: string[] | null
   detail_images: string[] | null
+  scraped_reviews: ScrapedReview[] | null
   created_at: string
 }
 
