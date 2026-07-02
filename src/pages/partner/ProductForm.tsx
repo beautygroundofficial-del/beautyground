@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import {
   IconUpload, IconToggleRight, IconToggleLeft,
-  IconArrowUp, IconArrowDown, IconTrash, IconScissors,
+  IconArrowUp, IconArrowDown, IconTrash, IconScissors, IconX,
 } from '@tabler/icons-react'
 import { supabase } from '../../lib/supabase'
 import { getMyPartner } from '../../lib/partner'
@@ -12,6 +12,28 @@ import { PRODUCT_CATEGORIES } from '../../lib/types'
 
 const inputCls =
   'w-full border border-[#e5e0d8] rounded-lg px-3.5 py-2.5 text-[13px] text-[#111] placeholder:text-[#bbb] focus:outline-none focus:border-[#b8924a] transition-colors bg-white'
+
+// /api/find-product 후보 항목
+interface FoundCandidate {
+  name: string
+  url: string
+  thumbnail: string | null
+  score: number
+}
+
+// /api/scrape-product 응답 data (필요 필드만)
+interface ScrapeResult {
+  name?: string | null
+  price?: number | null
+  sale_price?: number | null
+  description?: string | null
+  summary?: string | null
+  thumbnail_url?: string | null
+  category?: string | null
+  gallery?: unknown
+  images?: unknown
+  detail_images?: unknown
+}
 
 export default function ProductForm() {
   const { id } = useParams<{ id: string }>()
@@ -56,6 +78,15 @@ export default function ProductForm() {
   const [pageUrl, setPageUrl] = useState<string>('')
   const [scraping, setScraping] = useState(false)
   const [scrapeMsg, setScrapeMsg] = useState<{ type: 'ok' | 'err'; text: string } | null>(null)
+
+  // 사이트 주소 + 제목 자동 등록 (방법 2)
+  const [siteUrl, setSiteUrl] = useState<string>('')
+  const [findTitle, setFindTitle] = useState<string>('')
+  const [finding, setFinding] = useState(false)
+  const [findMsg, setFindMsg] = useState<{ type: 'ok' | 'err'; text: string } | null>(null)
+  const [candidates, setCandidates] = useState<FoundCandidate[]>([])
+  const [showCandidates, setShowCandidates] = useState(false)
+  const [autofillBanner, setAutofillBanner] = useState<string>('')
 
   // 파트너 ID 미리 가져오기
   useEffect(() => {
@@ -152,57 +183,150 @@ export default function ProductForm() {
     })
   }
 
-  // ── 상품 페이지 URL → 자동 기입 ──────────────────────────────────────────────
+  // ── 스크랩 결과(d)를 폼에 반영 → 채운 항목 수 반환 ────────────────────────────
+  const toStrArr = (v: unknown): string[] =>
+    Array.isArray(v) ? v.filter((u): u is string => typeof u === 'string' && u.trim() !== '') : []
+
+  const applyScrapeData = (d: ScrapeResult): { filled: number; imgCount: number } => {
+    let filled = 0
+    // 값이 null/빈 항목은 기존값 유지
+    if (d.name) { setName(d.name); filled++ }
+    if (d.category && (PRODUCT_CATEGORIES as readonly string[]).includes(d.category)) { setCategory(d.category); filled++ }
+    if (d.price != null) { setPrice(String(d.price)); filled++ }
+    if (d.sale_price != null) { setSalePrice(String(d.sale_price)); filled++ }
+    const desc = (d.summary && d.summary.trim()) || d.description
+    if (desc) { setDescription(desc); filled++ }
+
+    // 대표 이미지 갤러리: 스크랩한 갤러리(없으면 전체 이미지)를 갤러리 영역에 채움
+    const gallery = toStrArr(d.gallery)
+    const imgs = gallery.length > 0 ? gallery : toStrArr(d.images)
+    if (imgs.length > 0) {
+      setThumbnailUrl(imgs[0]) // 대표 = 갤러리 첫 장
+      setUploadError('')
+      setGalleryImages(prev => {
+        const existing = prev.filter(u => u.trim() !== '')
+        const seen = new Set(existing)
+        const added = imgs.filter(u => !seen.has(u))
+        return [...existing, ...added]
+      })
+      filled++
+    } else if (d.thumbnail_url) {
+      setThumbnailUrl(d.thumbnail_url)
+      setUploadError('')
+      filled++
+    }
+
+    // 상세 이미지: 스크랩한 상세컷을 상세 이미지 목록에 append (중복 제거)
+    const details = toStrArr(d.detail_images)
+    if (details.length > 0) {
+      setDetailImages(prev => {
+        const existing = prev.filter(u => u.trim() !== '')
+        const seen = new Set(existing)
+        const added = details.filter(u => !seen.has(u))
+        return [...existing, ...added]
+      })
+      filled++
+    }
+
+    return { filled, imgCount: imgs.length }
+  }
+
+  // 상품 상세 URL → /api/scrape-product 호출 → 폼 반영 (성공 시 채운 항목 수 반환)
+  const scrapeUrlToForm = async (url: string): Promise<{ filled: number; imgCount: number } | null> => {
+    const resp = await fetch('/api/scrape-product', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url }),
+    })
+    const json = await resp.json()
+    if (!json?.ok || !json?.data) return null
+    return applyScrapeData(json.data as ScrapeResult)
+  }
+
+  // ── 상품 페이지 URL → 자동 기입 (방법 1) ─────────────────────────────────────
   const handleScrape = async () => {
     const target = pageUrl.trim()
     if (!target) { setScrapeMsg({ type: 'err', text: '상품 페이지 URL 을 입력해 주세요.' }); return }
     setScraping(true)
     setScrapeMsg(null)
     try {
-      const resp = await fetch('/api/scrape-product', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: target }),
-      })
-      const json = await resp.json()
-      if (!json?.ok || !json?.data) {
+      const result = await scrapeUrlToForm(target)
+      if (!result) {
         setScrapeMsg({ type: 'err', text: '자동 불러오기 실패. 직접 입력해 주세요.' })
         return
       }
-      // 값이 null 인 항목은 기존값 유지
-      const d = json.data
-      if (d.name) setName(d.name)
-      if (d.category && (PRODUCT_CATEGORIES as readonly string[]).includes(d.category)) setCategory(d.category)
-      if (d.price != null) setPrice(String(d.price))
-      if (d.sale_price != null) setSalePrice(String(d.sale_price))
-      if (d.description) setDescription(d.description)
-
-      // 대표 이미지 갤러리: 스크랩한 갤러리(없으면 전체 이미지)를 갤러리 영역에 채움
-      const toStrArr = (v: unknown): string[] =>
-        Array.isArray(v) ? v.filter((u): u is string => typeof u === 'string' && u.trim() !== '') : []
-      const gallery = toStrArr(d.gallery)
-      const imgs = gallery.length > 0 ? gallery : toStrArr(d.images)
-      if (imgs.length > 0) {
-        setThumbnailUrl(imgs[0]) // 대표 = 갤러리 첫 장
-        setUploadError('')
-        setGalleryImages(prev => {
-          const existing = prev.filter(u => u.trim() !== '')
-          const seen = new Set(existing)
-          const added = imgs.filter(u => !seen.has(u))
-          return [...existing, ...added]
-        })
-      } else if (d.thumbnail_url) {
-        setThumbnailUrl(d.thumbnail_url)
-        setUploadError('')
-      }
-
-      const imgNote = imgs.length > 1 ? ` (대표 이미지 ${imgs.length}장)` : ''
+      const imgNote = result.imgCount > 1 ? ` (대표 이미지 ${result.imgCount}장)` : ''
       setScrapeMsg({ type: 'ok', text: `불러왔어요. 확인 후 등록/수정하세요.${imgNote}` })
     } catch {
       setScrapeMsg({ type: 'err', text: '자동 불러오기 실패. 직접 입력해 주세요.' })
     } finally {
       setScraping(false)
     }
+  }
+
+  // ── 사이트 주소 + 제목 → 자동 등록 (방법 2) ──────────────────────────────────
+  // 선택된 상품 상세 URL 을 스크랩해 폼에 반영하고 안내 배너 표시
+  const applyFromUrl = async (url: string) => {
+    setFinding(true)
+    setFindMsg(null)
+    try {
+      const result = await scrapeUrlToForm(url)
+      if (!result) {
+        setFindMsg({ type: 'err', text: '상세 정보를 불러오지 못했습니다. 상품 페이지 URL 을 직접 넣어 주세요.' })
+        return
+      }
+      setAutofillBanner(`${result.filled}개 항목을 자동으로 채웠습니다. 확인 후 수정하고 등록해 주세요.`)
+    } catch {
+      setFindMsg({ type: 'err', text: '상세 정보를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.' })
+    } finally {
+      setFinding(false)
+    }
+  }
+
+  const handleFind = async () => {
+    const site = siteUrl.trim()
+    const title = findTitle.trim()
+    if (!site) { setFindMsg({ type: 'err', text: '업체 사이트 주소를 입력해 주세요.' }); return }
+    if (!title) { setFindMsg({ type: 'err', text: '상품 제목을 입력해 주세요.' }); return }
+    setFinding(true)
+    setFindMsg(null)
+    setAutofillBanner('')
+    setCandidates([])
+    setShowCandidates(false)
+    try {
+      const resp = await fetch('/api/find-product', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ siteUrl: site, title }),
+      })
+      const json = await resp.json()
+
+      if (json?.error === 'SEARCH_UNSUPPORTED') {
+        setFindMsg({ type: 'err', text: '이 사이트는 자동 검색이 안 됩니다. 상품 페이지 URL 을 직접 붙여넣어 주세요.' })
+        return
+      }
+      if (json?.best?.url) {
+        await applyFromUrl(json.best.url) // 내부에서 finding false 처리
+        return
+      }
+      const cands: FoundCandidate[] = Array.isArray(json?.candidates) ? json.candidates : []
+      if (cands.length > 0) {
+        setCandidates(cands)
+        setShowCandidates(true)
+        return
+      }
+      setFindMsg({ type: 'err', text: '일치하는 상품을 찾지 못했습니다. 제목을 더 정확히 입력하거나 상품 URL 을 직접 넣어 주세요.' })
+    } catch {
+      setFindMsg({ type: 'err', text: '자동 불러오기에 실패했습니다. 잠시 후 다시 시도해 주세요.' })
+    } finally {
+      setFinding(false)
+    }
+  }
+
+  // 후보 모달에서 상품 1개 선택
+  const chooseCandidate = async (url: string) => {
+    setShowCandidates(false)
+    await applyFromUrl(url)
   }
 
   // ── 폼 제출 ──────────────────────────────────────────────────────────────────
@@ -252,6 +376,21 @@ export default function ProductForm() {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
+      {/* 자동 기입 안내 배너 */}
+      {autofillBanner && (
+        <div className="flex items-start justify-between gap-3 rounded-lg border border-[#b8924a]/40 bg-[#fdf9f5] px-4 py-3">
+          <p className="text-[12px] font-medium text-[#8a6a2f]">{autofillBanner}</p>
+          <button
+            type="button"
+            onClick={() => setAutofillBanner('')}
+            className="shrink-0 text-[#b8924a] hover:text-[#8a6a2f]"
+            title="닫기"
+          >
+            <IconX size={16} />
+          </button>
+        </div>
+      )}
+
       {/* ── 2컬럼: 대표이미지 + 상품정보 ──────────────────────────────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-[2fr_3fr] gap-6">
 
@@ -362,6 +501,47 @@ export default function ProductForm() {
             {scrapeMsg && (
               <p className={`text-[11px] mt-1.5 font-medium ${scrapeMsg.type === 'ok' ? 'text-[#085041]' : 'text-red-500'}`}>
                 {scrapeMsg.text}
+              </p>
+            )}
+          </div>
+
+          {/* 방법 2: 사이트 주소 + 상품명으로 자동 등록 */}
+          <div className="rounded-xl border border-[#e5e0d8] bg-[#faf8f4] p-4">
+            <label className="block text-[12px] font-semibold text-[#555] mb-1.5">사이트 + 상품명으로 자동 등록</label>
+            <input
+              type="text"
+              value={siteUrl}
+              onChange={e => setSiteUrl(e.target.value)}
+              placeholder="https://makeuphelper.co.kr"
+              className={`${inputCls} mb-2`}
+            />
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={findTitle}
+                onChange={e => setFindTitle(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleFind() } }}
+                placeholder="상품 제목 입력"
+                className={`${inputCls} flex-1`}
+              />
+              <button
+                type="button"
+                onClick={handleFind}
+                disabled={finding}
+                className="shrink-0 px-4 py-2.5 bg-[#b8924a] hover:bg-[#a07c3b] disabled:opacity-60 text-white font-semibold rounded-lg text-[13px] transition-colors whitespace-nowrap inline-flex items-center gap-1.5"
+              >
+                {finding && (
+                  <span className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                )}
+                {finding ? '불러오는 중...' : '자동 불러오기'}
+              </button>
+            </div>
+            <p className="text-[11px] text-[#9a9080] mt-1.5 leading-relaxed">
+              업체 사이트 주소와 상품 제목만 넣으면 상품을 찾아 정보·이미지를 자동으로 채웁니다.
+            </p>
+            {findMsg && (
+              <p className={`text-[11px] mt-1.5 font-medium ${findMsg.type === 'ok' ? 'text-[#085041]' : 'text-red-500'}`}>
+                {findMsg.text}
               </p>
             )}
           </div>
@@ -588,6 +768,44 @@ export default function ProductForm() {
           {submitting ? '저장 중...' : isEdit ? '수정하기' : '등록하기'}
         </button>
       </div>
+
+      {/* ── 후보 상품 선택 모달 ─────────────────────────────────────────────── */}
+      {showCandidates && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          onClick={() => setShowCandidates(false)}
+        >
+          <div
+            className="w-full max-w-md max-h-[80vh] overflow-y-auto rounded-2xl bg-white p-5 shadow-xl"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-1">
+              <h3 className="text-[14px] font-bold text-[#111]">상품을 선택해 주세요</h3>
+              <button type="button" onClick={() => setShowCandidates(false)} className="text-[#9a9080] hover:text-[#111]" title="닫기">
+                <IconX size={18} />
+              </button>
+            </div>
+            <p className="text-[11px] text-[#9a9080] mb-4">제목과 비슷한 상품이 여러 개 있습니다. 등록할 상품을 골라 주세요.</p>
+            <div className="space-y-2">
+              {candidates.map((c, i) => (
+                <button
+                  key={`${c.url}-${i}`}
+                  type="button"
+                  onClick={() => chooseCandidate(c.url)}
+                  className="w-full flex items-center gap-3 rounded-xl border border-[#e5e0d8] p-2.5 text-left hover:border-[#b8924a] hover:bg-[#fdf9f5] transition-colors"
+                >
+                  <div className="w-14 h-14 shrink-0 rounded-lg bg-[#f7f4ef] border border-[#e5e0d8] overflow-hidden flex items-center justify-center text-[10px] text-[#bbb]">
+                    {c.thumbnail
+                      ? <img src={c.thumbnail} alt={c.name} className="w-full h-full object-cover" onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
+                      : '이미지'}
+                  </div>
+                  <span className="flex-1 text-[12px] text-[#111] leading-snug line-clamp-2">{c.name}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </form>
   )
 }

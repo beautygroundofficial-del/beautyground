@@ -36,10 +36,12 @@ interface ScrapeData {
   price: number | null
   sale_price: number | null
   description: string | null
+  summary: string | null
   thumbnail_url: string | null
   category: string | null
   gallery: string[]
   images: string[]
+  detail_images: string[]
 }
 
 // URL 파일명(쿼리/해시 제외)
@@ -178,6 +180,47 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
   const gallery = galleryOrder.map((b) => galleryByBase.get(b)!).slice(0, 20)
 
+  // ── 상세 이미지(본문 상세컷) 수집 — 상세 영역 안의 img 만, cheerio 로만 ──────
+  // 상세 본문 컨테이너: Cafe24 기본(#prdDetail), 신형(.xans-product-detail),
+  // edibot 스킨(.edibot-product-detail)
+  const DETAIL_SEL = '#prdDetail, .xans-product-detail, .edibot-product-detail'
+  // 상세컷에서 제외할 노이즈: 공통 스킨 도메인 / gif / 버튼·아이콘·배너 파일명
+  const DETAIL_NOISE =
+    /img\.echosting\.cafe24\.com|\.gif(?:\?|$)|btn|icon|banner|button|logo|sns|arrow|blank|spacer/i
+  const detailRaw: string[] = []
+  $(DETAIL_SEL)
+    .find('img')
+    .each((_, el) => {
+      const $el = $(el)
+      const src =
+        $el.attr('src') ||
+        $el.attr('data-src') ||
+        $el.attr('ec-data-src') ||
+        $el.attr('data-original') ||
+        $el.attr('data-lazy')
+      if (!src || src.startsWith('data:')) return
+      const n = normalizeImage(src, url)
+      if (!n || !/^https?:\/\//i.test(n)) return
+      const hay = `${n} ${$el.attr('class') ?? ''} ${$el.attr('id') ?? ''} ${$el.attr('alt') ?? ''}`
+      if (DETAIL_NOISE.test(hay)) return
+      detailRaw.push(n)
+    })
+  // 순서 유지 + 중복 제거
+  const seenDetail = new Set<string>()
+  const detail_images: string[] = []
+  for (const u of detailRaw) {
+    if (seenDetail.has(u)) continue
+    seenDetail.add(u)
+    detail_images.push(u)
+    if (detail_images.length >= 40) break
+  }
+
+  // 상품요약정보(있으면) — Cafe24 표준 요약 영역
+  const summary =
+    $('.xans-product-detaildesign .summary').first().text().replace(/\s+/g, ' ').trim() ||
+    $('#span_product_price_text').first().text().replace(/\s+/g, ' ').trim() ||
+    null
+
   // 본문 텍스트(노이즈 제거 후 일부) — Gemini 가격/카테고리 추출용
   $('script, style, noscript, svg, iframe').remove()
   const bodyText = $('body').text().replace(/\s+/g, ' ').trim().slice(0, 12000)
@@ -240,10 +283,12 @@ ${bodyText}`
     price: toIntOrNull(ai.price),
     sale_price: toIntOrNull(ai.sale_price),
     description: (ai.description && String(ai.description).trim()) || metaDesc || null,
+    summary,
     thumbnail_url: gallery[0] ?? images[0] ?? thumbnailUrl, // 대표 = 갤러리 첫 장
     category,
     gallery, // 대표 이미지 갤러리(순서 유지)
     images, // 페이지 전체 이미지(상세/폴백용)
+    detail_images, // 상세 본문 이미지(순서 유지)
   }
 
   res.status(200).json({ ok: true, data })
