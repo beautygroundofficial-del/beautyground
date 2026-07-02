@@ -1,6 +1,8 @@
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import AppHeader from '../components/layout/AppHeader'
 import BottomNav from '../components/layout/BottomNav'
+import { supabase } from '../lib/supabase'
 import { MOCK_USER, DEPT_COLOR } from '../constants'
 
 const MENU_ITEMS = [
@@ -30,6 +32,29 @@ export default function AppMyPage() {
   const navigate = useNavigate()
   const user = MOCK_USER
   const tierStyle = TIER_STYLE[user.tier]
+
+  const [loggedIn, setLoggedIn] = useState<boolean | null>(null)
+  const [toast, setToast] = useState<string | null>(null)
+
+  useEffect(() => {
+    let active = true
+    supabase.auth.getUser().then(({ data }) => {
+      if (active) setLoggedIn(!!data.user)
+    })
+    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
+      setLoggedIn(!!session?.user)
+    })
+    return () => {
+      active = false
+      sub.subscription.unsubscribe()
+    }
+  }, [])
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut()
+    setToast('로그아웃되었습니다')
+    setTimeout(() => navigate('/app/home'), 900)
+  }
 
   return (
     <div className="min-h-screen bg-cream-4 pb-20">
@@ -172,8 +197,29 @@ export default function AppMyPage() {
       </div>
 
       <div className="px-5 py-6">
-        <button className="text-[13px] text-text-hint underline">로그아웃</button>
+        {loggedIn === false ? (
+          <button
+            onClick={() => navigate('/partner/login')}
+            className="text-[13px] text-text-hint underline"
+          >
+            로그인
+          </button>
+        ) : (
+          <button
+            onClick={handleLogout}
+            className="text-[13px] text-text-hint underline"
+          >
+            로그아웃
+          </button>
+        )}
       </div>
+
+      {/* 토스트 */}
+      {toast && (
+        <div className="fixed left-1/2 -translate-x-1/2 bottom-24 z-50 bg-black/80 text-white text-[13px] px-4 py-2.5 rounded-pill" role="status">
+          {toast}
+        </div>
+      )}
 
       <BottomNav />
     </div>
