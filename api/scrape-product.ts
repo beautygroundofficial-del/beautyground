@@ -238,11 +238,29 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (detail_images.length >= 40) break
   }
 
-  // 상품요약정보(있으면) — Cafe24 표준 요약 영역
-  const summary =
-    $('.xans-product-detaildesign .summary').first().text().replace(/\s+/g, ' ').trim() ||
-    $('#span_product_price_text').first().text().replace(/\s+/g, ' ').trim() ||
-    null
+  // 상품요약설명(간략설명) — 요약 요소 → og:description 순.
+  // 가격/가격라벨 텍스트가 잡히면 버리고 다음 후보로 (가격을 넣느니 비워둔다)
+  const looksLikePrice = (t: string): boolean => {
+    if (!t) return true
+    // 숫자+콤마/점+"원" 만으로 구성 (예: "17,000원", "11900")
+    if (/^[0-9][0-9,.\s]*원?$/.test(t)) return true
+    // 가격/적립/배송 관련 라벨 포함
+    if (/(판매가|소비자가|공급가|정가|할인가|적립금|배송비)/.test(t)) return true
+    return false
+  }
+  const summaryCandidates = [
+    $('.simple-desc, [class*="simple-desc"]').first().text(),
+    $('.product-simpledesc, .summary-desc, .short-desc, .prd-simpledesc').first().text(),
+    meta('meta[property="og:description"]'),
+  ]
+  let summary: string | null = null
+  for (const raw of summaryCandidates) {
+    const t = (raw || '').replace(/\s+/g, ' ').trim()
+    if (t && !looksLikePrice(t)) {
+      summary = t.length > 500 ? t.slice(0, 500).trim() : t
+      break
+    }
+  }
 
   // 본문 텍스트(노이즈 제거 후 일부) — Gemini 가격/카테고리 추출용
   $('script, style, noscript, svg, iframe').remove()
