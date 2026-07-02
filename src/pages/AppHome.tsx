@@ -5,18 +5,19 @@ import LiveRollingBanner from '../components/home/LiveRollingBanner'
 import CategoryChip from '../components/home/CategoryChip'
 import LiveCard from '../components/home/LiveCard'
 import DeptCard from '../components/home/DeptCard'
-import ProductCard from '../components/product/ProductCard'
+import ShopProductCard, { ShopProductCardSkeleton } from '../components/product/ShopProductCard'
+import { useShopProducts } from '../hooks/useShopProducts'
 import {
   LIVE_SLIDES,
   CATEGORIES,
   LIVE_CARDS,
   DEPT_CARDS,
-  RECOMMENDED_PRODUCTS,
   AGE_SEGMENTS,
 } from '../constants'
 
 export default function AppHome() {
   const navigate = useNavigate()
+  const { products: newProducts, loading: prodLoading } = useShopProducts({ sort: 'latest', pageSize: 8 })
 
   return (
     <div className="min-h-screen bg-cream-4 pb-20">
@@ -158,11 +159,11 @@ export default function AppHome() {
         </div>
       </section>
 
-      {/* 오늘의 추천 */}
-      <section className="bg-white mt-2 px-4 py-4" aria-labelledby="recommend-heading">
+      {/* 신상품 (실제 등록 상품) */}
+      <section className="bg-white mt-2 px-4 py-4" aria-labelledby="new-heading">
         <div className="flex items-center justify-between mb-3">
-          <h2 id="recommend-heading" className="text-[15px] font-bold text-text">
-            오늘의 추천
+          <h2 id="new-heading" className="text-[15px] font-bold text-text">
+            신상품
           </h2>
           <button
             onClick={() => navigate('/app/category')}
@@ -171,18 +172,28 @@ export default function AppHome() {
             더보기 &gt;
           </button>
         </div>
-        <div className="grid grid-cols-2 gap-2">
-          {RECOMMENDED_PRODUCTS.map((product) => (
-            <button
-              key={product.id}
-              onClick={() => navigate(`/app/product/${product.id}`)}
-              className="text-left focus:outline-none focus:shadow-focus rounded-md"
-              aria-label={`${product.brand} ${product.name} 상세 보기`}
-            >
-              <ProductCard {...product} />
-            </button>
-          ))}
-        </div>
+        {prodLoading ? (
+          <div className="grid grid-cols-2 gap-2">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <ShopProductCardSkeleton key={i} />
+            ))}
+          </div>
+        ) : newProducts.length === 0 ? (
+          <p className="text-center py-8 text-text-hint text-[13px]">준비 중입니다</p>
+        ) : (
+          <div className="grid grid-cols-2 gap-2">
+            {newProducts.map((product) => (
+              <button
+                key={product.id}
+                onClick={() => navigate(`/app/product/${product.id}`)}
+                className="text-left focus:outline-none focus:shadow-focus rounded-md"
+                aria-label={`${product.brand_name ?? ''} ${product.name} 상세 보기`}
+              >
+                <ShopProductCard product={product} />
+              </button>
+            ))}
+          </div>
+        )}
       </section>
 
       {/* 하단 탭바 */}
