@@ -623,9 +623,12 @@ export default function AppProductDetail() {
       {/* 상세 이미지 (DB 상품) */}
       {view.detailImages.length > 0 && (
         <div className="border-t border-cream-2">
-          {view.detailImages.map((url, i) => (
-            <img key={i} src={url} alt={`상세 이미지 ${i + 1}`} loading="lazy" className="w-full h-auto block" />
-          ))}
+          {/* PC에서는 절반 폭(max-w-3xl)으로 가운데 정렬, 모바일은 화면 폭 그대로 */}
+          <div className="max-w-3xl mx-auto w-full">
+            {view.detailImages.map((url, i) => (
+              <img key={i} src={url} alt={`상세 이미지 ${i + 1}`} loading="lazy" className="w-full h-auto block" />
+            ))}
+          </div>
         </div>
       )}
 
