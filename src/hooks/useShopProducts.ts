@@ -42,20 +42,28 @@ export function useShopProducts({ category, sort = 'latest', pageSize = 20 }: Op
       setLoading(true)
       setError(null)
 
-      let q = supabase
-        .from('products')
-        .select('id,name,price,sale_price,thumbnail_url,category,partner_id')
-        .eq('status', 'on_sale')
-
-      if (category) q = q.eq('category', category)
-      if (sort === 'price_asc') q = q.order('price', { ascending: true })
-      else if (sort === 'price_desc') q = q.order('price', { ascending: false })
-      else q = q.order('created_at', { ascending: false })
-
       const from = pageIndex * pageSize
-      q = q.range(from, from + pageSize - 1)
 
-      const { data, error: err } = await q
+      // 판매가(할인가 우선) 기준 정렬. effective_price = coalesce(sale_price, price) 생성 컬럼.
+      const runQuery = (priceCol: 'effective_price' | 'price') => {
+        let q = supabase
+          .from('products')
+          .select('id,name,price,sale_price,thumbnail_url,category,partner_id')
+          .eq('status', 'on_sale')
+
+        if (category) q = q.eq('category', category)
+        if (sort === 'price_asc') q = q.order(priceCol, { ascending: true })
+        else if (sort === 'price_desc') q = q.order(priceCol, { ascending: false })
+        else q = q.order('created_at', { ascending: false })
+
+        return q.range(from, from + pageSize - 1)
+      }
+
+      let { data, error: err } = await runQuery('effective_price')
+      // effective_price 마이그레이션 미적용 환경 대비: 실패 시 price 컬럼으로 폴백.
+      if (err && sort !== 'latest') {
+        ;({ data, error: err } = await runQuery('price'))
+      }
       if (err) {
         setError('상품을 불러오지 못했습니다.')
         setLoading(false)

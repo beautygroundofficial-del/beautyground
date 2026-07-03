@@ -1,12 +1,12 @@
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import BackHeader from '../components/layout/BackHeader'
 import BottomNav from '../components/layout/BottomNav'
 import ShopProductCard, { ShopProductCardSkeleton } from '../components/product/ShopProductCard'
 import { useShopProducts, type ShopSort } from '../hooks/useShopProducts'
-import { CATEGORIES } from '../constants'
+import { useShopCategories } from '../hooks/useShopCategories'
 
-// 소비자 카테고리 슬러그 → 실제 products.category 저장값
+// 소비자 카테고리 슬러그 → 실제 products.category 저장값 (초기 탭 결정용)
 const SLUG_TO_CATEGORY: Record<string, string> = {
   skincare: '스킨케어',
   makeup: '메이크업',
@@ -27,26 +27,31 @@ export default function AppCategoryDetail() {
   const [sortIdx, setSortIdx] = useState(0)
   const [showSort, setShowSort] = useState(false)
 
-  const cat = CATEGORIES.find((c) => c.id === id)
-  const categoryValue = id ? SLUG_TO_CATEGORY[id] : undefined
+  // 탭: 전체 + 판매중 상품이 있는 실제 category 값 (0개 카테고리는 숨김)
+  const { categories } = useShopCategories()
+  const [selected, setSelected] = useState<string | null>(
+    id ? SLUG_TO_CATEGORY[id] ?? null : null
+  )
+
+  // 상품 0개 카테고리로 진입했으면(탭이 숨겨지므로) 전체로 되돌림
+  useEffect(() => {
+    if (selected && categories.length > 0 && !categories.includes(selected)) {
+      setSelected(null)
+    }
+  }, [categories, selected])
+
   const { products, loading, error, hasMore, loadMore } = useShopProducts({
-    category: categoryValue,
+    category: selected ?? undefined,
     sort: SORT_OPTIONS[sortIdx].value,
     pageSize: 20,
   })
 
-  if (!cat) {
-    return (
-      <div className="min-h-screen bg-cream-4 flex items-center justify-center">
-        <p className="text-text-hint">카테고리를 찾을 수 없습니다.</p>
-      </div>
-    )
-  }
+  const tabs = useMemo<(string | null)[]>(() => [null, ...categories], [categories])
 
   return (
     <div className="min-h-screen bg-cream-4 pb-20">
       <BackHeader
-        title={cat.label}
+        title={selected ?? '전체 상품'}
         rightElement={
           <button aria-label="검색" className="text-xl text-text">
             <span aria-hidden="true">🔍</span>
@@ -54,24 +59,29 @@ export default function AppCategoryDetail() {
         }
       />
 
-      {/* 카테고리 헤더 배너 */}
-      <div className="px-5 py-6 flex items-center gap-4" style={{ backgroundColor: cat.bg }}>
-        <div
-          className="w-14 h-14 rounded-[16px] flex items-center justify-center text-3xl"
-          style={{ backgroundColor: cat.bg }}
-          aria-hidden="true"
-        >
-          {cat.icon}
+      {/* 카테고리 탭 */}
+      <nav
+        className="bg-white border-b border-cream-2 sticky top-14 z-20"
+        aria-label="카테고리"
+      >
+        <div className="flex gap-2 px-4 py-2.5 overflow-x-auto scrollbar-hide">
+          {tabs.map((t) => {
+            const active = selected === t
+            return (
+              <button
+                key={t ?? '__all__'}
+                onClick={() => setSelected(t)}
+                aria-pressed={active}
+                className={`flex-shrink-0 px-3.5 py-1.5 rounded-pill text-[13px] font-medium transition-colors ${
+                  active ? 'bg-gold text-white' : 'bg-cream-3 text-text-sub hover:text-text'
+                }`}
+              >
+                {t ?? '전체'}
+              </button>
+            )
+          })}
         </div>
-        <div>
-          <h2 className="text-[20px] font-bold" style={{ color: cat.color }}>
-            {cat.label}
-          </h2>
-          <p className="text-[12px] mt-0.5" style={{ color: `${cat.color}99` }}>
-            {products.length}개 상품
-          </p>
-        </div>
-      </div>
+      </nav>
 
       {/* 정렬 바 */}
       <div className="bg-white border-b border-cream-2 px-4 py-2.5 flex items-center justify-between">
@@ -125,9 +135,11 @@ export default function AppCategoryDetail() {
       ) : products.length === 0 ? (
         <div className="text-center py-16">
           <p className="text-text-hint text-[14px]">상품이 준비 중입니다.</p>
-          <button onClick={() => navigate('/app/category')} className="text-gold mt-3 text-[13px]">
-            다른 카테고리 보기 →
-          </button>
+          {selected && (
+            <button onClick={() => setSelected(null)} className="text-gold mt-3 text-[13px]">
+              전체 상품 보기 →
+            </button>
+          )}
         </div>
       ) : (
         <>
