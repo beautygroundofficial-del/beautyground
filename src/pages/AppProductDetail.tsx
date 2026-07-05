@@ -3,10 +3,11 @@ import { useParams, useNavigate } from 'react-router-dom'
 import BackHeader from '../components/layout/BackHeader'
 import BottomNav from '../components/layout/BottomNav'
 import { supabase } from '../lib/supabase'
-import type { Product, ScrapedReview } from '../lib/types'
+import type { Product, ScrapedReview, ReviewSummaryData } from '../lib/types'
 import { ALL_PRODUCTS, SHIPPING_NOTICE } from '../constants'
 import ProductInfoTable from '../components/product/ProductInfoTable'
 import CategoryTabBar from '../components/product/CategoryTabBar'
+import ReviewSummary from '../components/product/ReviewSummary'
 
 const DETAIL_TABS = ['상품정보', '성분', '배송/반품']
 
@@ -15,6 +16,7 @@ interface ProductView {
   name: string
   brand: string
   category: string | null
+  reviewSummary: ReviewSummaryData | null
   price: number // 판매가
   originalPrice: number | null // 정가 (할인 있을 때만)
   images: string[]
@@ -42,6 +44,7 @@ function fromDbProduct(p: Product, brand: string): ProductView {
     name: p.name,
     brand,
     category: p.category ?? null,
+    reviewSummary: p.review_summary ?? null,
     price: sell,
     originalPrice: hasDiscount ? p.price : null,
     images,
@@ -59,6 +62,7 @@ function fromMock(m: (typeof ALL_PRODUCTS)[number]): ProductView {
     name: m.name,
     brand: m.brand,
     category: null,
+    reviewSummary: null,
     price: m.price,
     originalPrice: m.originalPrice ?? null,
     images: [],
@@ -639,6 +643,9 @@ export default function AppProductDetail() {
       </div>
 
       </div>{/* /데스크톱 2컬럼 */}
+
+      {/* 리뷰 요약 (대표 → 리뷰 → 상세 순서) */}
+      <ReviewSummary summary={view.reviewSummary} className="border-t border-cream-2" />
 
       {/* 구매 후기 포토카드 띠 */}
       <ReviewMarquee reviews={view.reviews} productName={view.name} onOpenReview={openReview} />

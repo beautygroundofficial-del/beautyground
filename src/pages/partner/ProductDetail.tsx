@@ -4,6 +4,7 @@ import { IconArrowLeft, IconPencil } from '@tabler/icons-react'
 import { supabase } from '../../lib/supabase'
 import type { Product } from '../../lib/types'
 import ProductInfoTable from '../../components/product/ProductInfoTable'
+import ReviewSummary from '../../components/product/ReviewSummary'
 
 const STATUS: Record<Product['status'], { label: string; bg: string; text: string }> = {
   on_sale: { label: '판매중', bg: 'bg-[#E1F5EE]', text: 'text-[#085041]' },
@@ -153,6 +154,9 @@ export default function ProductDetail() {
           </div>
         </div>
       </div>
+
+      {/* 리뷰 요약 (대표/정보 → 리뷰 → 상세 순서) */}
+      <ReviewSummary summary={product.review_summary} className="bg-white rounded-[14px] border border-[#e5e0d8] mb-6" />
 
       {/* 상세 이미지 (지연로딩) */}
       {(product.detail_images?.length ?? 0) > 0 && (

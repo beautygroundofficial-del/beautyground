@@ -52,8 +52,16 @@ export interface Product {
   gallery_images: string[] | null
   detail_images: string[] | null
   scraped_reviews: ScrapedReview[] | null
+  review_summary: ReviewSummaryData | null // 리뷰 요약(수/평균평점/사진) — 간단 리뷰 위젯용
   source_url: string | null // 스크랩 원본 상품 페이지 URL(후기 재수집용)
   created_at: string
+}
+
+// 리뷰 요약 (products.review_summary 저장 형태 · ReviewSummary 위젯 입력)
+export interface ReviewSummaryData {
+  count: number
+  avg: number | null
+  photos: string[]
 }
 
 export interface Live {
