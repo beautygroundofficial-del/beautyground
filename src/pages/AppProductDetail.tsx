@@ -5,6 +5,7 @@ import BottomNav from '../components/layout/BottomNav'
 import { supabase } from '../lib/supabase'
 import type { Product, ScrapedReview } from '../lib/types'
 import { ALL_PRODUCTS, SHIPPING_NOTICE } from '../constants'
+import ProductInfoTable from '../components/product/ProductInfoTable'
 
 const DETAIL_TABS = ['상품정보', '성분', '배송/반품']
 
@@ -560,6 +561,15 @@ export default function AppProductDetail() {
             일시 품절
           </p>
         )}
+
+        {/* 상품 정보 테이블 (적립금·브랜드·제조국·배송비) — 소비자가/판매가는 위 가격 표시로 대체 */}
+        <ProductInfoTable
+          consumerPrice={view.originalPrice ?? view.price}
+          salePrice={view.price}
+          brand={view.brand || undefined}
+          showPrice={false}
+          className="mt-4"
+        />
 
         {/* 수량 선택 */}
         <div className="mt-5 flex items-center justify-between py-4 border-t border-b border-cream-2">

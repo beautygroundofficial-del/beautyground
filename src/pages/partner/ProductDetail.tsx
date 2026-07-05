@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom'
 import { IconArrowLeft, IconPencil } from '@tabler/icons-react'
 import { supabase } from '../../lib/supabase'
 import type { Product } from '../../lib/types'
+import ProductInfoTable from '../../components/product/ProductInfoTable'
 
 const STATUS: Record<Product['status'], { label: string; bg: string; text: string }> = {
   on_sale: { label: '판매중', bg: 'bg-[#E1F5EE]', text: 'text-[#085041]' },
@@ -14,14 +15,24 @@ export default function ProductDetail() {
   const { id } = useParams<{ id: string }>()
   const [loading, setLoading] = useState(true)
   const [product, setProduct] = useState<Product | null>(null)
+  const [brand, setBrand] = useState('')
   const [active, setActive] = useState(0)
 
   useEffect(() => {
     if (!id) { setLoading(false); return }
-    supabase.from('products').select('*').eq('id', id).single().then(({ data }) => {
-      setProduct((data as Product | null) ?? null)
+    let alive = true
+    ;(async () => {
+      const { data } = await supabase.from('products').select('*').eq('id', id).single()
+      const p = (data as Product | null) ?? null
+      if (!alive) return
+      setProduct(p)
+      if (p?.partner_id) {
+        const { data: pt } = await supabase.from('partners').select('brand_name').eq('id', p.partner_id).single()
+        if (alive) setBrand((pt as { brand_name?: string } | null)?.brand_name ?? '')
+      }
       setLoading(false)
-    })
+    })()
+    return () => { alive = false }
   }, [id])
 
   if (loading) {
@@ -52,10 +63,6 @@ export default function ProductDetail() {
       ? [product.thumbnail_url]
       : []
   const sellPrice = product.sale_price ?? product.price
-  const hasDiscount = product.sale_price != null && product.sale_price < product.price
-  const discountRate = hasDiscount
-    ? Math.round((1 - product.sale_price! / product.price) * 100)
-    : null
 
   return (
     <div className="max-w-[720px] mx-auto px-4">
@@ -134,25 +141,16 @@ export default function ProductDetail() {
             <p className="text-[12px] text-[#9a9080] mb-4">{product.category}</p>
           )}
 
-          <div className="flex items-baseline gap-2 mb-4">
-            <p className="text-[24px] font-bold text-[#111]">{sellPrice.toLocaleString()}원</p>
-            {discountRate && (
-              <span className="text-[13px] font-semibold text-[#b8924a]">{discountRate}%</span>
-            )}
-            {hasDiscount && (
-              <span className="text-[14px] text-[#bbb] line-through">{product.price.toLocaleString()}원</span>
-            )}
-          </div>
+          {/* 상품 정보 테이블 (소비자가·판매가·적립금·브랜드·제조국·배송비) */}
+          <ProductInfoTable
+            consumerPrice={product.price}
+            salePrice={sellPrice}
+            brand={brand || undefined}
+          />
 
-          <div className="flex gap-6 text-[13px] text-[#555] border-t border-[#eee] pt-4">
+          <div className="flex gap-6 text-[13px] text-[#555] border-t border-[#eee] pt-4 mt-3">
             <span>재고 <strong className="text-[#111]">{product.stock.toLocaleString()}개</strong></span>
           </div>
-
-          {product.description && (
-            <p className="mt-4 text-[13px] text-[#555] leading-relaxed whitespace-pre-wrap">
-              {product.description}
-            </p>
-          )}
         </div>
       </div>
 

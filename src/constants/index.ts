@@ -356,6 +356,10 @@ export const CATEGORY_LABEL: Record<string, string> = {
 }
 
 // 배송 정책 (추후 설정 화면에서 조정 가능하도록 상수로 분리)
-export const SHIPPING_FEE = 3000
-export const FREE_SHIPPING_THRESHOLD = 50000
-export const SHIPPING_NOTICE = '배송비 3,000원 · 50,000원 이상 무료'
+export const SHIPPING_FEE = 3100
+export const FREE_SHIPPING_THRESHOLD = 20000
+export const SHIPPING_NOTICE = '배송비 3,100원 · 20,000원 이상 무료'
+
+// 적립금 비율(판매가 기준) · 기본 제조국
+export const REWARD_RATE = 0.03
+export const MADE_IN = '대한민국'
