@@ -6,6 +6,7 @@ import { supabase } from '../lib/supabase'
 import type { Product, ScrapedReview } from '../lib/types'
 import { ALL_PRODUCTS, SHIPPING_NOTICE } from '../constants'
 import ProductInfoTable from '../components/product/ProductInfoTable'
+import CategoryTabBar from '../components/product/CategoryTabBar'
 
 const DETAIL_TABS = ['상품정보', '성분', '배송/반품']
 
@@ -13,6 +14,7 @@ const DETAIL_TABS = ['상품정보', '성분', '배송/반품']
 interface ProductView {
   name: string
   brand: string
+  category: string | null
   price: number // 판매가
   originalPrice: number | null // 정가 (할인 있을 때만)
   images: string[]
@@ -39,6 +41,7 @@ function fromDbProduct(p: Product, brand: string): ProductView {
   return {
     name: p.name,
     brand,
+    category: p.category ?? null,
     price: sell,
     originalPrice: hasDiscount ? p.price : null,
     images,
@@ -55,6 +58,7 @@ function fromMock(m: (typeof ALL_PRODUCTS)[number]): ProductView {
   return {
     name: m.name,
     brand: m.brand,
+    category: null,
     price: m.price,
     originalPrice: m.originalPrice ?? null,
     images: [],
@@ -492,6 +496,9 @@ export default function AppProductDetail() {
           </div>
         }
       />
+
+      {/* 상단 고정 카테고리 바 (스크롤해도 헤더 아래에 고정) */}
+      <CategoryTabBar active={view.category} />
 
       {/* 데스크톱 2컬럼(왼쪽 이미지+리뷰 / 오른쪽 구매박스 sticky), 모바일 세로 유지 */}
       <div className="md:flex md:items-start md:gap-8 md:max-w-[1100px] md:mx-auto md:px-6 md:pt-4">
