@@ -610,21 +610,27 @@ export default function AppProductDetail() {
           <span className="text-[20px] font-bold text-gold">{total.toLocaleString('ko-KR')}원</span>
         </div>
 
-        {/* 버튼 2개 */}
-        <div className="flex gap-3 mt-4">
+        {/* 구매 버튼 (남색 구매하기 + 장바구니 담기 + 관심상품등록) */}
+        <button
+          onClick={onBuy}
+          disabled={view.soldOut}
+          className="w-full mt-4 bg-[#232f52] text-white font-bold text-[15px] py-3.5 rounded-lg hover:bg-[#2e3d6a] transition-colors disabled:opacity-40"
+        >
+          {view.soldOut ? '일시 품절' : '구매하기'}
+        </button>
+        <div className="flex gap-2 mt-2">
           <button
             onClick={() => navigate('/app/cart')}
             disabled={view.soldOut}
-            className="flex-1 border border-gold text-gold font-semibold text-[14px] py-3.5 rounded-pill hover:bg-gold/5 transition-colors disabled:opacity-40"
+            className="flex-1 border border-cream-2 text-text font-semibold text-[13px] py-3 rounded-lg hover:bg-cream-2 transition-colors disabled:opacity-40"
           >
-            장바구니
+            장바구니 담기
           </button>
           <button
-            onClick={onBuy}
-            disabled={view.soldOut}
-            className="flex-1 bg-gold text-white font-semibold text-[14px] py-3.5 rounded-pill hover:bg-gold-light transition-colors disabled:opacity-40"
+            onClick={() => setWished(!wished)}
+            className="flex-1 border border-cream-2 text-text font-semibold text-[13px] py-3 rounded-lg hover:bg-cream-2 transition-colors"
           >
-            {view.soldOut ? '일시 품절' : '구매하기'}
+            {wished ? '♥ 관심상품' : '관심상품등록'}
           </button>
         </div>
 
@@ -691,7 +697,7 @@ export default function AppProductDetail() {
           <button
             onClick={onBuy}
             disabled={view.soldOut}
-            className="flex-1 bg-gold text-white font-semibold text-[14px] py-3 rounded-pill hover:bg-gold-light transition-colors disabled:opacity-40"
+            className="flex-1 bg-[#232f52] text-white font-semibold text-[14px] py-3 rounded-lg hover:bg-[#2e3d6a] transition-colors disabled:opacity-40"
           >
             {view.soldOut ? '일시 품절' : '구매하기'}
           </button>
