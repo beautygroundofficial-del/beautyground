@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import BackHeader from '../components/layout/BackHeader'
 import BottomNav from '../components/layout/BottomNav'
 import ShopProductCard, { ShopProductCardSkeleton } from '../components/product/ShopProductCard'
@@ -23,14 +23,16 @@ const SORT_OPTIONS: { label: string; value: ShopSort }[] = [
 
 export default function AppCategoryDetail() {
   const { id } = useParams<{ id: string }>()
+  const [searchParams] = useSearchParams()
   const navigate = useNavigate()
   const [sortIdx, setSortIdx] = useState(0)
   const [showSort, setShowSort] = useState(false)
 
   // 탭: 전체 + 판매중 상품이 있는 실제 category 값 (0개 카테고리는 숨김)
   const { categories } = useShopCategories()
+  // 초기 탭: ?cat=<실제 category> 우선, 없으면 슬러그 매핑, 그 외 전체
   const [selected, setSelected] = useState<string | null>(
-    id ? SLUG_TO_CATEGORY[id] ?? null : null
+    searchParams.get('cat') ?? (id ? SLUG_TO_CATEGORY[id] ?? null : null)
   )
 
   // 상품 0개 카테고리로 진입했으면(탭이 숨겨지므로) 전체로 되돌림

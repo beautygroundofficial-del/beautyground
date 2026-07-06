@@ -114,7 +114,7 @@ function ReviewMarquee({
         type="button"
         aria-hidden={ariaHidden ? true : undefined}
         onClick={() => onOpenReview(realIdx)}
-        className="shrink-0 w-[220px] md:w-[260px] bg-white border border-cream-2 rounded-2xl overflow-hidden text-left"
+        className="shrink-0 w-[72vw] max-w-[280px] md:w-[260px] bg-white border border-cream-2 rounded-2xl overflow-hidden text-left"
       >
         {/* 상단 사진 (없으면 크림 배경 + 따옴표 장식) */}
         {pic ? (
@@ -487,7 +487,10 @@ export default function AppProductDetail() {
   const onBuy = () => showToast('결제 준비 중입니다')
 
   return (
-    <div className="min-h-screen bg-white pb-32">
+    <div
+      className="min-h-screen bg-white"
+      style={{ paddingBottom: 'calc(7rem + env(safe-area-inset-bottom))' }}
+    >
       <BackHeader
         rightElement={
           <div className="flex items-center gap-3">
@@ -608,34 +611,36 @@ export default function AppProductDetail() {
           </div>
         </div>
 
-        {/* 합계 */}
-        <div className="flex items-center justify-between mt-3">
-          <span className="text-[14px] text-text-sub">총 상품 금액</span>
-          <span className="text-[20px] font-bold text-gold">{total.toLocaleString('ko-KR')}원</span>
-        </div>
+        {/* 합계 + 버튼 (모바일은 하단 sticky 바가 대신하므로 데스크톱에서만) */}
+        <div className="hidden md:block">
+          <div className="flex items-center justify-between mt-3">
+            <span className="text-[14px] text-text-sub">총 상품 금액</span>
+            <span className="text-[20px] font-bold text-gold">{total.toLocaleString('ko-KR')}원</span>
+          </div>
 
-        {/* 구매 버튼 (남색 구매하기 + 장바구니 담기 + 관심상품등록) */}
-        <button
-          onClick={onBuy}
-          disabled={view.soldOut}
-          className="w-full mt-4 bg-[#232f52] text-white font-bold text-[15px] py-3.5 rounded-lg hover:bg-[#2e3d6a] transition-colors disabled:opacity-40"
-        >
-          {view.soldOut ? '일시 품절' : '구매하기'}
-        </button>
-        <div className="flex gap-2 mt-2">
+          {/* 구매 버튼 (남색 구매하기 + 장바구니 담기 + 관심상품등록) */}
           <button
-            onClick={() => navigate('/app/cart')}
+            onClick={onBuy}
             disabled={view.soldOut}
-            className="flex-1 border border-cream-2 text-text font-semibold text-[13px] py-3 rounded-lg hover:bg-cream-2 transition-colors disabled:opacity-40"
+            className="w-full mt-4 bg-[#232f52] text-white font-bold text-[15px] py-3.5 rounded-lg hover:bg-[#2e3d6a] transition-colors disabled:opacity-40"
           >
-            장바구니 담기
+            {view.soldOut ? '일시 품절' : '구매하기'}
           </button>
-          <button
-            onClick={() => setWished(!wished)}
-            className="flex-1 border border-cream-2 text-text font-semibold text-[13px] py-3 rounded-lg hover:bg-cream-2 transition-colors"
-          >
-            {wished ? '♥ 관심상품' : '관심상품등록'}
-          </button>
+          <div className="flex gap-2 mt-2">
+            <button
+              onClick={() => navigate('/app/cart')}
+              disabled={view.soldOut}
+              className="flex-1 border border-cream-2 text-text font-semibold text-[13px] py-3 rounded-lg hover:bg-cream-2 transition-colors disabled:opacity-40"
+            >
+              장바구니 담기
+            </button>
+            <button
+              onClick={() => setWished(!wished)}
+              className="flex-1 border border-cream-2 text-text font-semibold text-[13px] py-3 rounded-lg hover:bg-cream-2 transition-colors"
+            >
+              {wished ? '♥ 관심상품' : '관심상품등록'}
+            </button>
+          </div>
         </div>
 
         {/* 배송 안내 */}
@@ -694,8 +699,11 @@ export default function AppProductDetail() {
         </div>
       )}
 
-      {/* 모바일 하단 sticky 구매 바 (데스크톱은 우측 구매박스가 있어 숨김) */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-cream-2 px-4 py-3 z-40 md:hidden">
+      {/* 모바일 하단 sticky 구매 바 (하단 네비 바로 위에 쌓임, 데스크톱은 우측 구매박스가 있어 숨김) */}
+      <div
+        className="fixed left-0 right-0 bg-white border-t border-cream-2 px-4 py-3 z-40 md:hidden"
+        style={{ bottom: 'calc(3.5rem + env(safe-area-inset-bottom))' }}
+      >
         <div className="flex items-center gap-3">
           <div className="shrink-0">
             <p className="text-[10px] text-text-hint leading-none mb-0.5">수량 {quantity}</p>
@@ -722,7 +730,7 @@ export default function AppProductDetail() {
 
       {/* 토스트 */}
       {toast && (
-        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 bg-text text-white text-[13px] px-4 py-2.5 rounded-full shadow-lg">
+        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 bg-text text-white text-[13px] px-4 py-2.5 rounded-full">
           {toast}
         </div>
       )}

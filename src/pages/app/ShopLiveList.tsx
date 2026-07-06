@@ -49,7 +49,7 @@ export default function ShopLiveList() {
               <Link
                 key={live.id}
                 to={`/app/live/${live.id}`}
-                className="block bg-white rounded-md border overflow-hidden transition hover:shadow-focus"
+                className="block bg-white rounded-md border overflow-hidden transition-colors hover:border-gold/40 focus:outline-none focus:shadow-focus"
                 style={{ borderColor: '#e5e0d8', borderWidth: '0.5px' }}
               >
                 <div className="relative">

@@ -1,15 +1,27 @@
+import { Link } from 'react-router-dom'
+
+// 소비자 앱 공통 상단바: 로고 + 우측 아이콘 2개(찜/장바구니)
 export default function AppHeader() {
   return (
-    <header className="bg-white flex items-center justify-between px-4 py-3 border-b border-cream-2 sticky top-0 z-50">
-      <span className="font-serif text-[20px] font-bold text-gold">뷰티관</span>
-      <div className="flex items-center gap-4">
-        <button className="relative" aria-label="알림">
-          <span className="text-xl" aria-hidden="true">🔔</span>
-          <span className="absolute top-0 right-0 w-2 h-2 bg-[#FF4757] rounded-full" aria-hidden="true" />
-        </button>
-        <button aria-label="장바구니">
+    <header className="bg-white flex items-center justify-between px-4 h-14 border-b border-cream-2 sticky top-0 z-50">
+      <Link to="/app/home" className="font-serif text-[20px] font-bold text-gold">
+        뷰티관
+      </Link>
+      <div className="flex items-center gap-1">
+        <Link
+          to="/app/wishlist"
+          aria-label="찜"
+          className="w-11 h-11 flex items-center justify-center"
+        >
+          <span className="text-xl" aria-hidden="true">🤍</span>
+        </Link>
+        <Link
+          to="/app/cart"
+          aria-label="장바구니"
+          className="w-11 h-11 flex items-center justify-center"
+        >
           <span className="text-xl" aria-hidden="true">🛒</span>
-        </button>
+        </Link>
       </div>
     </header>
   )

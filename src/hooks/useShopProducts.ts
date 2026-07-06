@@ -11,6 +11,7 @@ export interface ShopProduct {
   thumbnail_url: string | null
   category: string | null
   brand_name: string | null
+  status?: 'on_sale' | 'sold_out' | 'hidden'
 }
 
 interface Options {
