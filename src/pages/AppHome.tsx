@@ -42,12 +42,19 @@ export default function AppHome() {
                       alt={live.title}
                       loading="lazy"
                       className="w-full h-full object-cover"
+                      onError={(e) => {
+                        const img = e.currentTarget
+                        img.style.display = 'none'
+                        img.nextElementSibling?.classList.remove('hidden')
+                      }}
                     />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-4xl" aria-hidden="true">
-                      💄
-                    </div>
-                  )}
+                  ) : null}
+                  <div
+                    className={`w-full h-full flex items-center justify-center text-4xl ${live.thumbnail_url ? 'hidden' : ''}`}
+                    aria-hidden="true"
+                  >
+                    💄
+                  </div>
                   <span className="absolute top-2 left-2">
                     {live.status === 'live' ? (
                       <span className="inline-flex items-center gap-1 rounded-pill bg-[#FF4757] text-white text-[11px] font-bold px-2 py-0.5">

@@ -30,7 +30,7 @@ export default function FeaturesGrid() {
             FEATURES
           </span>
           <h2 className="font-serif text-[32px] md:text-[38px] font-bold text-text">
-            뷰티관만의 특별한 혜택
+            뷰티그라운드만의 특별한 혜택
           </h2>
         </div>
 

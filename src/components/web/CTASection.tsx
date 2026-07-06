@@ -15,7 +15,7 @@ export default function CTASection() {
               지금 바로 시작하세요
             </h2>
             <p className="text-white/80 text-[15px] leading-relaxed">
-              뷰티관 앱을 다운로드하고 프리미엄 뷰티 라이브를 경험하세요.
+              뷰티그라운드 앱을 다운로드하고 프리미엄 뷰티 라이브를 경험하세요.
               브랜드 입점을 원하신다면 파트너로 함께하세요.
             </p>
           </div>

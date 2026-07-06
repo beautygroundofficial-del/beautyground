@@ -1,16 +1,16 @@
 const SERVICES = [
   {
-    name: '뷰티관',
+    name: '뷰티그라운드',
     desc: '백화점 3사 공식 BA가 진행하는 프리미엄 뷰티 라이브커머스 앱',
     icon: '📱',
   },
   {
-    name: '뷰티관 Cloud',
+    name: '뷰티그라운드 Cloud',
     desc: '브랜드와 백화점을 위한 라이브커머스 솔루션 플랫폼',
     icon: '☁️',
   },
   {
-    name: '뷰티관 ONE',
+    name: '뷰티그라운드 ONE',
     desc: '오프라인 뷰티 컨설팅과 온라인 라이브를 연결하는 통합 서비스',
     icon: '✨',
   },
@@ -34,7 +34,7 @@ export default function IntroSection() {
           </h2>
           <p className="text-text-sub text-[15px] leading-relaxed mt-4 max-w-sm">
             30년 백화점 뷰티의 신뢰와 디지털 라이브커머스의 편리함을 하나로.
-            뷰티관이 프리미엄 뷰티 경험을 재정의합니다.
+            뷰티그라운드가 프리미엄 뷰티 경험을 재정의합니다.
           </p>
         </div>
 

@@ -15,7 +15,7 @@ export default function PhoneMockup({ width = 220, imageSrc, imageVisible = true
       className="relative rounded-[36px] border-[7px] border-white overflow-hidden bg-white flex-shrink-0"
       style={{ width }}
       role="img"
-      aria-label="뷰티관 앱 라이브 화면 미리보기"
+      aria-label="뷰티그라운드 앱 라이브 화면 미리보기"
     >
       {/* 노치 */}
       <div className="absolute top-2 left-1/2 -translate-x-1/2 w-14 h-3.5 bg-[#111] rounded-full z-10" aria-hidden="true" />

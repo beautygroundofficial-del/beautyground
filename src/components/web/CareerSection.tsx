@@ -24,7 +24,7 @@ export default function CareerSection() {
               <span className="text-gold">만들어갈</span> 팀원
             </h2>
             <p className="text-white/60 text-[15px] leading-relaxed">
-              뷰티관은 뷰티와 기술을 사랑하는 사람들이 모여 새로운 소비 경험을 만들어갑니다.
+              뷰티그라운드는 뷰티와 기술을 사랑하는 사람들이 모여 새로운 소비 경험을 만들어갑니다.
             </p>
           </div>
 
