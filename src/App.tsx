@@ -5,6 +5,7 @@ import AppCategory from './pages/AppCategory'
 import AppCategoryDetail from './pages/AppCategoryDetail'
 import AppBrandDetail from './pages/AppBrandDetail'
 import AppProductDetail from './pages/AppProductDetail'
+import AppProductReviews from './pages/AppProductReviews'
 import AppMyPage from './pages/AppMyPage'
 import AppCart from './pages/AppCart'
 import AppOrder from './pages/AppOrder'
@@ -80,6 +81,7 @@ export default function App() {
         <Route path="/app/category/:id" element={<AppCategoryDetail />} />
         <Route path="/app/brand/:id" element={<AppBrandDetail />} />
         <Route path="/app/product/:id" element={<AppProductDetail />} />
+        <Route path="/app/product/:id/reviews" element={<AppProductReviews />} />
         <Route path="/app/mypage" element={<AppMyPage />} />
         <Route path="/app/cart" element={<AppCart />} />
         <Route path="/app/order" element={<AppOrder />} />
