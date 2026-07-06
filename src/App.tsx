@@ -11,6 +11,7 @@ import AppCart from './pages/AppCart'
 import AppOrder from './pages/AppOrder'
 import AppLogin from './pages/AppLogin'
 import AppSignup from './pages/AppSignup'
+import AppAddresses from './pages/AppAddresses'
 
 // 법적 고지
 import Terms from './pages/legal/Terms'
@@ -95,6 +96,7 @@ export default function App() {
         <Route path="/app/order" element={<AppOrder />} />
         <Route path="/app/login" element={<AppLogin />} />
         <Route path="/app/signup" element={<AppSignup />} />
+        <Route path="/app/addresses" element={<AppAddresses />} />
 
         {/* fallback */}
         <Route path="*" element={<Navigate to="/" replace />} />

@@ -4,6 +4,7 @@ import * as PortOne from '@portone/browser-sdk/v2'
 import BackHeader from '../components/layout/BackHeader'
 import { supabase } from '../lib/supabase'
 import { SHIPPING_FEE, FREE_SHIPPING_THRESHOLD } from '../constants'
+import { getAddresses, addAddress, type Address } from '../lib/addresses'
 
 interface OrderItem {
   product_id: string
@@ -29,7 +30,22 @@ export default function AppOrder() {
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
   const [address, setAddress] = useState('')
+  const [savedAddresses, setSavedAddresses] = useState<Address[]>([])
+  const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null)
+  const [saveNewAddress, setSaveNewAddress] = useState(true)
   const [agreed, setAgreed] = useState(false)
+
+  // 배송지 입력칸 수정 시: 저장된 배송지를 그대로 쓰는 게 아니게 되므로 선택상태 해제(다시 "저장" 체크박스 노출)
+  const editField = (setter: (v: string) => void) => (v: string) => {
+    setter(v)
+    setSelectedAddressId(null)
+  }
+  const selectSavedAddress = (a: Address) => {
+    setName(a.recipient_name)
+    setPhone(a.phone)
+    setAddress(a.address)
+    setSelectedAddressId(a.id)
+  }
   const [status, setStatus] = useState<Status>('idle')
   const [message, setMessage] = useState('')
   const [doneOrder, setDoneOrder] = useState<{ orderName: string; amount: number } | null>(null)
@@ -48,8 +64,19 @@ export default function AppOrder() {
         return
       }
       const meta = session.user.user_metadata as { name?: string; phone?: string } | undefined
-      setName(meta?.name ?? '')
-      setPhone(meta?.phone ?? '')
+      const addrs = await getAddresses()
+      if (!active) return
+      setSavedAddresses(addrs)
+      const def = addrs.find((a) => a.is_default) ?? addrs[0]
+      if (def) {
+        setName(def.recipient_name)
+        setPhone(def.phone)
+        setAddress(def.address)
+        setSelectedAddressId(def.id)
+      } else {
+        setName(meta?.name ?? '')
+        setPhone(meta?.phone ?? '')
+      }
       setCheckedAuth(true)
     })()
     return () => { active = false }
@@ -124,6 +151,11 @@ export default function AppOrder() {
     if (!storeId || !channelKey) {
       setMessage('결제 설정이 없습니다. 관리자에게 문의해 주세요. (PortOne 환경변수 미설정)')
       return
+    }
+
+    // 새로 입력한(=저장된 배송지 아닌) 주소면 다음에 쓰게 저장
+    if (!selectedAddressId && saveNewAddress) {
+      await addAddress({ recipientName: name.trim(), phone: phone.trim(), address: address.trim(), makeDefault: savedAddresses.length === 0 })
     }
 
     setStatus('paying')
@@ -238,10 +270,41 @@ export default function AppOrder() {
 
       {/* 배송지 */}
       <div className="bg-white px-5 py-5 border-b border-cream-2 space-y-3">
-        <h2 className="text-[15px] font-bold text-text mb-1">배송지</h2>
-        <input value={name} onChange={(e) => setName(e.target.value)} placeholder="받는 분 성함" className={field} />
-        <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="연락처 (010-0000-0000)" className={field} />
-        <input value={address} onChange={(e) => setAddress(e.target.value)} placeholder="배송 주소" className={field} />
+        <div className="flex items-center justify-between">
+          <h2 className="text-[15px] font-bold text-text">배송지</h2>
+          <button type="button" onClick={() => navigate('/app/addresses')} className="text-[12px] text-gold hover:underline">
+            배송지 관리
+          </button>
+        </div>
+
+        {savedAddresses.length > 0 && (
+          <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
+            {savedAddresses.map((a) => (
+              <button
+                key={a.id}
+                type="button"
+                onClick={() => selectSavedAddress(a)}
+                className={`shrink-0 text-left rounded-md border px-3 py-2 text-[12px] max-w-[180px] transition-colors ${
+                  selectedAddressId === a.id ? 'border-gold bg-gold/5' : 'border-cream-2'
+                }`}
+              >
+                <p className="font-semibold text-text truncate">{a.recipient_name}{a.is_default ? ' · 기본' : ''}</p>
+                <p className="text-text-hint truncate">{a.address}</p>
+              </button>
+            ))}
+          </div>
+        )}
+
+        <input value={name} onChange={(e) => editField(setName)(e.target.value)} placeholder="받는 분 성함" className={field} />
+        <input value={phone} onChange={(e) => editField(setPhone)(e.target.value)} placeholder="연락처 (010-0000-0000)" className={field} />
+        <input value={address} onChange={(e) => editField(setAddress)(e.target.value)} placeholder="배송 주소" className={field} />
+
+        {!selectedAddressId && (
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" checked={saveNewAddress} onChange={(e) => setSaveNewAddress(e.target.checked)} className="w-4 h-4 accent-gold" />
+            <span className="text-[13px] text-text-sub">이 배송지 저장하기</span>
+          </label>
+        )}
       </div>
 
       {/* 주문 상품 */}
