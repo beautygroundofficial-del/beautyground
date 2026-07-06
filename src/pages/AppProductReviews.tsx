@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useParams, useSearchParams } from 'react-router-dom'
+import { useParams, useSearchParams, useNavigate } from 'react-router-dom'
 import BackHeader from '../components/layout/BackHeader'
 import BottomNav from '../components/layout/BottomNav'
 import { supabase } from '../lib/supabase'
@@ -28,6 +28,7 @@ function Stars({ value, className = '' }: { value: number; className?: string })
 
 export default function AppProductReviews() {
   const { id } = useParams<{ id: string }>()
+  const navigate = useNavigate()
   const [params] = useSearchParams()
   const [loading, setLoading] = useState(true)
   const [name, setName] = useState('')
@@ -110,11 +111,19 @@ export default function AppProductReviews() {
 
   return (
     <div className="min-h-screen bg-white" style={{ paddingBottom: 'calc(4.5rem + env(safe-area-inset-bottom))' }}>
-      <BackHeader title="리뷰" />
+      <BackHeader title="리뷰" onBack={() => navigate(`/app/product/${id}`)} />
 
       <div className="max-w-[1000px] mx-auto">
-        {/* 상품명 */}
-        {name && <p className="px-4 pt-4 text-[13px] text-text-sub truncate">{name}</p>}
+        {/* 상품명 (클릭 시 상품 페이지로) */}
+        {name && (
+          <button
+            type="button"
+            onClick={() => navigate(`/app/product/${id}`)}
+            className="w-full text-left px-4 pt-4 text-[13px] text-text-sub truncate hover:text-text transition-colors"
+          >
+            ‹ {name}
+          </button>
+        )}
 
         {/* 요약 */}
         <div className="px-4 py-5 flex items-center gap-4 border-b border-cream-2">
