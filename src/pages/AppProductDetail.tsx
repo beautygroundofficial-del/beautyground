@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import BackHeader from '../components/layout/BackHeader'
 import BottomNav from '../components/layout/BottomNav'
 import { supabase } from '../lib/supabase'
+import { addToCart } from '../lib/cart'
 import type { Product, ScrapedReview, ReviewSummaryData } from '../lib/types'
 import { ALL_PRODUCTS, SHIPPING_NOTICE } from '../constants'
 import ProductInfoTable from '../components/product/ProductInfoTable'
@@ -141,8 +142,40 @@ export default function AppProductDetail() {
     : 0
   const maxQty = view.stock != null ? Math.max(1, view.stock) : 99
   const total = view.price * quantity
+  const isDbProduct = !!id && !/^\d+$/.test(id)
 
-  const onBuy = () => showToast('결제 준비 중입니다')
+  // 비로그인이면 로그인 페이지로 보내고, 로그인 후 원래 페이지로 복귀
+  const requireLogin = async (): Promise<boolean> => {
+    const { data: { session } } = await supabase.auth.getSession()
+    if (session) return true
+    navigate('/app/login', { state: { from: `/app/product/${id}` } })
+    return false
+  }
+
+  const onBuy = async () => {
+    if (!isDbProduct || !id) { showToast('목데이터 상품은 구매할 수 없습니다'); return }
+    if (!(await requireLogin())) return
+    navigate('/app/order', {
+      state: {
+        items: [
+          {
+            product_id: id,
+            name: view.name,
+            price: view.price,
+            quantity,
+            thumbnail: view.images[0] ?? null,
+          },
+        ],
+      },
+    })
+  }
+
+  const onAddToCart = async () => {
+    if (!isDbProduct || !id) { showToast('목데이터 상품은 담을 수 없습니다'); return }
+    if (!(await requireLogin())) return
+    const { error } = await addToCart(id, quantity)
+    showToast(error ? '장바구니 담기에 실패했습니다' : '장바구니에 담았습니다')
+  }
 
   return (
     <div
@@ -283,7 +316,7 @@ export default function AppProductDetail() {
           </button>
           <div className="flex gap-2 mt-2">
             <button
-              onClick={() => navigate('/app/cart')}
+              onClick={onAddToCart}
               disabled={view.soldOut}
               className="flex-1 border border-cream-2 text-text font-semibold text-[13px] py-3 rounded-lg hover:bg-cream-2 transition-colors disabled:opacity-40"
             >

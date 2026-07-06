@@ -1,18 +1,16 @@
 import { Link } from 'react-router-dom'
+import { COMPANY_INFO } from '../../lib/companyInfo'
 
 const FOOTER_LINKS = [
   { href: '/about', label: '회사소개' },
-  { href: '/join', label: '입점안내' },
-  { href: '/partnership', label: '광고·제휴' },
-  { href: '/career', label: '채용' },
+  { href: '/partner/apply', label: '입점안내' },
   { href: '/privacy', label: '개인정보처리방침' },
 ]
 
 const LEGAL_LINKS = [
   { href: '/terms', label: '이용약관' },
   { href: '/privacy', label: '개인정보처리방침', bold: true },
-  { href: '/legal', label: '법적고지' },
-  { href: '/sitemap', label: '사이트맵' },
+  { href: '/about', label: '회사소개' },
 ]
 
 const SNS_LINKS = [
@@ -27,8 +25,8 @@ export default function Footer() {
       <div className="max-w-[1280px] mx-auto px-6 py-12">
         {/* 상단 */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6 pb-8 border-b border-white/10">
-          <Link to="/" className="font-serif text-[22px] font-bold text-gold" aria-label="뷰티관 홈">
-            뷰티관
+          <Link to="/" className="font-serif text-[22px] font-bold text-gold" aria-label="뷰티그라운드 홈">
+            뷰티그라운드
           </Link>
           <nav className="flex flex-wrap gap-x-6 gap-y-2" aria-label="푸터 메뉴">
             {FOOTER_LINKS.map(({ href, label }) => (
@@ -66,13 +64,14 @@ export default function Footer() {
 
         {/* 사업자 정보 */}
         <div className="mt-4 text-[12px] text-white/35 leading-relaxed">
-          <p>주식회사 뷰티관 | 대표이사: 홍길동 | 사업자등록번호: 123-45-67890</p>
-          <p>통신판매업신고: 제2025-서울강남-0000호 | 주소: 서울특별시 강남구 테헤란로 123</p>
-          <p className="mt-1">뷰티관은 통신판매중개자로서 거래 당사자가 아니며, 판매자가 제공하는 상품 정보 및 거래에 대한 책임을 지지 않습니다.</p>
+          <p>{COMPANY_INFO.name} | 대표: {COMPANY_INFO.ceo} | 사업자등록번호: {COMPANY_INFO.bizNumber}</p>
+          <p>통신판매업신고: {COMPANY_INFO.mailOrderNumber} | 주소: {COMPANY_INFO.address}</p>
+          <p>고객센터: {COMPANY_INFO.csPhone} | 이메일: {COMPANY_INFO.csEmail}</p>
+          <p className="mt-1">{COMPANY_INFO.name}는 통신판매중개자로서 거래 당사자가 아니며, 판매자가 제공하는 상품 정보 및 거래에 대한 책임을 지지 않습니다.</p>
         </div>
 
         <p className="mt-6 text-[12px] text-white/25">
-          © 2025 Beauté-gwan Co., Ltd. All rights reserved.
+          © 2026 {COMPANY_INFO.name}. All rights reserved.
         </p>
       </div>
     </footer>

@@ -9,7 +9,13 @@ import AppProductReviews from './pages/AppProductReviews'
 import AppMyPage from './pages/AppMyPage'
 import AppCart from './pages/AppCart'
 import AppOrder from './pages/AppOrder'
-import CheckoutPage from './pages/CheckoutPage'
+import AppLogin from './pages/AppLogin'
+import AppSignup from './pages/AppSignup'
+
+// 법적 고지
+import Terms from './pages/legal/Terms'
+import Privacy from './pages/legal/Privacy'
+import Company from './pages/legal/Company'
 
 // 파트너 인증/입점
 import PartnerRegister from './pages/partner/Register'
@@ -45,8 +51,10 @@ export default function App() {
         {/* 웹 홈페이지 */}
         <Route path="/" element={<WebHome />} />
 
-        {/* 결제(테스트) */}
-        <Route path="/checkout" element={<CheckoutPage />} />
+        {/* 법적 고지 */}
+        <Route path="/terms" element={<Terms />} />
+        <Route path="/privacy" element={<Privacy />} />
+        <Route path="/about" element={<Company />} />
 
         {/* 입점: 회원가입 → 신청 → 완료 */}
         <Route path="/partner/register" element={<PartnerRegister />} />
@@ -85,6 +93,8 @@ export default function App() {
         <Route path="/app/mypage" element={<AppMyPage />} />
         <Route path="/app/cart" element={<AppCart />} />
         <Route path="/app/order" element={<AppOrder />} />
+        <Route path="/app/login" element={<AppLogin />} />
+        <Route path="/app/signup" element={<AppSignup />} />
 
         {/* fallback */}
         <Route path="*" element={<Navigate to="/" replace />} />

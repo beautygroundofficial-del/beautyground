@@ -17,9 +17,9 @@ const MENU_ITEMS = [
 const SETTING_ITEMS = [
   { icon: '🔔', label: '알림 설정' },
   { icon: '🔒', label: '계정/보안' },
-  { icon: '📋', label: '이용약관' },
-  { icon: '🛡', label: '개인정보처리방침' },
-  { icon: '❓', label: '고객센터' },
+  { icon: '📋', label: '이용약관', path: '/terms' },
+  { icon: '🛡', label: '개인정보처리방침', path: '/privacy' },
+  { icon: '❓', label: '고객센터', path: '/about' },
 ]
 
 const TIER_STYLE: Record<string, { bg: string; text: string; border: string }> = {
@@ -182,9 +182,10 @@ export default function AppMyPage() {
       {/* 설정 */}
       <div className="mt-2 bg-white">
         <p className="px-5 py-3 text-[12px] font-semibold text-text-hint tracking-wide">설정</p>
-        {SETTING_ITEMS.map(({ icon, label }) => (
+        {SETTING_ITEMS.map(({ icon, label, path }) => (
           <button
             key={label}
+            onClick={() => path && navigate(path)}
             className="w-full flex items-center justify-between px-5 py-4 border-b border-cream-2 last:border-0 hover:bg-cream-4 transition-colors"
           >
             <div className="flex items-center gap-3">
@@ -199,7 +200,7 @@ export default function AppMyPage() {
       <div className="px-5 py-6">
         {loggedIn === false ? (
           <button
-            onClick={() => navigate('/partner/login')}
+            onClick={() => navigate('/app/login', { state: { from: '/app/mypage' } })}
             className="text-[13px] text-text-hint underline"
           >
             로그인
