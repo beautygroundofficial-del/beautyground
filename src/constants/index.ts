@@ -1,4 +1,4 @@
-import type { LiveSlide, LiveCard, ProductCard, DeptCard, CategoryChip, AgeSegment, LiveStream, Brand, CartItem, UserProfile, ChatMessage } from '../types'
+import type { LiveSlide, LiveCard, ProductCard, DeptCard, CategoryChip, AgeSegment, LiveStream, Brand, ChatMessage } from '../types'
 
 export const LIVE_SLIDES: LiveSlide[] = [
   {
@@ -332,20 +332,6 @@ export const MOCK_CHAT: ChatMessage[] = [
   { id: 11, user: 'BA이지현', message: '네 물론이죠! 50대에 특히 효과적이에요. 탄력과 보습 두 가지를 동시에 잡아드려요 👍', userColor: '#b8924a', isHost: true },
 ]
 
-export const MOCK_CART: CartItem[] = [
-  { id: 1, productId: 1, brand: '설화수', name: '자음생 에센스 크림 60ml', price: 320000, quantity: 1, thumbIcon: '🌸', thumbColor: '#2a1a2e', deptName: '현대', deptKey: 'hyundai' },
-  { id: 2, productId: 4, brand: '키엘', name: '울트라 페이셜 크림 125ml', price: 68000, quantity: 2, thumbIcon: '🌿', thumbColor: '#0d1f18', deptName: '신세계', deptKey: 'shinsegae' },
-]
-
-export const MOCK_USER: UserProfile = {
-  name: '김뷰티',
-  email: 'beauty@example.com',
-  tier: 'VIP',
-  points: 12500,
-  coupons: 3,
-  orders: 8,
-  wishlist: 14,
-}
 
 export const CATEGORY_LABEL: Record<string, string> = {
   skincare: '스킨케어',

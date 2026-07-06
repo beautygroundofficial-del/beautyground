@@ -3,16 +3,29 @@ import { useNavigate } from 'react-router-dom'
 import AppHeader from '../components/layout/AppHeader'
 import BottomNav from '../components/layout/BottomNav'
 import { supabase } from '../lib/supabase'
-import { MOCK_USER, DEPT_COLOR } from '../constants'
+import { DEPT_COLOR } from '../constants'
 
-const MENU_ITEMS = [
-  { icon: '📦', label: '주문 내역', path: '/app/order' },
-  { icon: '❤️', label: '찜 목록', path: '/app/wishlist' },
-  { icon: '🎫', label: '쿠폰함', count: MOCK_USER.coupons },
-  { icon: '💎', label: '포인트', value: `${MOCK_USER.points.toLocaleString()}P` },
-  { icon: '👁', label: '최근 본 상품' },
-  { icon: '⭐', label: '리뷰 관리' },
-]
+// 실제 로그인 사용자 프로필 (포인트/쿠폰/찜/등급은 아직 적립·발급 시스템이 없어 0/기본값 — 가짜 숫자 금지)
+interface RealUser {
+  name: string
+  email: string
+  tier: 'BASIC'
+  points: number
+  coupons: number
+  orders: number
+  wishlist: number
+}
+
+function buildMenuItems(user: RealUser) {
+  return [
+    { icon: '📦', label: '주문 내역', path: '/app/order' },
+    { icon: '❤️', label: '찜 목록', path: '/app/wishlist' },
+    { icon: '🎫', label: '쿠폰함', count: user.coupons },
+    { icon: '💎', label: '포인트', value: `${user.points.toLocaleString()}P` },
+    { icon: '👁', label: '최근 본 상품' },
+    { icon: '⭐', label: '리뷰 관리' },
+  ]
+}
 
 const SETTING_ITEMS = [
   { icon: '🔔', label: '알림 설정' },
@@ -28,21 +41,41 @@ const TIER_STYLE: Record<string, { bg: string; text: string; border: string }> =
   VVIP: { bg: '#FFF8ED', text: '#7a6030', border: '#b8924a' },
 }
 
+const EMPTY_USER: RealUser = { name: '게스트', email: '로그인이 필요해요', tier: 'BASIC', points: 0, coupons: 0, orders: 0, wishlist: 0 }
+
 export default function AppMyPage() {
   const navigate = useNavigate()
-  const user = MOCK_USER
+  const [user, setUser] = useState<RealUser>(EMPTY_USER)
   const tierStyle = TIER_STYLE[user.tier]
 
   const [loggedIn, setLoggedIn] = useState<boolean | null>(null)
   const [toast, setToast] = useState<string | null>(null)
 
+  const loadUser = async () => {
+    const { data } = await supabase.auth.getUser()
+    const authUser = data.user
+    setLoggedIn(!!authUser)
+    if (!authUser) { setUser(EMPTY_USER); return }
+
+    const meta = authUser.user_metadata as { name?: string } | undefined
+    const name = meta?.name || authUser.email?.split('@')[0] || '고객'
+
+    // 실제 결제완료 주문 건수(같은 결제 1건 = payment_id 1개, 카트 다건이어도 중복집계 안 되게 dedupe)
+    const { data: orderRows } = await supabase
+      .from('orders')
+      .select('payment_id')
+      .eq('user_id', authUser.id)
+      .eq('status', 'paid')
+    const orderCount = new Set((orderRows ?? []).map((r) => (r as { payment_id: string | null }).payment_id)).size
+
+    setUser({ name, email: authUser.email ?? '', tier: 'BASIC', points: 0, coupons: 0, orders: orderCount, wishlist: 0 })
+  }
+
   useEffect(() => {
     let active = true
-    supabase.auth.getUser().then(({ data }) => {
-      if (active) setLoggedIn(!!data.user)
-    })
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
-      setLoggedIn(!!session?.user)
+    loadUser()
+    const { data: sub } = supabase.auth.onAuthStateChange(() => {
+      if (active) loadUser()
     })
     return () => {
       active = false
@@ -156,7 +189,7 @@ export default function AppMyPage() {
 
       {/* 메뉴 */}
       <div className="mt-2 bg-white">
-        {MENU_ITEMS.map(({ icon, label, path, count, value }) => (
+        {buildMenuItems(user).map(({ icon, label, path, count, value }) => (
           <button
             key={label}
             onClick={() => path && navigate(path)}
