@@ -57,11 +57,21 @@ export interface Product {
   created_at: string
 }
 
+// 리뷰 사진 1건 (썸네일 클릭 시 모달에 본문 표시)
+export interface ReviewPhoto {
+  url: string
+  text?: string
+  rating?: number | null
+  author?: string | null
+  date?: string | null
+}
+
 // 리뷰 요약 (products.review_summary 저장 형태 · ReviewSummary 위젯 입력)
+// photos 는 신형(ReviewPhoto 객체) / 구형(문자열 URL) 모두 허용
 export interface ReviewSummaryData {
   count: number
   avg: number | null
-  photos: string[]
+  photos: (string | ReviewPhoto)[]
 }
 
 export interface Live {
