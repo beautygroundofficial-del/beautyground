@@ -4,6 +4,7 @@ import BackHeader from '../components/layout/BackHeader'
 import BottomNav from '../components/layout/BottomNav'
 import { supabase } from '../lib/supabase'
 import { addToCart } from '../lib/cart'
+import { isWished, addWish, removeWish } from '../lib/wishlist'
 import type { Product, ScrapedReview, ReviewSummaryData } from '../lib/types'
 import { ALL_PRODUCTS, SHIPPING_NOTICE } from '../constants'
 import ProductInfoTable from '../components/product/ProductInfoTable'
@@ -104,6 +105,7 @@ export default function AppProductDetail() {
             brand = (pt as { brand_name?: string } | null)?.brand_name ?? ''
           }
           if (active) { setView(fromDbProduct(p, brand)); setLoading(false) }
+          isWished(id).then((w) => { if (active) setWished(w) })
           return
         }
       }
@@ -177,6 +179,19 @@ export default function AppProductDetail() {
     showToast(error ? '장바구니 담기에 실패했습니다' : '장바구니에 담았습니다')
   }
 
+  const toggleWish = async () => {
+    if (!isDbProduct || !id) return
+    if (!(await requireLogin())) return
+    const next = !wished
+    setWished(next)
+    if (next) {
+      const { error } = await addWish(id)
+      if (error) setWished(!next)
+    } else {
+      await removeWish(id)
+    }
+  }
+
   return (
     <div
       className="min-h-screen bg-white"
@@ -185,7 +200,7 @@ export default function AppProductDetail() {
       <BackHeader
         rightElement={
           <div className="flex items-center gap-3">
-            <button onClick={() => setWished(!wished)} aria-label={wished ? '찜 해제' : '찜하기'}>
+            <button onClick={toggleWish} aria-label={wished ? '찜 해제' : '찜하기'}>
               <span className="text-xl" aria-hidden="true">{wished ? '❤️' : '🤍'}</span>
             </button>
             <button onClick={() => navigate('/app/cart')} aria-label="장바구니">
@@ -323,7 +338,7 @@ export default function AppProductDetail() {
               장바구니 담기
             </button>
             <button
-              onClick={() => setWished(!wished)}
+              onClick={toggleWish}
               className="flex-1 border border-cream-2 text-text font-semibold text-[13px] py-3 rounded-lg hover:bg-cream-2 transition-colors"
             >
               {wished ? '♥ 관심상품' : '관심상품등록'}

@@ -12,6 +12,7 @@ import AppOrder from './pages/AppOrder'
 import AppLogin from './pages/AppLogin'
 import AppSignup from './pages/AppSignup'
 import AppAddresses from './pages/AppAddresses'
+import AppWishlist from './pages/AppWishlist'
 
 // 법적 고지
 import Terms from './pages/legal/Terms'
@@ -97,6 +98,7 @@ export default function App() {
         <Route path="/app/login" element={<AppLogin />} />
         <Route path="/app/signup" element={<AppSignup />} />
         <Route path="/app/addresses" element={<AppAddresses />} />
+        <Route path="/app/wishlist" element={<AppWishlist />} />
 
         {/* fallback */}
         <Route path="*" element={<Navigate to="/" replace />} />

@@ -69,7 +69,12 @@ export default function AppMyPage() {
       .eq('status', 'paid')
     const orderCount = new Set((orderRows ?? []).map((r) => (r as { payment_id: string | null }).payment_id)).size
 
-    setUser({ name, email: authUser.email ?? '', tier: 'BASIC', points: 0, coupons: 0, orders: orderCount, wishlist: 0 })
+    const { count: wishlistCount } = await supabase
+      .from('wishlist_items')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', authUser.id)
+
+    setUser({ name, email: authUser.email ?? '', tier: 'BASIC', points: 0, coupons: 0, orders: orderCount, wishlist: wishlistCount ?? 0 })
   }
 
   useEffect(() => {
