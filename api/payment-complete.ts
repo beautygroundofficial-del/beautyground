@@ -6,6 +6,8 @@ const SUPABASE_URL =
   process.env.SUPABASE_URL || 'https://bjqtuklkskrqzbuxdwxm.supabase.co'
 const SERVICE_ROLE = process.env.SUPABASE_SERVICE_ROLE_KEY
 const PORTONE_SECRET = process.env.PORTONE_V2_API_SECRET
+const RESEND_API_KEY = process.env.RESEND_API_KEY
+const MAIL_FROM = process.env.ORDER_MAIL_FROM || 'onboarding@resend.dev'
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
@@ -40,7 +42,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   // 1) 이 결제(payment_id)에 속한 주문행 전부 조회 (장바구니 다건 주문은 상품별로 여러 행)
   const { data: orderRows, error: selErr } = await supabase
     .from('orders')
-    .select('id, product_id, quantity, amount, status')
+    .select('id, product_id, quantity, amount, status, order_name, buyer_name, buyer_email, products(name)')
     .eq('payment_id', paymentId)
 
   if (selErr || !orderRows || orderRows.length === 0) {
@@ -123,6 +125,45 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       .from('products')
       .update({ stock: nextStock, ...(nextStock === 0 ? { status: 'sold_out' } : {}) })
       .eq('id', row.product_id)
+  }
+
+  // 6) 주문 확인 이메일 발송 (RESEND_API_KEY 없으면 조용히 건너뜀 — 결제 성공 응답을 막지 않음)
+  const buyerEmail = orderRows.find((r) => r.buyer_email)?.buyer_email as string | undefined
+  if (RESEND_API_KEY && buyerEmail) {
+    try {
+      const buyerName = (orderRows.find((r) => r.buyer_name)?.buyer_name as string | undefined) ?? '고객'
+      const orderName = (orderRows[0].order_name as string | undefined) ?? '주문 상품'
+      const itemLines = orderRows
+        .map((r) => {
+          const productName = (r as unknown as { products?: { name?: string } | null }).products?.name ?? r.order_name
+          return `<tr><td style="padding:8px 0;">${productName}</td><td style="padding:8px 0;text-align:center;">${r.quantity}</td><td style="padding:8px 0;text-align:right;">${(r.amount as number).toLocaleString('ko-KR')}원</td></tr>`
+        })
+        .join('')
+      await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          from: `뷰티그라운드 <${MAIL_FROM}>`,
+          to: [buyerEmail],
+          subject: `[뷰티그라운드] 주문이 완료되었습니다 - ${orderName}`,
+          html: `
+            <div style="font-family:sans-serif;max-width:480px;margin:0 auto;">
+              <h2 style="color:#b8924a;">주문이 완료되었습니다</h2>
+              <p>${buyerName}님, 주문해 주셔서 감사합니다.</p>
+              <table style="width:100%;border-collapse:collapse;margin-top:16px;">
+                <thead><tr style="border-bottom:1px solid #e5e0d8;"><th style="text-align:left;padding:8px 0;">상품</th><th style="padding:8px 0;">수량</th><th style="text-align:right;padding:8px 0;">금액</th></tr></thead>
+                <tbody>${itemLines}</tbody>
+                <tfoot><tr style="border-top:1px solid #e5e0d8;font-weight:bold;"><td style="padding:8px 0;" colspan="2">총 결제금액</td><td style="text-align:right;padding:8px 0;">${expectedAmount.toLocaleString('ko-KR')}원</td></tr></tfoot>
+              </table>
+              <p style="color:#888;font-size:13px;margin-top:24px;">문의: beautyground.official@gmail.com</p>
+            </div>
+          `,
+        }),
+      })
+    } catch (e) {
+      console.error('[payment-complete] order email send failed', e)
+      // 이메일 실패는 결제 성공 응답에 영향 주지 않음
+    }
   }
 
   res.status(200).json({ ok: true })
