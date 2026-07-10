@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import * as cheerio from 'cheerio'
 import { GoogleGenAI } from '@google/genai'
+import { imageSize } from 'image-size'
 
 // 상품 카테고리 (폼 드롭다운과 일치)
 const CATEGORIES = ['스킨케어', '메이크업', '향수', '헤어·바디', '이너뷰티', '뷰티 디바이스', '기타']
@@ -90,33 +91,44 @@ function isBigFolder(u: string): boolean {
   return /\/(?:extra\/)?big\//i.test(u)
 }
 
-// Cafe24 축소 폴더(small/tiny/medium/extra/small) URL 을 big 후보로 치환하고
-// HEAD 로 실존 확인 후에만 승격한다. (몰마다 big 미생성인 경우가 있어 무조건 치환은 404 위험 —
-// 실측: extra/small→extra/big 은 존재, extra/small→big 은 404, cerolabs 는 big 자체가 없음)
+// Cafe24 축소 폴더(small/tiny/medium/extra/small) URL 을 big 후보로 치환하되,
+// "실제 픽셀이 원본보다 큰 경우에만" 승격한다.
+// ⚠️ 폴더명만 믿고 교체 금지 — 몰마다 폴더별 리사이즈 설정이 달라서
+//    실측 결과 petitfee 는 extra/small(600px) > extra/big(500px) 로 big 이 오히려 작았음.
 async function upgradeCafe24Gallery(urls: string[]): Promise<string[]> {
   const SMALL_SEG = /\/web\/product\/(extra\/small|small|medium|tiny)\//i
-  const headOk = async (u: string): Promise<boolean> => {
+
+  // 앞 128KB 만 받아 이미지 헤더에서 픽셀 폭 파싱 (실패/부재 시 null)
+  const measureWidth = async (u: string): Promise<number | null> => {
     try {
       const ctl = new AbortController()
-      const t = setTimeout(() => ctl.abort(), 3000)
-      const r = await fetch(u, { method: 'HEAD', signal: ctl.signal })
+      const t = setTimeout(() => ctl.abort(), 4000)
+      const r = await fetch(u, {
+        headers: { Range: 'bytes=0-131071', 'User-Agent': BROWSER_UA },
+        signal: ctl.signal,
+      })
       clearTimeout(t)
-      return r.ok
+      if (!(r.status === 200 || r.status === 206)) return null
+      const buf = Buffer.from(await r.arrayBuffer())
+      const dim = imageSize(buf)
+      return dim?.width ?? null
     } catch {
-      return false
+      return null
     }
   }
+
   return Promise.all(
     urls.map(async (u) => {
       if (isBigFolder(u) || !SMALL_SEG.test(u)) return u
-      const candidates = [
-        u.replace(SMALL_SEG, '/web/product/extra/big/'),
-        u.replace(SMALL_SEG, '/web/product/big/'),
-      ]
-      for (const c of candidates) {
-        if (c !== u && (await headOk(c))) return c
+      const origW = (await measureWidth(u)) ?? 0
+      let best = { url: u, w: origW }
+      for (const target of ['/web/product/extra/big/', '/web/product/big/']) {
+        const cand = u.replace(SMALL_SEG, target)
+        if (cand === u) continue
+        const w = await measureWidth(cand)
+        if (w && w > best.w) best = { url: cand, w }
       }
-      return u // big 미존재 → 원본 유지 (깨진 링크 방지)
+      return best.url // 더 큰 실측 해상도가 있을 때만 교체, 아니면 원본 유지
     })
   )
 }
