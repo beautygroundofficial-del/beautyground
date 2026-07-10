@@ -9,6 +9,7 @@ import AppProductReviews from './pages/AppProductReviews'
 import AppMyPage from './pages/AppMyPage'
 import AppCart from './pages/AppCart'
 import AppOrder from './pages/AppOrder'
+import AppOrders from './pages/AppOrders'
 import AppLogin from './pages/AppLogin'
 import AppSignup from './pages/AppSignup'
 import AppAddresses from './pages/AppAddresses'
@@ -95,6 +96,7 @@ export default function App() {
         <Route path="/app/mypage" element={<AppMyPage />} />
         <Route path="/app/cart" element={<AppCart />} />
         <Route path="/app/order" element={<AppOrder />} />
+        <Route path="/app/orders" element={<AppOrders />} />
         <Route path="/app/login" element={<AppLogin />} />
         <Route path="/app/signup" element={<AppSignup />} />
         <Route path="/app/addresses" element={<AppAddresses />} />

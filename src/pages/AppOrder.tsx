@@ -33,6 +33,7 @@ export default function AppOrder() {
   const [savedAddresses, setSavedAddresses] = useState<Address[]>([])
   const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null)
   const [saveNewAddress, setSaveNewAddress] = useState(true)
+  const [deliveryMemo, setDeliveryMemo] = useState('')
   const [agreed, setAgreed] = useState(false)
 
   // 배송지 입력칸 수정 시: 저장된 배송지를 그대로 쓰는 게 아니게 되므로 선택상태 해제(다시 "저장" 체크박스 노출)
@@ -169,6 +170,7 @@ export default function AppOrder() {
     const paymentId = `order_${Date.now()}_${crypto.randomUUID().slice(0, 8)}`
     const orderName = items.length > 1 ? `${items[0].name} 외 ${items.length - 1}건` : items[0].name
 
+    const memo = deliveryMemo.trim() || null
     const rows = items.map((i) => ({
       payment_id: paymentId,
       order_name: orderName,
@@ -181,6 +183,7 @@ export default function AppOrder() {
       buyer_email: user?.email ?? null,
       status: 'pending',
       user_id: user?.id ?? null,
+      delivery_memo: memo,
     }))
     // 배송비도 한 행으로 반영(상품 없는 배송비 행) — 합계 검증(payment-complete)과 일치시키기 위함
     if (deliveryFee > 0) {
@@ -196,10 +199,16 @@ export default function AppOrder() {
         buyer_email: user?.email ?? null,
         status: 'pending',
         user_id: user?.id ?? null,
+        delivery_memo: memo,
       })
     }
 
-    const { error: insErr } = await supabase.from('orders').insert(rows)
+    let { error: insErr } = await supabase.from('orders').insert(rows)
+    if (insErr && /delivery_memo/i.test(insErr.message)) {
+      // orders_customer_flow.sql 미실행 환경 폴백 — 요청사항 없이라도 주문은 진행
+      const fallbackRows = rows.map(({ delivery_memo: _m, ...rest }) => rest)
+      ;({ error: insErr } = await supabase.from('orders').insert(fallbackRows))
+    }
     if (insErr) {
       setStatus('error')
       setMessage(`주문 생성 실패: ${insErr.message}`)
@@ -238,7 +247,7 @@ export default function AppOrder() {
         <p className="text-text-sub text-[14px] leading-relaxed mb-2">{doneOrder.orderName}</p>
         <p className="text-[16px] font-bold text-gold mb-8">{doneOrder.amount.toLocaleString('ko-KR')}원 결제 완료</p>
         <div className="flex flex-col gap-3 w-full max-w-xs">
-          <button onClick={() => navigate('/app/mypage')} className="w-full bg-gold text-white font-semibold text-[15px] py-4 rounded-pill hover:bg-gold-light transition-colors">
+          <button onClick={() => navigate('/app/orders')} className="w-full bg-gold text-white font-semibold text-[15px] py-4 rounded-pill hover:bg-gold-light transition-colors">
             주문 내역 확인
           </button>
           <button onClick={() => navigate('/app/home')} className="w-full bg-cream-3 text-text-sub font-semibold text-[15px] py-4 rounded-pill hover:bg-cream-2 transition-colors">
@@ -305,6 +314,14 @@ export default function AppOrder() {
             <span className="text-[13px] text-text-sub">이 배송지 저장하기</span>
           </label>
         )}
+
+        <input
+          value={deliveryMemo}
+          onChange={(e) => setDeliveryMemo(e.target.value)}
+          placeholder="배송 요청사항 (예: 문 앞에 놓아주세요)"
+          maxLength={100}
+          className={field}
+        />
       </div>
 
       {/* 주문 상품 */}

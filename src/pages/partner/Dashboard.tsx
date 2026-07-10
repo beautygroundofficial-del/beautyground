@@ -12,11 +12,14 @@ const LIVE_STATUS_MAP: Record<Live['status'], { label: string; bg: string; text:
   ended:     { label: '완료', bg: 'bg-[#EEEDFE]', text: 'text-[#3C3489]' },
 }
 
-const ORDER_STATUS_MAP: Record<Order['status'], { label: string; bg: string; text: string }> = {
-  paid:      { label: '결제완료', bg: 'bg-[#FAEEDA]', text: 'text-[#633806]' },
-  shipped:   { label: '배송중',   bg: 'bg-[#EEEDFE]', text: 'text-[#3C3489]' },
-  done:      { label: '완료',     bg: 'bg-[#E1F5EE]', text: 'text-[#085041]' },
-  cancelled: { label: '취소',     bg: 'bg-[#FAECE7]', text: 'text-[#712B13]' },
+const ORDER_STATUS_MAP: Partial<Record<Order['status'], { label: string; bg: string; text: string }>> = {
+  pending:          { label: '결제대기', bg: 'bg-[#F3F3F0]', text: 'text-[#777]' },
+  failed:           { label: '결제실패', bg: 'bg-[#F3F3F0]', text: 'text-[#777]' },
+  paid:             { label: '결제완료', bg: 'bg-[#FAEEDA]', text: 'text-[#633806]' },
+  cancel_requested: { label: '취소요청', bg: 'bg-[#FDE8E2]', text: 'text-[#9E2F12]' },
+  shipped:          { label: '배송중',   bg: 'bg-[#EEEDFE]', text: 'text-[#3C3489]' },
+  done:             { label: '완료',     bg: 'bg-[#E1F5EE]', text: 'text-[#085041]' },
+  cancelled:        { label: '취소',     bg: 'bg-[#FAECE7]', text: 'text-[#712B13]' },
 }
 
 function formatScheduled(iso: string | null) {
@@ -218,7 +221,7 @@ export default function PartnerDashboard() {
                   </tr>
                 ) : (
                   recentOrders.map((order) => {
-                    const badge = ORDER_STATUS_MAP[order.status]
+                    const badge = ORDER_STATUS_MAP[order.status] ?? { label: order.status, bg: 'bg-[#F3F3F0]', text: 'text-[#777]' }
                     const d = new Date(order.created_at)
                     return (
                       <tr

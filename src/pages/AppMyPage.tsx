@@ -18,7 +18,7 @@ interface RealUser {
 
 function buildMenuItems(user: RealUser) {
   return [
-    { icon: '📦', label: '주문 내역', path: '/app/order' },
+    { icon: '📦', label: '주문 내역', path: '/app/orders' },
     { icon: '📍', label: '배송지 관리', path: '/app/addresses' },
     { icon: '❤️', label: '찜 목록', path: '/app/wishlist' },
     { icon: '🎫', label: '쿠폰함', count: user.coupons },

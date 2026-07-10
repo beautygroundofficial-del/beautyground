@@ -94,11 +94,18 @@ export interface Order {
   partner_id: string | null
   product_id: string | null
   live_id: string | null
+  payment_id?: string | null
+  order_name?: string | null
+  user_id?: string | null
   buyer_name: string | null
   buyer_phone: string | null
   quantity: number
   amount: number
-  status: 'paid' | 'shipped' | 'done' | 'cancelled'
+  // pending/failed = 결제 시도 단계, cancel_requested = 고객 취소요청(파트너 승인 시 cancelled)
+  status: 'pending' | 'failed' | 'paid' | 'shipped' | 'done' | 'cancelled' | 'cancel_requested'
+  delivery_memo?: string | null
+  tracking_number?: string | null
+  tracking_carrier?: string | null
   created_at: string
 }
 

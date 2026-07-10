@@ -10,20 +10,25 @@ type StatusFilter = Order['status'] | 'all'
 const STATUS_FILTERS: { value: StatusFilter; label: string }[] = [
   { value: 'all', label: '전체' },
   { value: 'paid', label: '결제완료' },
+  { value: 'cancel_requested', label: '취소요청' },
   { value: 'shipped', label: '배송중' },
   { value: 'done', label: '완료' },
   { value: 'cancelled', label: '취소' },
 ]
 
-const STATUS_MAP: Record<Order['status'], { label: string; bg: string; text: string }> = {
-  paid:      { label: '결제완료', bg: 'bg-[#FAEEDA]', text: 'text-[#633806]' },
-  shipped:   { label: '배송중',   bg: 'bg-[#EEEDFE]', text: 'text-[#3C3489]' },
-  done:      { label: '완료',     bg: 'bg-[#E1F5EE]', text: 'text-[#085041]' },
-  cancelled: { label: '취소',     bg: 'bg-[#FAECE7]', text: 'text-[#712B13]' },
+const STATUS_MAP: Partial<Record<Order['status'], { label: string; bg: string; text: string }>> = {
+  pending:          { label: '결제대기', bg: 'bg-[#F3F3F0]', text: 'text-[#777]' },
+  failed:           { label: '결제실패', bg: 'bg-[#F3F3F0]', text: 'text-[#777]' },
+  paid:             { label: '결제완료', bg: 'bg-[#FAEEDA]', text: 'text-[#633806]' },
+  cancel_requested: { label: '취소요청', bg: 'bg-[#FDE8E2]', text: 'text-[#9E2F12]' },
+  shipped:          { label: '배송중',   bg: 'bg-[#EEEDFE]', text: 'text-[#3C3489]' },
+  done:             { label: '완료',     bg: 'bg-[#E1F5EE]', text: 'text-[#085041]' },
+  cancelled:        { label: '취소',     bg: 'bg-[#FAECE7]', text: 'text-[#712B13]' },
 }
 
 const STATUS_OPTIONS: { value: Order['status']; label: string }[] = [
   { value: 'paid', label: '결제완료' },
+  { value: 'cancel_requested', label: '취소요청(고객)' },
   { value: 'shipped', label: '배송중' },
   { value: 'done', label: '완료' },
   { value: 'cancelled', label: '취소' },
@@ -60,8 +65,24 @@ export default function PartnerOrders() {
 
   const handleStatusChange = async (order: Order, next: Order['status']) => {
     const prev = order.status
-    setOrders(list => list.map(o => o.id === order.id ? { ...o, status: next } : o))
-    const { error } = await supabase.from('orders').update({ status: next }).eq('id', order.id)
+
+    // 배송중 전환 시 운송장 입력(선택) — 고객 주문내역에 그대로 표시됨
+    let patch: Record<string, string | null> = { status: next }
+    if (next === 'shipped') {
+      const tn = window.prompt('운송장 번호를 입력하세요 (없으면 비워두세요)', order.tracking_number ?? '')
+      if (tn === null) return // 취소
+      const carrier = tn.trim()
+        ? window.prompt('택배사명 (예: CJ대한통운)', order.tracking_carrier ?? 'CJ대한통운')
+        : null
+      patch = { status: next, tracking_number: tn.trim() || null, tracking_carrier: carrier?.trim() || null }
+    }
+
+    setOrders(list => list.map(o => o.id === order.id ? { ...o, ...patch } as Order : o))
+    let { error } = await supabase.from('orders').update(patch).eq('id', order.id)
+    if (error && /tracking_/i.test(error.message)) {
+      // orders_customer_flow.sql 미실행 환경 폴백 — 상태만이라도 변경
+      ;({ error } = await supabase.from('orders').update({ status: next }).eq('id', order.id))
+    }
     if (error) setOrders(list => list.map(o => o.id === order.id ? { ...o, status: prev } : o))
   }
 
@@ -143,7 +164,7 @@ export default function PartnerOrders() {
               </thead>
               <tbody>
                 {visible.map(o => {
-                  const badge = STATUS_MAP[o.status]
+                  const badge = STATUS_MAP[o.status] ?? { label: o.status, bg: 'bg-[#F3F3F0]', text: 'text-[#777]' }
                   const d = new Date(o.created_at)
                   return (
                     <tr key={o.id} className="border-b border-[#eee] hover:bg-[#fdf9f5] transition-colors">
@@ -153,7 +174,14 @@ export default function PartnerOrders() {
                       <td className="px-5 py-4 text-[13px] text-[#111] max-w-[140px]">
                         <p className="truncate">{(o as any).products?.name ?? '-'}</p>
                       </td>
-                      <td className="px-5 py-4 text-[13px] text-[#111] whitespace-nowrap">{o.buyer_name ?? '-'}</td>
+                      <td className="px-5 py-4 text-[13px] text-[#111] whitespace-nowrap">
+                        {o.buyer_name ?? '-'}
+                        {o.delivery_memo && (
+                          <p className="text-[11px] text-[#9a9080] font-normal max-w-[160px] truncate" title={o.delivery_memo}>
+                            📝 {o.delivery_memo}
+                          </p>
+                        )}
+                      </td>
                       <td className="px-5 py-4 text-[12px] text-[#9a9080] whitespace-nowrap">{o.buyer_phone ?? '-'}</td>
                       <td className="px-5 py-4 text-[13px] text-[#111] text-center">{o.quantity}</td>
                       <td className="px-5 py-4 text-[13px] font-semibold text-[#111] whitespace-nowrap">{won(o.amount)}</td>
@@ -162,6 +190,11 @@ export default function PartnerOrders() {
                           <span className={`text-[11px] font-medium px-2 py-0.5 rounded ${badge.bg} ${badge.text}`}>
                             {badge.label}
                           </span>
+                          {o.tracking_number && (
+                            <span className="text-[10.5px] text-[#9a9080] whitespace-nowrap" title={`${o.tracking_carrier ?? ''} ${o.tracking_number}`}>
+                              🚚 {o.tracking_number}
+                            </span>
+                          )}
                           <select
                             value={o.status}
                             onChange={e => handleStatusChange(o, e.target.value as Order['status'])}
