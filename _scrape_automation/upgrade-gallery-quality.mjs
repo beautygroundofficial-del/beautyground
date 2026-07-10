@@ -84,8 +84,8 @@ async function processProduct(p, TOKEN, apply) {
   if (!changed) { console.log('  변경 없음 — 건너뜀'); return { changed: false, ok: true } }
   if (!apply) { console.log('  (미리보기 모드 — 적용 안 함)'); return { changed: true, ok: true } }
 
-  // 적용 전 안전검증: 새 URL 전부 실존(HEAD) — 하나라도 죽으면 적용 중단
-  const alive = await Promise.all(newGallery.map(headOk))
+  // 적용 전 안전검증: 새 URL 전부 실존(픽셀 파싱 성공 = 이미지로 접근 가능) — 하나라도 죽으면 적용 중단
+  const alive = await Promise.all(newGallery.map(async (u) => (await measure(u)) != null))
   if (alive.some((a) => !a)) { console.log('  ❌ 새 URL 중 접근 불가 존재 — 적용 중단'); return { changed: true, ok: false } }
 
   const resp = await fetch(`${SUPA}/rest/v1/products?id=eq.${p.id}`, {
@@ -107,17 +107,20 @@ if (mode === '--check' || mode === '--apply') {
   const rows = await (await fetch(`${SUPA}/rest/v1/products?select=id,name,gallery_images,thumbnail_url&id=eq.${arg}`, { headers: H })).json()
   if (!rows.length) { console.log('상품 없음:', arg); process.exit(1) }
   await processProduct(rows[0], TOKEN, mode === '--apply')
-} else if (mode === '--all') {
+} else if (mode === '--all' || mode === '--scan') {
+  const apply = mode === '--all'
   const rows = await (await fetch(`${SUPA}/rest/v1/products?select=id,name,gallery_images,thumbnail_url&order=created_at.asc&limit=500`, { headers: H })).json()
-  console.log(`전체 ${rows.length}개 상품 — 순차 처리 시작`)
+  console.log(`전체 ${rows.length}개 상품 — 순차 ${apply ? '적용' : '스캔(읽기전용)'} 시작`)
   let upgraded = 0, skipped = 0, failed = 0
+  const changedList = []
   for (const p of rows) {
-    const r = await processProduct(p, TOKEN, true)
+    const r = await processProduct(p, TOKEN, apply)
     if (!r.ok) failed++
-    else if (r.changed) upgraded++
+    else if (r.changed) { upgraded++; changedList.push(p.id + ' | ' + p.name) }
     else skipped++
   }
-  console.log(`\n===== 요약: 업그레이드 ${upgraded} / 변경없음 ${skipped} / 실패 ${failed} =====`)
+  console.log(`\n===== 요약: ${apply ? '업그레이드' : '변경 예정'} ${upgraded} / 변경없음 ${skipped} / 실패 ${failed} =====`)
+  if (changedList.length) { console.log('대상 목록:'); changedList.forEach((s) => console.log(' ', s)) }
 } else {
-  console.log('사용법: --check <id> | --apply <id> | --all')
+  console.log('사용법: --check <id> | --apply <id> | --scan(전수 미리보기) | --all(전수 적용)')
 }
