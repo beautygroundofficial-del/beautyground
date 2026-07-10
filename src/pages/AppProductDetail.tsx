@@ -404,11 +404,19 @@ export default function AppProductDetail() {
         className="fixed left-0 right-0 bg-white border-t border-cream-2 px-4 py-3 z-40 md:hidden"
         style={{ bottom: 'calc(3.5rem + env(safe-area-inset-bottom))' }}
       >
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5">
           <div className="shrink-0">
             <p className="text-[10px] text-text-hint leading-none mb-0.5">수량 {quantity}</p>
             <p className="text-[15px] font-bold text-gold leading-none">{total.toLocaleString('ko-KR')}원</p>
           </div>
+          <button
+            onClick={onAddToCart}
+            disabled={view.soldOut}
+            className="shrink-0 border border-[#232f52] text-[#232f52] font-semibold text-[13px] px-4 py-3 rounded-lg hover:bg-cream-2 transition-colors disabled:opacity-40"
+            aria-label="장바구니 담기"
+          >
+            🛒 담기
+          </button>
           <button
             onClick={onBuy}
             disabled={view.soldOut}

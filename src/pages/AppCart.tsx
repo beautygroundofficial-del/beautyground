@@ -21,15 +21,30 @@ export default function AppCart() {
       if (!session) { setLoggedIn(false); setLoading(false); return }
       const cart = await getCart()
       if (!active) return
-      setLines(cart)
-      setSelected(new Set(cart.map((l) => l.id)))
+      // 담아둔 사이 재고가 줄어 수량이 초과된 라인은 재고에 맞춰 자동 조정
+      const adjusted = cart.map((l) => {
+        const stock = typeof l.product.stock === 'number' ? l.product.stock : 99
+        if (l.product.status === 'on_sale' && stock > 0 && l.quantity > stock) {
+          void updateCartQuantity(l.id, stock)
+          return { ...l, quantity: stock }
+        }
+        return l
+      })
+      setLines(adjusted)
+      // 품절/판매중지 상품은 기본 선택에서 제외
+      setSelected(new Set(adjusted.filter((l) => l.product.status === 'on_sale' && (typeof l.product.stock !== 'number' || l.product.stock > 0)).map((l) => l.id)))
       setLoading(false)
     })()
     return () => { active = false }
   }, [])
 
+  // 판매 가능 여부/최대 수량 — 품절·판매중지·재고 기준
+  const lineStock = (l: CartLine) => (typeof l.product.stock === 'number' ? l.product.stock : 99)
+  const isUnavailable = (l: CartLine) => l.product.status !== 'on_sale' || lineStock(l) <= 0
+
   const updateQty = async (line: CartLine, delta: number) => {
-    const next = Math.max(1, line.quantity + delta)
+    const next = Math.min(lineStock(line), Math.max(1, line.quantity + delta))
+    if (next === line.quantity) return
     setLines((prev) => prev.map((l) => (l.id === line.id ? { ...l, quantity: next } : l)))
     await updateCartQuantity(line.id, next)
   }
@@ -41,6 +56,8 @@ export default function AppCart() {
   }
 
   const toggleSelect = (id: string) => {
+    const line = lines.find((l) => l.id === id)
+    if (line && isUnavailable(line)) return // 품절 상품은 선택 불가
     setSelected((prev) => {
       const next = new Set(prev)
       if (next.has(id)) next.delete(id)
@@ -49,9 +66,11 @@ export default function AppCart() {
     })
   }
 
+  const selectableLines = lines.filter((l) => !isUnavailable(l))
+
   const toggleAll = () => {
-    if (selected.size === lines.length) setSelected(new Set())
-    else setSelected(new Set(lines.map((l) => l.id)))
+    if (selected.size === selectableLines.length) setSelected(new Set())
+    else setSelected(new Set(selectableLines.map((l) => l.id)))
   }
 
   const selectedLines = lines.filter((l) => selected.has(l.id))
@@ -124,24 +143,26 @@ export default function AppCart() {
             <input
               type="checkbox"
               id="select-all"
-              checked={selected.size === lines.length}
+              checked={selectableLines.length > 0 && selected.size === selectableLines.length}
               onChange={toggleAll}
               className="w-4 h-4 accent-gold"
               aria-label="전체 선택"
             />
             <label htmlFor="select-all" className="text-[13px] text-text cursor-pointer">
-              전체 선택 ({selected.size}/{lines.length})
+              전체 선택 ({selected.size}/{selectableLines.length})
             </label>
           </div>
 
           <div className="px-4 pt-3 flex flex-col gap-3">
             {lines.map((line) => {
               const price = line.product.sale_price ?? line.product.price
+              const unavailable = isUnavailable(line)
+              const stock = lineStock(line)
               return (
                 <div
                   key={line.id}
                   className={`bg-white rounded-md p-4 border transition-colors ${
-                    selected.has(line.id) ? 'border-gold/40' : 'border-cream-2'
+                    unavailable ? 'border-cream-2 opacity-60' : selected.has(line.id) ? 'border-gold/40' : 'border-cream-2'
                   }`}
                 >
                   <div className="flex items-start gap-3">
@@ -149,13 +170,17 @@ export default function AppCart() {
                       type="checkbox"
                       checked={selected.has(line.id)}
                       onChange={() => toggleSelect(line.id)}
-                      className="w-4 h-4 accent-gold mt-1 flex-shrink-0"
+                      disabled={unavailable}
+                      className="w-4 h-4 accent-gold mt-1 flex-shrink-0 disabled:opacity-40"
                       aria-label={`${line.product.name} 선택`}
                     />
-                    <div className="w-16 h-16 rounded-md overflow-hidden bg-cream flex-shrink-0">
+                    <div className="w-16 h-16 rounded-md overflow-hidden bg-cream flex-shrink-0 relative">
                       {line.product.thumbnail_url ? (
                         <img src={line.product.thumbnail_url} alt="" className="w-full h-full object-cover" />
                       ) : null}
+                      {unavailable && (
+                        <span className="absolute inset-0 bg-black/45 text-white text-[11px] font-bold flex items-center justify-center">품절</span>
+                      )}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between">
@@ -168,31 +193,41 @@ export default function AppCart() {
                           <span aria-hidden="true">✕</span>
                         </button>
                       </div>
-                      <div className="flex items-center justify-between mt-2">
-                        <div className="flex items-center gap-2 border border-cream-2 rounded-pill">
-                          <button
-                            onClick={() => updateQty(line, -1)}
-                            className="w-7 h-7 flex items-center justify-center text-text-sub hover:text-text"
-                            aria-label="수량 감소"
-                            disabled={line.quantity <= 1}
-                          >
-                            <span aria-hidden="true">−</span>
-                          </button>
-                          <span className="text-[13px] font-medium text-text w-4 text-center" aria-live="polite">
-                            {line.quantity}
-                          </span>
-                          <button
-                            onClick={() => updateQty(line, 1)}
-                            className="w-7 h-7 flex items-center justify-center text-text-sub hover:text-text"
-                            aria-label="수량 증가"
-                          >
-                            <span aria-hidden="true">+</span>
-                          </button>
-                        </div>
-                        <span className="text-[15px] font-bold text-text">
-                          {(price * line.quantity).toLocaleString('ko-KR')}원
-                        </span>
-                      </div>
+                      {unavailable ? (
+                        <p className="text-[12px] text-[#B4472A] mt-2">현재 구매할 수 없는 상품이에요 (품절/판매중지)</p>
+                      ) : (
+                        <>
+                          {stock <= 5 && (
+                            <p className="text-[11px] text-[#B4472A] mt-1">재고 {stock}개 남음</p>
+                          )}
+                          <div className="flex items-center justify-between mt-2">
+                            <div className="flex items-center gap-2 border border-cream-2 rounded-pill">
+                              <button
+                                onClick={() => updateQty(line, -1)}
+                                className="w-7 h-7 flex items-center justify-center text-text-sub hover:text-text disabled:opacity-40"
+                                aria-label="수량 감소"
+                                disabled={line.quantity <= 1}
+                              >
+                                <span aria-hidden="true">−</span>
+                              </button>
+                              <span className="text-[13px] font-medium text-text w-4 text-center" aria-live="polite">
+                                {line.quantity}
+                              </span>
+                              <button
+                                onClick={() => updateQty(line, 1)}
+                                className="w-7 h-7 flex items-center justify-center text-text-sub hover:text-text disabled:opacity-40"
+                                aria-label="수량 증가"
+                                disabled={line.quantity >= stock}
+                              >
+                                <span aria-hidden="true">+</span>
+                              </button>
+                            </div>
+                            <span className="text-[15px] font-bold text-text">
+                              {(price * line.quantity).toLocaleString('ko-KR')}원
+                            </span>
+                          </div>
+                        </>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -228,7 +263,11 @@ export default function AppCart() {
       )}
 
       {lines.length > 0 && (
-        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-cream-2 px-4 py-3 z-40">
+        // 하단 네비(z-50, bottom-0) 위에 쌓이도록 위치 — bottom-0 이면 네비에 가려 클릭 불가
+        <div
+          className="fixed left-0 right-0 bg-white border-t border-cream-2 px-4 py-3 z-40"
+          style={{ bottom: 'calc(3.5rem + env(safe-area-inset-bottom))' }}
+        >
           <button
             onClick={goOrder}
             disabled={selected.size === 0}

@@ -4,12 +4,12 @@ import AppHeader from '../components/layout/AppHeader'
 import BottomNav from '../components/layout/BottomNav'
 import { supabase } from '../lib/supabase'
 import { DEPT_COLOR } from '../constants'
+import { getMyMembership, TIERS, type MembershipInfo } from '../lib/membership'
 
-// 실제 로그인 사용자 프로필 (포인트/쿠폰/찜/등급은 아직 적립·발급 시스템이 없어 0/기본값 — 가짜 숫자 금지)
+// 실제 로그인 사용자 프로필 (포인트/쿠폰은 아직 적립·발급 시스템이 없어 0 — 가짜 숫자 금지)
 interface RealUser {
   name: string
   email: string
-  tier: 'BASIC'
   points: number
   coupons: number
   orders: number
@@ -36,18 +36,13 @@ const SETTING_ITEMS = [
   { icon: '❓', label: '고객센터', path: '/about' },
 ]
 
-const TIER_STYLE: Record<string, { bg: string; text: string; border: string }> = {
-  BASIC: { bg: '#f0ede8', text: '#5a5547', border: '#d4cfc8' },
-  VIP: { bg: '#EEEDFE', text: '#3C3489', border: '#7F77DD' },
-  VVIP: { bg: '#FFF8ED', text: '#7a6030', border: '#b8924a' },
-}
-
-const EMPTY_USER: RealUser = { name: '게스트', email: '로그인이 필요해요', tier: 'BASIC', points: 0, coupons: 0, orders: 0, wishlist: 0 }
+const EMPTY_USER: RealUser = { name: '게스트', email: '로그인이 필요해요', points: 0, coupons: 0, orders: 0, wishlist: 0 }
 
 export default function AppMyPage() {
   const navigate = useNavigate()
   const [user, setUser] = useState<RealUser>(EMPTY_USER)
-  const tierStyle = TIER_STYLE[user.tier]
+  const [membership, setMembership] = useState<MembershipInfo | null>(null)
+  const [showTierGuide, setShowTierGuide] = useState(false)
 
   const [loggedIn, setLoggedIn] = useState<boolean | null>(null)
   const [toast, setToast] = useState<string | null>(null)
@@ -56,25 +51,28 @@ export default function AppMyPage() {
     const { data } = await supabase.auth.getUser()
     const authUser = data.user
     setLoggedIn(!!authUser)
-    if (!authUser) { setUser(EMPTY_USER); return }
+    if (!authUser) { setUser(EMPTY_USER); setMembership(null); return }
 
     const meta = authUser.user_metadata as { name?: string } | undefined
     const name = meta?.name || authUser.email?.split('@')[0] || '고객'
 
-    // 실제 결제완료 주문 건수(같은 결제 1건 = payment_id 1개, 카트 다건이어도 중복집계 안 되게 dedupe)
-    const { data: orderRows } = await supabase
-      .from('orders')
-      .select('payment_id')
-      .eq('user_id', authUser.id)
-      .eq('status', 'paid')
+    // 실제 주문 건수(같은 결제 1건 = payment_id 1개, 카트 다건이어도 중복집계 안 되게 dedupe)
+    const [{ data: orderRows }, { count: wishlistCount }, ms] = await Promise.all([
+      supabase
+        .from('orders')
+        .select('payment_id')
+        .eq('user_id', authUser.id)
+        .in('status', ['paid', 'shipped', 'done']),
+      supabase
+        .from('wishlist_items')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', authUser.id),
+      getMyMembership(),
+    ])
     const orderCount = new Set((orderRows ?? []).map((r) => (r as { payment_id: string | null }).payment_id)).size
 
-    const { count: wishlistCount } = await supabase
-      .from('wishlist_items')
-      .select('id', { count: 'exact', head: true })
-      .eq('user_id', authUser.id)
-
-    setUser({ name, email: authUser.email ?? '', tier: 'BASIC', points: 0, coupons: 0, orders: orderCount, wishlist: wishlistCount ?? 0 })
+    setMembership(ms)
+    setUser({ name, email: authUser.email ?? '', points: 0, coupons: 0, orders: orderCount, wishlist: wishlistCount ?? 0 })
   }
 
   useEffect(() => {
@@ -108,12 +106,18 @@ export default function AppMyPage() {
           <div className="flex-1">
             <div className="flex items-center gap-2">
               <h1 className="text-[18px] font-bold text-text">{user.name}</h1>
-              <span
+              <button
+                onClick={() => setShowTierGuide((v) => !v)}
                 className="text-[11px] font-bold px-2.5 py-0.5 rounded-pill border"
-                style={{ backgroundColor: tierStyle.bg, color: tierStyle.text, borderColor: tierStyle.border }}
+                style={{
+                  backgroundColor: membership?.tier.bg ?? '#f3f4f6',
+                  color: membership?.tier.color ?? '#6b7280',
+                  borderColor: membership?.tier.color ?? '#d4cfc8',
+                }}
+                aria-label="회원 등급 안내 보기"
               >
-                {user.tier}
-              </span>
+                {membership?.tier.label ?? 'BASIC'}
+              </button>
             </div>
             <p className="text-[13px] text-text-sub mt-0.5">{user.email}</p>
           </div>
@@ -138,6 +142,59 @@ export default function AppMyPage() {
             </div>
           ))}
         </div>
+
+        {/* 회원 등급 — 누적 구매금액 기반, 배지 클릭으로 등급표 열람 */}
+        {loggedIn && membership && (
+          <div className="mt-3 rounded-md border border-cream-2 px-4 py-3.5">
+            <div className="flex items-center justify-between">
+              <span className="text-[13px] text-text-sub">누적 구매금액</span>
+              <span className="text-[14px] font-bold text-text">{membership.totalSpent.toLocaleString('ko-KR')}원</span>
+            </div>
+            <div className="flex items-center justify-between mt-1.5">
+              <span className="text-[12px] text-text-hint">
+                현재 <b style={{ color: membership.tier.color }}>{membership.tier.label}</b> · 구매 시 {membership.tier.rewardRate}% 적립 예정
+              </span>
+              {membership.next && (
+                <span className="text-[12px] text-text-hint">
+                  {membership.next.next.label}까지 {membership.next.remain.toLocaleString('ko-KR')}원
+                </span>
+              )}
+            </div>
+            {membership.next && (
+              <div className="mt-2 h-1.5 bg-cream-3 rounded-pill overflow-hidden" aria-hidden="true">
+                <div
+                  className="h-full rounded-pill"
+                  style={{
+                    width: `${Math.min(100, Math.round((membership.totalSpent / membership.next.next.min) * 100))}%`,
+                    backgroundColor: membership.tier.color,
+                  }}
+                />
+              </div>
+            )}
+            {showTierGuide && (
+              <div className="mt-3 pt-3 border-t border-cream-3">
+                <p className="text-[12px] font-bold text-text mb-2">회원 등급 안내 (누적 구매금액 기준)</p>
+                <div className="space-y-1.5">
+                  {TIERS.map((t) => (
+                    <div key={t.key} className="flex items-center justify-between text-[12px]">
+                      <span className="flex items-center gap-2">
+                        <span
+                          className="font-bold px-2 py-0.5 rounded-pill text-[10.5px]"
+                          style={{ backgroundColor: t.bg, color: t.color }}
+                        >
+                          {t.label}
+                        </span>
+                        <span className="text-text-sub">{t.min === 0 ? '가입 시' : `${(t.min / 10000).toLocaleString()}만원 이상`}</span>
+                      </span>
+                      <span className="text-text">적립 {t.rewardRate}%</span>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-[11px] text-text-hint mt-2">적립금 사용은 결제 오픈 후 활성화됩니다.</p>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* 포인트 */}
         <div

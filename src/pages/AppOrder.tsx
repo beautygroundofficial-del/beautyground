@@ -25,7 +25,11 @@ export default function AppOrder() {
   const location = useLocation()
   const [params, setParams] = useSearchParams()
 
-  const items: OrderItem[] = (location.state as { items?: OrderItem[] } | null)?.items ?? []
+  const initialItems: OrderItem[] = (location.state as { items?: OrderItem[] } | null)?.items ?? []
+  // 서버 재검증(가격/재고/판매상태) 결과가 반영되는 실제 주문 목록
+  const [items, setItems] = useState<OrderItem[]>(initialItems)
+  const [itemNotices, setItemNotices] = useState<string[]>([]) // 가격변경/수량조정 등 안내
+  const [blockedNames, setBlockedNames] = useState<string[]>([]) // 품절/판매종료로 주문 불가
   const [checkedAuth, setCheckedAuth] = useState(false)
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
@@ -53,6 +57,46 @@ export default function AppOrder() {
 
   const storeId = import.meta.env.VITE_PORTONE_STORE_ID as string | undefined
   const channelKey = import.meta.env.VITE_PORTONE_CHANNEL_KEY as string | undefined
+  const paymentReady = Boolean(storeId && channelKey)
+
+  // ── 주문 상품 서버 재검증 ─────────────────────────────────────────────────
+  // 장바구니에 담아둔 사이 가격·재고·판매상태가 바뀔 수 있으므로, 화면에 보이는
+  // 값이 아니라 "지금 DB의 값"을 기준으로 주문한다. (진입 시 + 결제 직전 각 1회)
+  const revalidateItems = async (
+    current: OrderItem[]
+  ): Promise<{ items: OrderItem[]; notices: string[]; blocked: string[] }> => {
+    if (current.length === 0) return { items: current, notices: [], blocked: [] }
+    const ids = current.map((i) => i.product_id)
+    const { data } = await supabase
+      .from('products')
+      .select('id, name, price, sale_price, stock, status')
+      .in('id', ids)
+    const byId = new Map(
+      ((data ?? []) as { id: string; name: string; price: number; sale_price: number | null; stock: number; status: string }[])
+        .map((p) => [p.id, p])
+    )
+    const notices: string[] = []
+    const blocked: string[] = []
+    const next: OrderItem[] = []
+    for (const it of current) {
+      const p = byId.get(it.product_id)
+      if (!p || p.status !== 'on_sale' || p.stock <= 0) {
+        blocked.push(p?.name ?? it.name)
+        continue
+      }
+      let qty = it.quantity
+      if (qty > p.stock) {
+        qty = p.stock
+        notices.push(`"${p.name}" 재고가 부족해 수량을 ${p.stock}개로 조정했어요.`)
+      }
+      const nowPrice = p.sale_price ?? p.price
+      if (nowPrice !== it.price) {
+        notices.push(`"${p.name}" 가격이 ${it.price.toLocaleString('ko-KR')}원 → ${nowPrice.toLocaleString('ko-KR')}원으로 변경되었어요.`)
+      }
+      next.push({ ...it, price: nowPrice, quantity: qty })
+    }
+    return { items: next, notices, blocked }
+  }
 
   // 로그인 확인 + 이름/연락처 기본값(가입정보) 채우기
   useEffect(() => {
@@ -65,8 +109,11 @@ export default function AppOrder() {
         return
       }
       const meta = session.user.user_metadata as { name?: string; phone?: string } | undefined
-      const addrs = await getAddresses()
+      const [addrs, reval] = await Promise.all([getAddresses(), revalidateItems(initialItems)])
       if (!active) return
+      setItems(reval.items)
+      setItemNotices(reval.notices)
+      setBlockedNames(reval.blocked)
       setSavedAddresses(addrs)
       const def = addrs.find((a) => a.is_default) ?? addrs[0]
       if (def) {
@@ -148,9 +195,23 @@ export default function AppOrder() {
       setMessage('배송지 정보를 모두 입력해 주세요.')
       return
     }
+    if (!/^01[016789][-\s]?\d{3,4}[-\s]?\d{4}$/.test(phone.trim())) {
+      setMessage('연락처를 휴대폰 번호 형식(010-0000-0000)으로 입력해 주세요.')
+      return
+    }
     if (!agreed) { setMessage('이용약관 및 개인정보처리방침에 동의해 주세요.'); return }
     if (!storeId || !channelKey) {
-      setMessage('결제 설정이 없습니다. 관리자에게 문의해 주세요. (PortOne 환경변수 미설정)')
+      setMessage('아직 결제 수단을 준비하고 있어요. 정식 오픈 후 결제하실 수 있습니다. 조금만 기다려 주세요!')
+      return
+    }
+
+    // 결제 직전 최종 재검증 — 그 사이 품절/가격변경이 생겼다면 반영하고 사용자 재확인을 받는다
+    const reval = await revalidateItems(items)
+    if (reval.blocked.length > 0 || reval.notices.length > 0) {
+      setItems(reval.items)
+      setItemNotices(reval.notices)
+      setBlockedNames(reval.blocked)
+      setMessage('주문 내용이 변경되었어요. 위 안내를 확인하신 후 다시 결제해 주세요.')
       return
     }
 
@@ -277,6 +338,25 @@ export default function AppOrder() {
     <div className="min-h-screen bg-cream-4 pb-40">
       <BackHeader title="주문/결제" />
 
+      {!paymentReady && (
+        <div className="bg-[#FDF6E7] border-b border-[#EFE3C4] px-5 py-3">
+          <p className="text-[12.5px] text-[#8a6d1f] leading-relaxed">
+            🔔 지금은 <b>오픈 준비 기간</b>이에요. 주문서 작성까지 미리 확인하실 수 있고, 결제는 정식 오픈 후 가능합니다.
+          </p>
+        </div>
+      )}
+
+      {(blockedNames.length > 0 || itemNotices.length > 0) && (
+        <div className="bg-[#FDF0EC] border-b border-[#F5D9CF] px-5 py-3 space-y-1">
+          {blockedNames.map((n) => (
+            <p key={n} className="text-[12.5px] text-[#B4472A]">⚠️ "{n}"은(는) 품절/판매종료되어 주문에서 제외했어요.</p>
+          ))}
+          {itemNotices.map((t) => (
+            <p key={t} className="text-[12.5px] text-[#B4472A]">ℹ️ {t}</p>
+          ))}
+        </div>
+      )}
+
       {/* 배송지 */}
       <div className="bg-white px-5 py-5 border-b border-cream-2 space-y-3">
         <div className="flex items-center justify-between">
@@ -381,7 +461,9 @@ export default function AppOrder() {
           </span>
         </label>
         {message && <p className="text-[13px] text-[#FF4757] mt-3" role="alert">{message}</p>}
-        <p className="text-[11px] text-text-hint mt-3">테스트 모드 결제입니다. 실제 청구되지 않습니다.</p>
+        {paymentReady && (
+          <p className="text-[11px] text-text-hint mt-3">테스트 모드 결제입니다. 실제 청구되지 않습니다.</p>
+        )}
       </div>
 
       {/* 결제 버튼 */}
@@ -392,7 +474,10 @@ export default function AppOrder() {
           className="w-full bg-[#232f52] text-white font-bold text-[15px] py-4 rounded-pill hover:bg-[#2e3d6a] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           aria-disabled={!agreed || busy}
         >
-          {status === 'paying' ? '결제 진행 중…' : status === 'verifying' ? '결제 확인 중…' : `${total.toLocaleString('ko-KR')}원 결제하기`}
+          {status === 'paying' ? '결제 진행 중…'
+            : status === 'verifying' ? '결제 확인 중…'
+            : paymentReady ? `${total.toLocaleString('ko-KR')}원 결제하기`
+            : `${total.toLocaleString('ko-KR')}원 · 결제 오픈 준비 중`}
         </button>
       </div>
     </div>
