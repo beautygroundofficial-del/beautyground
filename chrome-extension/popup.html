@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<style>
+  body{font-family:'Malgun Gothic',sans-serif;width:320px;margin:0;padding:16px;background:#fff;color:#111}
+  h1{font-size:14px;font-weight:800;margin:0 0 4px;letter-spacing:1px}
+  .sub{font-size:11px;color:#888;margin-bottom:12px}
+  .site{font-size:12px;padding:8px 10px;border-radius:8px;background:#f5f2ec;margin-bottom:10px}
+  .site b{color:#b8924a}
+  button{width:100%;border:0;border-radius:8px;padding:11px;font-size:13px;font-weight:700;cursor:pointer;margin-top:8px}
+  #extract{background:#111;color:#fff}
+  #send{background:#b8924a;color:#fff;display:none}
+  #copy{background:#eee;color:#444;display:none}
+  button:disabled{opacity:.5;cursor:default}
+  #result{font-size:12px;line-height:1.7;margin-top:10px;display:none;background:#f8f7f4;border-radius:8px;padding:10px}
+  #result .row{display:flex;justify-content:space-between}
+  #result .k{color:#888}
+  #msg{font-size:11.5px;margin-top:8px;color:#c0392b;min-height:14px}
+  #msg.ok{color:#1f9d63}
+</style>
+</head>
+<body>
+  <h1>BEAUTY GROUND</h1>
+  <div class="sub">스마트스토어·쿠팡 상품 가져오기</div>
+  <div class="site" id="site">페이지 확인 중...</div>
+  <button id="extract">① 상품 정보 추출</button>
+  <div id="result"></div>
+  <button id="send">② 뷰티그라운드 등록폼으로 보내기</button>
+  <button id="copy">JSON 복사 (수동 붙여넣기용)</button>
+  <div id="msg"></div>
+  <script src="popup.js"></script>
+</body>
+</html>

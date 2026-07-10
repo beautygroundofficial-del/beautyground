@@ -1,0 +1,25 @@
+{
+  "manifest_version": 3,
+  "name": "뷰티그라운드 상품 가져오기",
+  "version": "1.0.0",
+  "description": "스마트스토어·쿠팡 상품 페이지에서 상품 정보를 추출해 뷰티그라운드 등록폼에 자동으로 채웁니다.",
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "뷰티그라운드 상품 가져오기"
+  },
+  "background": { "service_worker": "background.js" },
+  "permissions": ["scripting", "activeTab", "storage", "tabs"],
+  "host_permissions": [
+    "*://smartstore.naver.com/*",
+    "*://*.coupang.com/*",
+    "https://beautyground.vercel.app/*",
+    "http://localhost:5173/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": ["https://beautyground.vercel.app/*", "http://localhost:5173/*"],
+      "js": ["bridge.js"],
+      "run_at": "document_start"
+    }
+  ]
+}

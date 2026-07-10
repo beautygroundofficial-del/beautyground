@@ -256,6 +256,29 @@ export default function ProductForm() {
     return applyScrapeData(json.data as ScrapeResult)
   }
 
+  // ── 크롬 확장(뷰티그라운드 상품 가져오기) 연동 ──────────────────────────────
+  // 확장이 스마트스토어/쿠팡에서 추출한 상품 데이터를 postMessage 로 받아 폼에 채운다.
+  // 프로토콜: 폼 mount 시 BG_EXT_FORM_READY 송신 → 확장 브릿지가 BG_EXT_IMPORT 로 데이터 전달
+  //          반영 후 BG_EXT_IMPORT_ACK 송신(확장이 대기 데이터를 지워 1회성 보장)
+  useEffect(() => {
+    const onMessage = (e: MessageEvent) => {
+      if (e.source !== window || e.data?.type !== 'BG_EXT_IMPORT' || !e.data.payload) return
+      const d = e.data.payload as ScrapeResult & { url?: string; source?: string }
+      const result = applyScrapeData(d)
+      if (d.url) setReviewUrl(d.url)
+      const siteName = d.source === 'coupang' ? '쿠팡' : '스마트스토어'
+      setScrapeMsg({
+        type: 'ok',
+        text: `확장프로그램(${siteName})에서 불러왔어요. 확인 후 등록하세요. (대표 ${result.imgCount}장)`,
+      })
+      window.postMessage({ type: 'BG_EXT_IMPORT_ACK' }, '*')
+    }
+    window.addEventListener('message', onMessage)
+    window.postMessage({ type: 'BG_EXT_FORM_READY' }, '*')
+    return () => window.removeEventListener('message', onMessage)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   // 리뷰 사진 총 장수 계산
   const countPhotos = (reviews: ScrapedReview[]): number =>
     reviews.reduce((n, r) => n + (r.photos?.length ?? (r.photo ? 1 : 0)), 0)
