@@ -67,6 +67,19 @@
   .h-safe-nav {
     height: calc(3.5rem + env(safe-area-inset-bottom));
   }
+  .animate-marquee {
+    animation: marquee-scroll 18s linear infinite;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .animate-marquee {
+      animation: none;
+    }
+  }
+}
+
+@keyframes marquee-scroll {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
 }
 
 @keyframes nolling {

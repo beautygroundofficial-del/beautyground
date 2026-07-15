@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom'
 export default function AppHeader() {
   return (
     <header className="bg-white flex items-center justify-between px-4 h-14 border-b border-cream-2 sticky top-0 z-50">
-      <Link to="/app/home" className="font-serif text-[20px] font-bold text-gold">
+      <Link to="/app/home" className="font-sans text-[20px] font-bold text-text">
         뷰티그라운드
       </Link>
       <div className="flex items-center gap-1">

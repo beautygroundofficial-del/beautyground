@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import type { PartnerApplication } from '../../lib/types'
 import { formatDateTime } from '../../lib/format'
@@ -100,14 +99,12 @@ export default function AdminApplications() {
   }
 
   return (
-    <div className="min-h-screen bg-cream">
-      <header className="h-16 bg-white border-b border-cream-2 flex items-center px-6 justify-between">
-        <Link to="/" className="font-serif text-[18px] font-bold text-gold">
-          뷰티그라운드 관리자
-        </Link>
+    <>
+      <header className="h-[60px] bg-white border-b border-[#eee] flex items-center px-8 sticky top-0 z-20">
+        <p className="text-[15px] font-semibold text-[#111]">파트너 신청 관리</p>
       </header>
 
-      <main className="max-w-[1100px] mx-auto p-6">
+      <main className="max-w-[1100px] p-8">
         <h1 className="text-[22px] font-bold text-text mb-4">파트너 신청 관리</h1>
 
         <div className="bg-amber-50 border border-amber-200 text-amber-800 text-[13px] rounded-md px-4 py-3 mb-5 leading-relaxed">
@@ -208,6 +205,6 @@ export default function AdminApplications() {
           </div>
         )}
       </main>
-    </div>
+    </>
   )
 }

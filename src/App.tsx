@@ -41,7 +41,9 @@ import PartnerSettlement from './pages/partner/Settlement'
 import PartnerProfile from './pages/partner/Profile'
 
 // 관리자
+import AdminLayout from './components/admin/AdminLayout'
 import AdminApplications from './pages/admin/Applications'
+import AdminHome from './pages/admin/Home'
 
 // 구매자 라이브 (Supabase 연동)
 import ShopLiveList from './pages/app/ShopLiveList'
@@ -81,7 +83,10 @@ export default function App() {
             <Route path="/partner/settlement" element={<PartnerSettlement />} />
             <Route path="/partner/profile" element={<PartnerProfile />} />
           </Route>
-          <Route path="/admin/applications" element={<AdminApplications />} />
+          <Route element={<AdminLayout />}>
+            <Route path="/admin/applications" element={<AdminApplications />} />
+            <Route path="/admin/home" element={<AdminHome />} />
+          </Route>
         </Route>
 
         {/* 앱 UI */}
