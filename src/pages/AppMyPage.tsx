@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import AppHeader from '../components/layout/AppHeader'
-import BottomNav from '../components/layout/BottomNav'
+import AppFrame from '../components/layout/AppFrame'
 import { supabase } from '../lib/supabase'
 import { DEPT_COLOR } from '../constants'
 import { getMyMembership, TIERS, type MembershipInfo } from '../lib/membership'
@@ -94,7 +94,7 @@ export default function AppMyPage() {
   }
 
   return (
-    <div className="min-h-screen bg-cream-4 pb-20">
+    <AppFrame>
       <AppHeader />
 
       {/* 프로필 카드 */}
@@ -318,7 +318,6 @@ export default function AppMyPage() {
         </div>
       )}
 
-      <BottomNav />
-    </div>
+    </AppFrame>
   )
 }

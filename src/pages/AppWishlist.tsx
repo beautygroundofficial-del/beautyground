@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import BackHeader from '../components/layout/BackHeader'
-import BottomNav from '../components/layout/BottomNav'
+import AppFrame from '../components/layout/AppFrame'
 import { supabase } from '../lib/supabase'
 import { getWishlist, removeWish, type WishlistLine } from '../lib/wishlist'
 
@@ -36,7 +36,7 @@ export default function AppWishlist() {
 
   if (!loggedIn) {
     return (
-      <div className="min-h-screen bg-cream-4">
+      <AppFrame>
         <BackHeader title="찜 목록" />
         <div className="flex flex-col items-center justify-center py-24 px-8 text-center">
           <span className="text-5xl mb-4" aria-hidden="true">🤍</span>
@@ -48,13 +48,12 @@ export default function AppWishlist() {
             로그인하기
           </button>
         </div>
-        <BottomNav />
-      </div>
+      </AppFrame>
     )
   }
 
   return (
-    <div className="min-h-screen bg-cream-4 pb-20">
+    <AppFrame>
       <BackHeader title="찜 목록" />
 
       {lines.length === 0 ? (
@@ -100,7 +99,6 @@ export default function AppWishlist() {
         </div>
       )}
 
-      <BottomNav />
-    </div>
+    </AppFrame>
   )
 }

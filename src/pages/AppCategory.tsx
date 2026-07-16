@@ -1,13 +1,13 @@
 import { useNavigate } from 'react-router-dom'
 import AppHeader from '../components/layout/AppHeader'
-import BottomNav from '../components/layout/BottomNav'
+import AppFrame from '../components/layout/AppFrame'
 import { CATEGORIES } from '../constants'
 
 export default function AppCategory() {
   const navigate = useNavigate()
 
   return (
-    <div className="min-h-screen bg-cream-4 pb-20">
+    <AppFrame>
       <AppHeader />
 
       <div className="px-4 pt-5 pb-3">
@@ -45,7 +45,6 @@ export default function AppCategory() {
         ))}
       </div>
 
-      <BottomNav />
-    </div>
+    </AppFrame>
   )
 }

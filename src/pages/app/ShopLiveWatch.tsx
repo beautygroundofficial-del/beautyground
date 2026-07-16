@@ -7,12 +7,19 @@ import { streamIframeSrc } from '../../lib/cloudflare'
 import { useLiveChat } from '../../hooks/useLiveChat'
 import { useStreamStatus } from '../../hooks/useStreamStatus'
 import AppHeader from '../../components/layout/AppHeader'
-import BottomNav from '../../components/layout/BottomNav'
+import AppFrame from '../../components/layout/AppFrame'
 
 const statusLabel: Record<Live['status'], string> = {
   live: 'LIVE',
   scheduled: '예정',
   ended: '종료',
+}
+
+// 유튜브 링크(브랜드 공식 영상 등)를 임베드 플레이어 주소로 변환 — 다시보기/예시 콘텐츠용
+const youtubeEmbedSrc = (url: string | null | undefined): string | null => {
+  if (!url) return null
+  const m = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/shorts\/)([\w-]{6,})/)
+  return m ? `https://www.youtube.com/embed/${m[1]}?rel=0` : null
 }
 
 export default function ShopLiveWatch() {
@@ -149,7 +156,7 @@ export default function ShopLiveWatch() {
     'w-full bg-white border border-cream-2 rounded-md px-4 py-3 text-[14px] text-text placeholder:text-text-hint focus:outline-none focus:shadow-focus transition'
 
   return (
-    <div className="min-h-screen bg-cream-4 pb-20">
+    <AppFrame>
       <AppHeader />
 
       <main className="px-4 py-4">
@@ -211,6 +218,17 @@ export default function ShopLiveWatch() {
                     allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;"
                     allowFullScreen
                     title="라이브 영상"
+                  />
+                </div>
+              ) : youtubeEmbedSrc(live.stream_url) ? (
+                <div className="relative w-full" style={{ paddingTop: '56.25%' }}>
+                  <iframe
+                    src={youtubeEmbedSrc(live.stream_url) as string}
+                    className="absolute inset-0 w-full h-full"
+                    style={{ border: 'none' }}
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                    title="다시보기 영상"
                   />
                 </div>
               ) : live.stream_url ? (
@@ -463,7 +481,6 @@ export default function ShopLiveWatch() {
         </div>
       )}
 
-      <BottomNav />
-    </div>
+    </AppFrame>
   )
 }

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import BackHeader from '../components/layout/BackHeader'
-import BottomNav from '../components/layout/BottomNav'
+import AppFrame from '../components/layout/AppFrame'
 import ShopProductCard, { ShopProductCardSkeleton } from '../components/product/ShopProductCard'
 import { useShopProducts, type ShopSort } from '../hooks/useShopProducts'
 import { useShopCategories } from '../hooks/useShopCategories'
@@ -51,7 +51,7 @@ export default function AppCategoryDetail() {
   const tabs = useMemo<(string | null)[]>(() => [null, ...categories], [categories])
 
   return (
-    <div className="min-h-screen bg-cream-4 pb-20">
+    <AppFrame>
       <BackHeader
         title={selected ?? '전체 상품'}
         rightElement={
@@ -171,7 +171,6 @@ export default function AppCategoryDetail() {
         </>
       )}
 
-      <BottomNav />
-    </div>
+    </AppFrame>
   )
 }

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import BackHeader from '../components/layout/BackHeader'
-import BottomNav from '../components/layout/BottomNav'
+import AppFrame from '../components/layout/AppFrame'
 import ProductCard from '../components/product/ProductCard'
 import Badge from '../components/common/Badge'
 import { BRANDS, ALL_LIVE_STREAMS } from '../constants'
@@ -23,7 +23,7 @@ export default function AppBrandDetail() {
   }
 
   return (
-    <div className="min-h-screen bg-cream-4 pb-20">
+    <AppFrame>
       <BackHeader
         title=""
         transparent
@@ -141,7 +141,6 @@ export default function AppBrandDetail() {
         )}
       </div>
 
-      <BottomNav />
-    </div>
+    </AppFrame>
   )
 }
