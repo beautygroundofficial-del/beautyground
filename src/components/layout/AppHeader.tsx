@@ -1,11 +1,24 @@
 import { Link } from 'react-router-dom'
 
-// 소비자 앱 공통 상단바: 로고 + 우측 아이콘 2개(찜/장바구니)
+// 소비자 앱 공통 상단바: 브랜드 로고(모노그램 + BEAUTYGROUND / LIVE COMMERCE) + 우측 아이콘 2개(찜/장바구니)
 export default function AppHeader() {
   return (
     <header className="bg-white flex items-center justify-between px-4 h-14 border-b border-cream-2 sticky top-0 z-50">
-      <Link to="/app/home" className="font-sans text-[20px] font-bold text-text">
-        뷰티그라운드
+      <Link to="/app/home" className="flex items-center gap-2.5 min-w-0">
+        <img
+          src="/images/bg-logo-mark.png"
+          alt=""
+          aria-hidden="true"
+          className="w-8 h-8 rounded-[8px] shrink-0"
+        />
+        <span className="flex flex-col justify-center leading-none">
+          <span className="font-sans text-[16px] font-extrabold text-text tracking-[0.02em]">
+            BEAUTYGROUND
+          </span>
+          <span className="text-[9px] font-semibold text-gold tracking-[0.32em] mt-[3px]">
+            LIVE COMMERCE
+          </span>
+        </span>
       </Link>
       <div className="flex items-center gap-1">
         <Link
