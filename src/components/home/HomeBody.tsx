@@ -1,6 +1,5 @@
 import { Link } from 'react-router-dom'
 import AppHeader from '../layout/AppHeader'
-import TopNavMenu from './TopNavMenu'
 import HeroCarousel from './HeroCarousel'
 import MarqueeBar from './MarqueeBar'
 import CategoryShortcutGrid from './CategoryShortcutGrid'
@@ -40,7 +39,6 @@ export default function HomeBody({
     <>
       <MarqueeBar items={marqueeItems} />
       <AppHeader />
-      <TopNavMenu />
       <HeroCarousel banners={banners} />
       <CategoryShortcutGrid categories={categories} thumbnails={categoryThumbnails} onSelect={onCategoryClick} />
 
