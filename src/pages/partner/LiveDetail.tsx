@@ -314,9 +314,9 @@ export default function LiveDetail() {
                   송출을 시작하면 화면에 방송이 나옵니다.
                 </p>
               </div>
-            ) : (
+            ) : !streamErr ? (
               <p className="text-[11px] text-[#777]">송출 정보 불러오는 중…</p>
-            )}
+            ) : null}
 
             {streamErr && (
               <p className="text-[11px] text-[#e08484] leading-relaxed mt-2">{streamErr}</p>
