@@ -78,6 +78,24 @@ export default function ShopLiveWatch() {
     }
   }, [id])
 
+  // 판매자 조작(지금판매·공지핀·방송상태)을 실시간 수신 — lives 행 UPDATE 구독
+  useEffect(() => {
+    if (!id) return
+    const ch = supabase
+      .channel(`live-sync:${id}`)
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'lives', filter: `id=eq.${id}` },
+        (payload) => {
+          setLive((prev) => (prev ? { ...prev, ...(payload.new as Partial<Live>) } : prev))
+        }
+      )
+      .subscribe()
+    return () => {
+      supabase.removeChannel(ch)
+    }
+  }, [id])
+
   const openBuy = (product: Product) => {
     setBuyProduct(product)
     setQuantity(1)
@@ -113,6 +131,12 @@ export default function ShopLiveWatch() {
       },
     })
   }
+
+  // 판매자가 "지금 판매"로 지정한 상품을 목록 맨 위로
+  const highlightId = live?.highlight_product_id ?? null
+  const orderedProducts = highlightId
+    ? [...products].sort((a, b) => (a.id === highlightId ? -1 : b.id === highlightId ? 1 : 0))
+    : products
 
   const streamSrc = streamIframeSrc(live?.stream_uid)
   // 실제 송출 연결 여부 — status='live'인데 송출이 끊겨 있으면 대기 화면을 보여주고,
@@ -239,16 +263,24 @@ export default function ShopLiveWatch() {
               </div>
             ) : (
               <div className="flex flex-col gap-3">
-                {products.map((product) => {
+                {orderedProducts.map((product) => {
                   const hasSale =
                     product.sale_price != null &&
                     product.sale_price < product.price
+                  const isHighlight = product.id === highlightId
                   return (
                     <div
                       key={product.id}
-                      className="bg-white rounded-md border p-3 flex items-center gap-3"
-                      style={{ borderColor: '#e5e0d8', borderWidth: '0.5px' }}
+                      className={`bg-white rounded-md border p-3 ${isHighlight ? 'ring-2 ring-gold' : ''}`}
+                      style={{ borderColor: isHighlight ? '#b8924a' : '#e5e0d8', borderWidth: '0.5px' }}
                     >
+                      {isHighlight && (
+                        <p className="flex items-center gap-1.5 text-[11px] font-bold text-gold mb-2">
+                          <span className="w-1.5 h-1.5 rounded-full bg-gold animate-pulse" />
+                          지금 방송에서 판매 중
+                        </p>
+                      )}
+                      <div className="flex items-center gap-3">
                       {product.thumbnail_url ? (
                         <img
                           src={product.thumbnail_url}
@@ -284,6 +316,7 @@ export default function ShopLiveWatch() {
                       >
                         구매하기
                       </button>
+                      </div>
                     </div>
                   )
                 })}
@@ -297,6 +330,14 @@ export default function ShopLiveWatch() {
             >
               <div className="px-4 py-3 border-b border-cream-2">
                 <h2 className="text-[15px] font-bold text-text">실시간 채팅</h2>
+                {live.pinned_message && (
+                  <div className="mt-2 flex items-start gap-2 bg-gold/10 rounded-md px-3 py-2">
+                    <span className="shrink-0 text-[12px]" aria-hidden="true">📌</span>
+                    <p className="text-[12.5px] text-text leading-snug whitespace-pre-line">
+                      {live.pinned_message}
+                    </p>
+                  </div>
+                )}
               </div>
 
               <div className="px-4 py-3 max-h-[280px] overflow-y-auto flex flex-col gap-2">

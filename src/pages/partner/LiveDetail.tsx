@@ -32,8 +32,26 @@ export default function LiveDetail() {
   const [pinnedMsg, setPinnedMsg] = useState('')
   const chatEndRef = useRef<HTMLDivElement>(null)
 
-  // 상품 패널 상태
+  // 상품 패널 상태 — lives 행에 저장되어 시청자 화면과 실시간 동기화됨
   const [activeProduct, setActiveProduct] = useState<string | null>(null)
+  const [syncErr, setSyncErr] = useState('')
+
+  // 하이라이트/공지핀을 lives 행에 기록 — 시청자(ShopLiveWatch)가 Realtime 으로 수신
+  const syncLive = async (patch: { highlight_product_id?: string | null; pinned_message?: string | null }) => {
+    if (!id) return false
+    const { error } = await supabase.from('lives').update(patch).eq('id', id)
+    if (error) {
+      setSyncErr(`시청자 화면 반영 실패: ${error.message}`)
+      return false
+    }
+    setSyncErr('')
+    return true
+  }
+
+  const toggleHighlight = async (productId: string) => {
+    const next = activeProduct === productId ? null : productId
+    if (await syncLive({ highlight_product_id: next })) setActiveProduct(next)
+  }
 
   // 송출 채널 (Cloudflare Live Input) — 키는 서버에서 매번 조회, DB에 저장 안 함
   const streamState = useStreamStatus(live?.stream_uid, true, 5000)
@@ -101,6 +119,8 @@ export default function LiveDetail() {
       if (!active) return
       const row = (data as Live | null) ?? null
       setLive(row)
+      setActiveProduct(row?.highlight_product_id ?? null)
+      setPinnedMsg(row?.pinned_message ?? '')
       if (row?.product_ids?.length) {
         const { data: pd } = await supabase.from('products').select('*').in('id', row.product_ids)
         if (!active) return
@@ -130,10 +150,17 @@ export default function LiveDetail() {
     if (ok) setChatInput('')
   }
 
-  const pinMessage = () => {
-    if (!chatInput.trim()) return
-    setPinnedMsg(chatInput.trim())
-    setChatInput('')
+  const pinMessage = async () => {
+    const text = chatInput.trim()
+    if (!text) return
+    if (await syncLive({ pinned_message: text })) {
+      setPinnedMsg(text)
+      setChatInput('')
+    }
+  }
+
+  const unpinMessage = async () => {
+    if (await syncLive({ pinned_message: null })) setPinnedMsg('')
   }
 
   if (loading) {
@@ -356,8 +383,19 @@ export default function LiveDetail() {
             {pinnedMsg && (
               <div className="mt-2 flex items-center gap-2 bg-[#fdf8f0] rounded-lg px-3 py-2">
                 <IconPin size={12} className="text-[#b8924a] shrink-0" />
-                <p className="text-[12px] text-[#555] truncate">{pinnedMsg}</p>
+                <p className="text-[12px] text-[#555] truncate flex-1">{pinnedMsg}</p>
+                <button
+                  onClick={unpinMessage}
+                  className="shrink-0 text-[#9a9080] hover:text-[#111] text-[12px] leading-none"
+                  title="공지 해제"
+                  aria-label="공지 해제"
+                >
+                  ✕
+                </button>
               </div>
+            )}
+            {syncErr && (
+              <p className="mt-2 text-[11px] text-[#c0392b] leading-relaxed">{syncErr}</p>
             )}
           </div>
 
@@ -450,7 +488,7 @@ export default function LiveDetail() {
                       </div>
                     </div>
                     <button
-                      onClick={() => setActiveProduct(isActive ? null : product.id)}
+                      onClick={() => toggleHighlight(product.id)}
                       className={`w-full flex items-center justify-center gap-1.5 py-2 rounded-lg text-[12px] font-semibold transition-colors ${
                         isActive
                           ? 'bg-[#b8924a] text-white'

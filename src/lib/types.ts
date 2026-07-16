@@ -86,6 +86,9 @@ export interface Live {
   stream_uid: string | null
   playback_url: string | null
   product_ids: string[] | null
+  // 방송 중 실시간 동기화 (supabase/lives_realtime_sync.sql)
+  highlight_product_id?: string | null
+  pinned_message?: string | null
   created_at: string
 }
 
