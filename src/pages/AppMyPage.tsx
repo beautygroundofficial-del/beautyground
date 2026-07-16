@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom'
 import AppHeader from '../components/layout/AppHeader'
 import AppFrame from '../components/layout/AppFrame'
 import { supabase } from '../lib/supabase'
-import { DEPT_COLOR } from '../constants'
 import { getMyMembership, TIERS, type MembershipInfo } from '../lib/membership'
 
 // 실제 로그인 사용자 프로필 (포인트/쿠폰은 아직 적립·발급 시스템이 없어 0 — 가짜 숫자 금지)
@@ -214,39 +213,34 @@ export default function AppMyPage() {
       {/* 백화점 멤버십 */}
       <div className="mt-2 bg-white px-5 py-4">
         <h2 className="text-[14px] font-bold text-text mb-3">백화점 멤버십 연동</h2>
-        <div className="grid grid-cols-3 gap-2">
-          {(['lotte', 'shinsegae', 'hyundai'] as const).map((key) => {
-            const style = DEPT_COLOR[key]
-            const names = { lotte: '롯데', shinsegae: '신세계', hyundai: '현대' }
-            const connected = key === 'hyundai'
-            return (
-              <button
-                key={key}
-                className="rounded-md py-3 px-2 flex flex-col items-center gap-1.5 border transition-colors focus:outline-none focus:shadow-focus"
+        <div className="grid grid-cols-2 gap-2">
+          {[
+            { key: 'ak', name: 'AK플라자', logo: '/images/memberships/ak.png', connected: true },
+            { key: 'lotte', name: '롯데백화점', logo: '/images/memberships/lotte.svg', connected: false },
+            { key: 'shinsegae', name: '신세계백화점', logo: '/images/memberships/shinsegae.png', connected: false },
+            { key: 'hyundai', name: '현대백화점', logo: '/images/memberships/hyundai.png', connected: false },
+          ].map(({ key, name, logo, connected }) => (
+            <button
+              key={key}
+              className="rounded-md py-4 px-3 flex flex-col items-center justify-center gap-2.5 border transition-colors focus:outline-none focus:shadow-focus"
+              style={{
+                backgroundColor: connected ? '#faf5ea' : '#f8f7f5',
+                borderColor: connected ? '#b8924a' : '#e5e0d8',
+              }}
+              aria-label={`${name} 멤버십 ${connected ? '연동됨' : '연동하기'}`}
+            >
+              <img src={logo} alt={name} className="h-[16px] max-w-[120px] object-contain" />
+              <span
+                className="text-[10px] px-2 py-0.5 rounded-pill font-medium"
                 style={{
-                  backgroundColor: connected ? style.bg : '#f8f7f5',
-                  borderColor: connected ? style.accent : '#e5e0d8',
+                  backgroundColor: connected ? '#b8924a' : '#e5e0d8',
+                  color: connected ? '#fff' : '#9a9080',
                 }}
-                aria-label={`${names[key]}백화점 멤버십 ${connected ? '연동됨' : '연동하기'}`}
               >
-                <span className="text-[20px]" aria-hidden="true">
-                  {key === 'lotte' ? '🏪' : key === 'shinsegae' ? '🏬' : '🏢'}
-                </span>
-                <span className="text-[11px] font-medium" style={{ color: connected ? style.text : '#9a9080' }}>
-                  {names[key]}
-                </span>
-                <span
-                  className="text-[10px] px-2 py-0.5 rounded-pill font-medium"
-                  style={{
-                    backgroundColor: connected ? style.accent : '#e5e0d8',
-                    color: connected ? '#fff' : '#9a9080',
-                  }}
-                >
-                  {connected ? '연동됨' : '연동'}
-                </span>
-              </button>
-            )
-          })}
+                {connected ? '연동됨' : '연동'}
+              </span>
+            </button>
+          ))}
         </div>
       </div>
 
