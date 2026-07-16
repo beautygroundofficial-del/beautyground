@@ -9,6 +9,7 @@ import type { HeroBanner } from '../../hooks/useHeroBanners'
 import type { ShopProduct } from '../../hooks/useShopProducts'
 import type { CategoryThumbnail } from '../../hooks/useCategoryThumbnails'
 import type { Live } from '../../lib/types'
+import LiveStatusBadge from '../live/LiveStatusBadge'
 
 interface HomeBodyProps {
   marqueeItems: string[]
@@ -77,16 +78,7 @@ export default function HomeBody({
                     💄
                   </div>
                   <span className="absolute top-2 left-2">
-                    {live.status === 'live' ? (
-                      <span className="inline-flex items-center gap-1 rounded-pill bg-[#FF4757] text-white text-[11px] font-bold px-2 py-0.5">
-                        <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" aria-hidden="true" />
-                        LIVE
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center rounded-pill bg-black/50 text-white text-[11px] font-medium px-2 py-0.5">
-                        예정
-                      </span>
-                    )}
+                    <LiveStatusBadge live={live} size="sm" />
                   </span>
                 </div>
                 <p className="text-sm text-text mt-1.5 truncate">{live.title}</p>

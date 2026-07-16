@@ -4,6 +4,7 @@ import { supabase } from '../../lib/supabase'
 import type { Live } from '../../lib/types'
 import AppHeader from '../../components/layout/AppHeader'
 import BottomNav from '../../components/layout/BottomNav'
+import LiveStatusBadge from '../../components/live/LiveStatusBadge'
 
 export default function ShopLiveList() {
   const [lives, setLives] = useState<Live[]>([])
@@ -66,16 +67,7 @@ export default function ShopLiveList() {
                   )}
 
                   <div className="absolute top-3 left-3">
-                    {live.status === 'live' ? (
-                      <span className="inline-flex items-center gap-1.5 rounded-pill bg-[#FF4757] text-white text-[12px] font-bold px-3 py-1">
-                        <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
-                        LIVE
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center rounded-pill bg-black/50 text-white text-[12px] font-medium px-3 py-1">
-                        예정
-                      </span>
-                    )}
+                    <LiveStatusBadge live={live} />
                   </div>
                 </div>
 

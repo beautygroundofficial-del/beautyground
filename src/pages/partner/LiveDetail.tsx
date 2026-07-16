@@ -5,6 +5,13 @@ import { supabase } from '../../lib/supabase'
 import type { Live, Product } from '../../lib/types'
 import { useLiveChat } from '../../hooks/useLiveChat'
 import { streamIframeSrc } from '../../lib/cloudflare'
+import { useStreamStatus } from '../../hooks/useStreamStatus'
+
+interface StreamInfo {
+  uid: string
+  rtmpsUrl: string | null
+  streamKey: string | null
+}
 
 const STATUS: Record<Live['status'], { label: string; bg: string; text: string }> = {
   scheduled: { label: '예정',  bg: 'bg-[#FAEEDA]', text: 'text-[#633806]' },
@@ -27,6 +34,64 @@ export default function LiveDetail() {
 
   // 상품 패널 상태
   const [activeProduct, setActiveProduct] = useState<string | null>(null)
+
+  // 송출 채널 (Cloudflare Live Input) — 키는 서버에서 매번 조회, DB에 저장 안 함
+  const streamState = useStreamStatus(live?.stream_uid, true, 5000)
+  const [streamInfo, setStreamInfo] = useState<StreamInfo | null>(null)
+  const [streamErr, setStreamErr] = useState('')
+  const [provisioning, setProvisioning] = useState(false)
+  const [showKey, setShowKey] = useState(false)
+  const [copied, setCopied] = useState('')
+
+  const callLiveInput = async (method: 'GET' | 'POST'): Promise<StreamInfo | null> => {
+    const { data: { session } } = await supabase.auth.getSession()
+    const token = session?.access_token
+    if (!token || !id) { setStreamErr('로그인이 필요합니다.'); return null }
+    try {
+      const res = await fetch(method === 'GET' ? `/api/live-input?liveId=${id}` : '/api/live-input', {
+        method,
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: method === 'POST' ? JSON.stringify({ liveId: id }) : undefined,
+      })
+      const j = await res.json().catch(() => ({})) as Partial<StreamInfo> & { reason?: string }
+      // uid 없는 응답(비JSON 200 포함)도 실패로 처리 — 빈 값('-')을 조용히 표시하지 않는다
+      if (!res.ok || !j.uid) { setStreamErr(j.reason ?? '송출 정보 조회에 실패했습니다.'); return null }
+      setStreamErr('')
+      return j as StreamInfo
+    } catch {
+      setStreamErr('송출 정보 조회에 실패했습니다.')
+      return null
+    }
+  }
+
+  // 채널이 이미 있으면 송출 주소·키 자동 로드
+  useEffect(() => {
+    if (!live?.stream_uid) return
+    let active = true
+    callLiveInput('GET').then(info => { if (active && info) setStreamInfo(info) })
+    return () => { active = false }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [live?.stream_uid])
+
+  const createChannel = async () => {
+    if (provisioning) return
+    setProvisioning(true)
+    const info = await callLiveInput('POST')
+    if (info) {
+      setStreamInfo(info)
+      setLive(prev => (prev ? { ...prev, stream_uid: info.uid } : prev))
+    }
+    setProvisioning(false)
+  }
+
+  const copy = async (label: string, value: string | null) => {
+    if (!value) return
+    try {
+      await navigator.clipboard.writeText(value)
+      setCopied(label)
+      setTimeout(() => setCopied(''), 1500)
+    } catch { /* 클립보드 미지원 브라우저 — 무시 */ }
+  }
 
   useEffect(() => {
     let active = true
@@ -177,6 +242,86 @@ export default function LiveDetail() {
               {live.stream_url}
             </a>
           )}
+
+          {/* 송출 채널 정보 — 폰(Larix 등)/OBS 에 입력하는 주소·키 */}
+          <div className="bg-[#1a1814] rounded-xl p-4 mb-3">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-[12px] font-bold text-[#aaa]">송출 채널</p>
+              {live.stream_uid && (
+                <span className={`flex items-center gap-1.5 text-[11px] font-bold ${
+                  streamState === 'connected' ? 'text-[#4ade80]' : 'text-[#f0b45c]'
+                }`}>
+                  <span className={`w-1.5 h-1.5 rounded-full ${
+                    streamState === 'connected' ? 'bg-[#4ade80]' : 'bg-[#f0b45c] animate-pulse'
+                  }`} />
+                  {streamState === 'connected' ? '송출 연결됨' : '송출 대기 중'}
+                </span>
+              )}
+            </div>
+
+            {!live.stream_uid ? (
+              <>
+                <p className="text-[11px] text-[#777] leading-relaxed mb-3">
+                  방송 영상을 내보낼 채널이 아직 없습니다. 채널을 만들면 휴대폰
+                  송출 앱(Larix Broadcaster 등)이나 OBS에 넣을 주소와 키가 발급됩니다.
+                </p>
+                <button
+                  onClick={createChannel}
+                  disabled={provisioning}
+                  className="w-full py-2.5 bg-[#2a2620] hover:bg-[#353028] disabled:opacity-60 text-[#d8c9a8] font-semibold rounded-lg text-[12px] transition-colors"
+                >
+                  {provisioning ? '채널 만드는 중...' : '송출 채널 만들기'}
+                </button>
+              </>
+            ) : streamInfo ? (
+              <div className="space-y-2">
+                <div>
+                  <p className="text-[10px] text-[#666] mb-1">서버 주소 (RTMPS URL)</p>
+                  <div className="flex items-center gap-2">
+                    <code className="flex-1 text-[11px] text-[#c9bfa8] bg-black/30 rounded px-2 py-1.5 truncate">
+                      {streamInfo.rtmpsUrl ?? '-'}
+                    </code>
+                    <button
+                      onClick={() => copy('url', streamInfo.rtmpsUrl)}
+                      className="shrink-0 text-[11px] text-[#b8924a] hover:underline"
+                    >
+                      {copied === 'url' ? '복사됨✓' : '복사'}
+                    </button>
+                  </div>
+                </div>
+                <div>
+                  <p className="text-[10px] text-[#666] mb-1">스트림 키 (외부 유출 금지)</p>
+                  <div className="flex items-center gap-2">
+                    <code className="flex-1 text-[11px] text-[#c9bfa8] bg-black/30 rounded px-2 py-1.5 truncate">
+                      {showKey ? (streamInfo.streamKey ?? '-') : '••••••••••••••••'}
+                    </code>
+                    <button
+                      onClick={() => setShowKey(v => !v)}
+                      className="shrink-0 text-[11px] text-[#888] hover:underline"
+                    >
+                      {showKey ? '숨김' : '보기'}
+                    </button>
+                    <button
+                      onClick={() => copy('key', streamInfo.streamKey)}
+                      className="shrink-0 text-[11px] text-[#b8924a] hover:underline"
+                    >
+                      {copied === 'key' ? '복사됨✓' : '복사'}
+                    </button>
+                  </div>
+                </div>
+                <p className="text-[10px] text-[#666] leading-relaxed pt-1">
+                  휴대폰 송출 앱(Larix Broadcaster 등)이나 OBS에 위 주소와 키를 입력하고
+                  송출을 시작하면 화면에 방송이 나옵니다.
+                </p>
+              </div>
+            ) : (
+              <p className="text-[11px] text-[#777]">송출 정보 불러오는 중…</p>
+            )}
+
+            {streamErr && (
+              <p className="text-[11px] text-[#e08484] leading-relaxed mt-2">{streamErr}</p>
+            )}
+          </div>
 
           {/* 방송 컨트롤 버튼 */}
           {live.status === 'scheduled' && (

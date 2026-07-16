@@ -5,6 +5,7 @@ import type { Live, Product } from '../../lib/types'
 import { won } from '../../lib/format'
 import { streamIframeSrc } from '../../lib/cloudflare'
 import { useLiveChat } from '../../hooks/useLiveChat'
+import { useStreamStatus } from '../../hooks/useStreamStatus'
 import AppHeader from '../../components/layout/AppHeader'
 import BottomNav from '../../components/layout/BottomNav'
 
@@ -130,6 +131,11 @@ export default function ShopLiveWatch() {
   }
 
   const streamSrc = streamIframeSrc(live?.stream_uid)
+  // 실제 송출 연결 여부 — status='live'인데 송출이 끊겨 있으면 대기 화면을 보여주고,
+  // 폴링으로 연결이 감지되면 자동으로 플레이어로 전환된다. 조회 실패(unknown)면 차단하지 않는다.
+  const streamState = useStreamStatus(live?.stream_uid, live?.status === 'live')
+  const waitingForStream = live?.status === 'live' && streamState === 'disconnected'
+  const onAir = live?.status === 'live' && Boolean(live.stream_uid) && streamState !== 'disconnected'
 
   const inputClass =
     'w-full bg-white border border-cream-2 rounded-md px-4 py-3 text-[14px] text-text placeholder:text-text-hint focus:outline-none focus:shadow-focus transition'
@@ -164,7 +170,31 @@ export default function ShopLiveWatch() {
           <>
             {/* 비디오 영역 */}
             <div className="rounded-md overflow-hidden mb-4">
-              {streamSrc ? (
+              {waitingForStream ? (
+                <div
+                  className="w-full aspect-video bg-cream-3 flex flex-col items-center justify-center relative"
+                  style={
+                    live.thumbnail_url
+                      ? {
+                          backgroundImage: `url(${live.thumbnail_url})`,
+                          backgroundSize: 'cover',
+                          backgroundPosition: 'center',
+                        }
+                      : undefined
+                  }
+                >
+                  <div className="absolute inset-0 bg-black/40" />
+                  <p className="relative text-white text-[15px] font-bold mb-1">
+                    방송 준비 중입니다
+                  </p>
+                  <p className="relative text-white/80 text-[12px]">
+                    잠시 후 자동으로 시작됩니다
+                  </p>
+                  <span className="absolute top-3 left-3 inline-flex items-center rounded-pill bg-black/50 text-white text-[12px] font-bold px-3 py-1">
+                    준비중
+                  </span>
+                </div>
+              ) : streamSrc ? (
                 <div className="relative w-full" style={{ paddingTop: '56.25%' }}>
                   <iframe
                     src={streamSrc}
@@ -209,7 +239,7 @@ export default function ShopLiveWatch() {
               {live.title}
             </h1>
             <p className="text-[12px] text-text-hint mb-3">
-              {statusLabel[live.status]}
+              {live.status === 'live' && !onAir ? '방송 준비 중' : statusLabel[live.status]}
             </p>
             {live.description && (
               <p className="text-[14px] text-text-sub leading-relaxed mb-5 whitespace-pre-line">
