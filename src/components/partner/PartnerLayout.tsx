@@ -9,6 +9,8 @@ import {
   IconUser,
   IconLogout,
   IconBell,
+  IconMenu2,
+  IconX,
 } from '@tabler/icons-react'
 import { supabase } from '../../lib/supabase'
 import { getMyPartner } from '../../lib/partner'
@@ -32,6 +34,8 @@ const STATUS_BADGE: Record<string, { bg: string; text: string; label: string }> 
 export default function PartnerLayout() {
   const navigate = useNavigate()
   const [partner, setPartner] = useState<Partner | null>(null)
+  // 모바일: 사이드바를 드로어로 — 기본 닫힘, 햄버거로 열기
+  const [menuOpen, setMenuOpen] = useState(false)
 
   useEffect(() => {
     getMyPartner().then((p) => setPartner(p))
@@ -47,8 +51,29 @@ export default function PartnerLayout() {
 
   return (
     <div className="flex min-h-screen bg-[#f7f4ef]">
-      {/* 사이드바 */}
-      <aside className="w-[240px] min-h-screen bg-[#0e0c08] flex flex-col fixed left-0 top-0 z-30">
+      {/* 모바일에서 드로어 열렸을 때 배경 오버레이 */}
+      {menuOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-30 lg:hidden"
+          onClick={() => setMenuOpen(false)}
+          aria-hidden="true"
+        />
+      )}
+
+      {/* 사이드바 — PC: 고정, 모바일: 드로어 */}
+      <aside
+        className={`w-[240px] min-h-screen bg-[#0e0c08] flex flex-col fixed left-0 top-0 z-40 transition-transform duration-200 lg:translate-x-0 ${
+          menuOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}
+      >
+        {/* 모바일 닫기 버튼 */}
+        <button
+          onClick={() => setMenuOpen(false)}
+          className="lg:hidden absolute top-4 right-4 text-[#888] hover:text-white"
+          aria-label="메뉴 닫기"
+        >
+          <IconX size={20} />
+        </button>
         {/* 로고 */}
         <div className="px-6 pt-8 pb-6 border-b border-white/10">
           <Link to="/" className="block">
@@ -74,6 +99,7 @@ export default function PartnerLayout() {
               key={to}
               to={to}
               end={to === '/partner/dashboard'}
+              onClick={() => setMenuOpen(false)}
               className={({ isActive }) =>
                 `flex items-center gap-3 px-5 py-3 text-[13px] transition-colors ${
                   isActive
@@ -101,12 +127,21 @@ export default function PartnerLayout() {
       </aside>
 
       {/* 메인 콘텐츠 */}
-      <div className="flex-1 ml-[240px] flex flex-col min-h-screen">
+      <div className="flex-1 ml-0 lg:ml-[240px] flex flex-col min-h-screen">
         {/* 헤더 */}
-        <header className="h-[60px] bg-white border-b border-[#eee] flex items-center justify-between px-8 sticky top-0 z-20">
-          <p className="text-[15px] font-semibold text-[#111] truncate">
-            {partner?.brand_name ?? '파트너 센터'}
-          </p>
+        <header className="h-[60px] bg-white border-b border-[#eee] flex items-center justify-between px-4 lg:px-8 sticky top-0 z-20">
+          <div className="flex items-center gap-3 min-w-0">
+            <button
+              onClick={() => setMenuOpen(true)}
+              className="lg:hidden text-[#555] hover:text-[#111]"
+              aria-label="메뉴 열기"
+            >
+              <IconMenu2 size={22} />
+            </button>
+            <p className="text-[15px] font-semibold text-[#111] truncate">
+              {partner?.brand_name ?? '파트너 센터'}
+            </p>
+          </div>
           <div className="flex items-center gap-4">
             <button className="relative text-[#9a9080] hover:text-[#111] transition-colors" aria-label="알림">
               <IconBell size={20} />
@@ -117,7 +152,7 @@ export default function PartnerLayout() {
           </div>
         </header>
 
-        <main className="flex-1 p-8">
+        <main className="flex-1 p-4 sm:p-6 lg:p-8">
           <Outlet />
         </main>
       </div>
