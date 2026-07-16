@@ -25,7 +25,10 @@ export default function AppOrder() {
   const location = useLocation()
   const [params, setParams] = useSearchParams()
 
-  const initialItems: OrderItem[] = (location.state as { items?: OrderItem[] } | null)?.items ?? []
+  const navState = location.state as { items?: OrderItem[]; liveId?: string } | null
+  const initialItems: OrderItem[] = navState?.items ?? []
+  // 라이브 방송 중 구매면 어느 방송에서 나온 주문인지 태깅(방송 통계·파트너 정산용)
+  const liveId = navState?.liveId ?? null
   // 서버 재검증(가격/재고/판매상태) 결과가 반영되는 실제 주문 목록
   const [items, setItems] = useState<OrderItem[]>(initialItems)
   const [itemNotices, setItemNotices] = useState<string[]>([]) // 가격변경/수량조정 등 안내
@@ -237,6 +240,7 @@ export default function AppOrder() {
       order_name: orderName,
       product_id: i.product_id,
       partner_id: partnerOf.get(i.product_id) ?? null,
+      live_id: liveId,
       quantity: i.quantity,
       amount: i.price * i.quantity,
       buyer_name: name.trim(),
@@ -253,6 +257,7 @@ export default function AppOrder() {
         order_name: '배송비',
         product_id: null as unknown as string,
         partner_id: null,
+        live_id: liveId,
         quantity: 1,
         amount: deliveryFee,
         buyer_name: name.trim(),

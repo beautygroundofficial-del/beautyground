@@ -23,14 +23,9 @@ export default function ShopLiveWatch() {
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState<boolean>(true)
 
-  // 구매 폼 상태
+  // 구매 폼 상태 — 수량만 고르고 정식 주문/결제 페이지(/app/order)로 넘긴다
   const [buyProduct, setBuyProduct] = useState<Product | null>(null)
-  const [buyerName, setBuyerName] = useState<string>('')
-  const [buyerPhone, setBuyerPhone] = useState<string>('')
   const [quantity, setQuantity] = useState<number>(1)
-  const [submitting, setSubmitting] = useState<boolean>(false)
-  const [submitError, setSubmitError] = useState<string>('')
-  const [success, setSuccess] = useState<boolean>(false)
 
   // 실시간 채팅 (판매자 LiveDetail 과 동일 훅/채널 공유 → 양방향)
   const { messages, loading: chatLoading, isLoggedIn, sendMessage: sendChat } = useLiveChat(id)
@@ -85,49 +80,38 @@ export default function ShopLiveWatch() {
 
   const openBuy = (product: Product) => {
     setBuyProduct(product)
-    setBuyerName('')
-    setBuyerPhone('')
     setQuantity(1)
-    setSubmitError('')
-    setSuccess(false)
   }
 
   const closeBuy = () => {
     setBuyProduct(null)
-    setSubmitError('')
-    setSuccess(false)
   }
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  // 정식 주문/결제 페이지로 이동 — 라이브 출처(live_id)를 태깅해서 넘긴다
+  const goToOrder = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     if (!buyProduct || !live) return
-    if (!buyerName.trim() || !buyerPhone.trim()) {
-      setSubmitError('이름과 연락처를 입력해주세요.')
+    // 비로그인이면 로그인 페이지로 보내고, 로그인 후 이 라이브로 복귀 (상품상세와 동일 관례)
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) {
+      navigate('/app/login', { state: { from: `/app/live/${live.id}` } })
       return
     }
     const qty = quantity < 1 ? 1 : quantity
-    const unit = buyProduct.sale_price ?? buyProduct.price
-    const amount = unit * qty
-
-    setSubmitting(true)
-    setSubmitError('')
-    const { error } = await supabase.from('orders').insert({
-      partner_id: buyProduct.partner_id,
-      product_id: buyProduct.id,
-      live_id: live.id,
-      buyer_name: buyerName.trim(),
-      buyer_phone: buyerPhone.trim(),
-      quantity: qty,
-      amount,
-      status: 'paid',
+    navigate('/app/order', {
+      state: {
+        items: [
+          {
+            product_id: buyProduct.id,
+            name: buyProduct.name,
+            price: buyProduct.sale_price ?? buyProduct.price,
+            quantity: qty,
+            thumbnail: buyProduct.thumbnail_url ?? null,
+          },
+        ],
+        liveId: live.id,
+      },
     })
-    setSubmitting(false)
-
-    if (error) {
-      setSubmitError(`주문 접수에 실패했습니다: ${error.message}`)
-      return
-    }
-    setSuccess(true)
   }
 
   const streamSrc = streamIframeSrc(live?.stream_uid)
@@ -306,11 +290,6 @@ export default function ShopLiveWatch() {
               </div>
             )}
 
-            <p className="text-[11px] text-text-hint mt-5 leading-relaxed">
-              실제 결제(PG) 연동은 추후 제공됩니다. 현재는 주문 접수까지
-              진행됩니다.
-            </p>
-
             {/* 실시간 채팅 */}
             <div
               className="bg-white rounded-md border mt-6"
@@ -381,119 +360,64 @@ export default function ShopLiveWatch() {
             className="w-full sm:max-w-[420px] bg-white rounded-t-md sm:rounded-md p-5"
             onClick={(e) => e.stopPropagation()}
           >
-            {success ? (
-              <div className="text-center py-6">
-                <div className="text-[40px] mb-3">✅</div>
-                <p className="text-[16px] font-bold text-text mb-1">
-                  구매가 접수되었습니다
-                </p>
-                <p className="text-[13px] text-text-hint mb-5">
-                  주문 확인 후 안내드리겠습니다.
-                </p>
+            <form onSubmit={goToOrder}>
+              <div className="flex items-start justify-between mb-4">
+                <h3 className="text-[16px] font-bold text-text">구매하기</h3>
                 <button
                   type="button"
                   onClick={closeBuy}
-                  className="w-full rounded-pill bg-gold text-white hover:bg-gold-light text-[14px] font-medium py-3 transition-colors"
+                  className="text-text-hint text-[18px] leading-none"
+                  aria-label="닫기"
                 >
-                  닫기
+                  ✕
                 </button>
               </div>
-            ) : (
-              <form onSubmit={handleSubmit}>
-                <div className="flex items-start justify-between mb-4">
-                  <h3 className="text-[16px] font-bold text-text">구매하기</h3>
-                  <button
-                    type="button"
-                    onClick={closeBuy}
-                    className="text-text-hint text-[18px] leading-none"
-                    aria-label="닫기"
-                  >
-                    ✕
-                  </button>
-                </div>
 
-                <div className="mb-4">
-                  <p className="text-[14px] font-medium text-text line-clamp-1">
-                    {buyProduct.name}
-                  </p>
-                  <p className="text-[15px] font-bold text-gold mt-1">
-                    {won(buyProduct.sale_price ?? buyProduct.price)}
-                  </p>
-                </div>
-
-                <div className="flex flex-col gap-3">
-                  <div>
-                    <label className="block text-[13px] text-text-sub mb-1.5">
-                      이름
-                    </label>
-                    <input
-                      type="text"
-                      value={buyerName}
-                      onChange={(e) => setBuyerName(e.target.value)}
-                      placeholder="구매자 이름"
-                      required
-                      className={inputClass}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[13px] text-text-sub mb-1.5">
-                      연락처
-                    </label>
-                    <input
-                      type="tel"
-                      value={buyerPhone}
-                      onChange={(e) => setBuyerPhone(e.target.value)}
-                      placeholder="010-0000-0000"
-                      required
-                      className={inputClass}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[13px] text-text-sub mb-1.5">
-                      수량
-                    </label>
-                    <input
-                      type="number"
-                      min={1}
-                      value={quantity}
-                      onChange={(e) =>
-                        setQuantity(Math.max(1, Number(e.target.value) || 1))
-                      }
-                      className={inputClass}
-                    />
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between mt-4 mb-1">
-                  <span className="text-[13px] text-text-sub">결제 금액</span>
-                  <span className="text-[16px] font-bold text-text">
-                    {won(
-                      (buyProduct.sale_price ?? buyProduct.price) *
-                        (quantity < 1 ? 1 : quantity)
-                    )}
-                  </span>
-                </div>
-
-                {submitError && (
-                  <p className="text-[13px] text-[#FF4757] mt-2">
-                    {submitError}
-                  </p>
-                )}
-
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="w-full mt-4 rounded-pill bg-gold text-white hover:bg-gold-light disabled:opacity-50 disabled:cursor-not-allowed text-[14px] font-medium py-3 transition-colors"
-                >
-                  {submitting ? '접수 중…' : '구매 접수'}
-                </button>
-
-                <p className="text-[11px] text-text-hint mt-3 text-center leading-relaxed">
-                  실제 결제(PG) 연동은 추후 제공됩니다. 현재는 주문 접수까지
-                  진행됩니다.
+              <div className="mb-4">
+                <p className="text-[14px] font-medium text-text line-clamp-1">
+                  {buyProduct.name}
                 </p>
-              </form>
-            )}
+                <p className="text-[15px] font-bold text-gold mt-1">
+                  {won(buyProduct.sale_price ?? buyProduct.price)}
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-[13px] text-text-sub mb-1.5">
+                  수량
+                </label>
+                <input
+                  type="number"
+                  min={1}
+                  value={quantity}
+                  onChange={(e) =>
+                    setQuantity(Math.max(1, Number(e.target.value) || 1))
+                  }
+                  className={inputClass}
+                />
+              </div>
+
+              <div className="flex items-center justify-between mt-4 mb-1">
+                <span className="text-[13px] text-text-sub">결제 금액</span>
+                <span className="text-[16px] font-bold text-text">
+                  {won(
+                    (buyProduct.sale_price ?? buyProduct.price) *
+                      (quantity < 1 ? 1 : quantity)
+                  )}
+                </span>
+              </div>
+
+              <button
+                type="submit"
+                className="w-full mt-4 rounded-pill bg-gold text-white hover:bg-gold-light text-[14px] font-medium py-3 transition-colors"
+              >
+                주문하러 가기
+              </button>
+
+              <p className="text-[11px] text-text-hint mt-3 text-center leading-relaxed">
+                배송지 입력과 결제는 주문 페이지에서 진행됩니다.
+              </p>
+            </form>
           </div>
         </div>
       )}
