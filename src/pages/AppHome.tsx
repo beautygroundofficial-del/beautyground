@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import BottomNav from '../components/layout/BottomNav'
 import HomeBody from '../components/home/HomeBody'
@@ -10,7 +11,21 @@ import { useCategoryThumbnails } from '../hooks/useCategoryThumbnails'
 
 export default function AppHome() {
   const navigate = useNavigate()
-  const { products, loading: prodLoading } = useShopProducts({ sort: 'latest', pageSize: 10 })
+  const { products: latestProducts, loading: prodLoading } = useShopProducts({ sort: 'latest', pageSize: 40 })
+  // 홈 신상품: 한 브랜드가 향·옵션별로 여러 상품을 한꺼번에 등록해도 같은 썸네일로 도배되지 않게 브랜드당 최대 2개
+  const products = useMemo(() => {
+    const perBrand = new Map<string, number>()
+    const out: typeof latestProducts = []
+    for (const p of latestProducts) {
+      const key = p.brand_name ?? p.id
+      const n = perBrand.get(key) ?? 0
+      if (n >= 2) continue
+      perBrand.set(key, n + 1)
+      out.push(p)
+      if (out.length >= 10) break
+    }
+    return out
+  }, [latestProducts])
   const { categories } = useShopCategories()
   const { lives } = useShopLives()
   const { banners } = useHeroBanners()
