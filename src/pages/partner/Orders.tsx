@@ -63,8 +63,43 @@ export default function PartnerOrders() {
     return () => { active = false }
   }, [])
 
+  // 취소 확정 = 실환불 — 포트원 취소 + 재고 복구 + 같은 결제의 전체 행 취소 (서버 API가 일괄 처리)
+  const confirmCancel = async (order: Order) => {
+    const paid = ['paid', 'cancel_requested', 'shipped', 'done'].includes(order.status)
+    const msg = paid
+      ? '이 주문을 취소 확정할까요?\n결제된 금액이 즉시 환불되고 재고가 복구됩니다.'
+      : '이 주문을 취소 처리할까요? (미결제 주문이라 환불 없이 상태만 변경됩니다)'
+    if (!window.confirm(msg)) return
+    // 결제ID가 없는 옛 주문(수기 등록 등)은 환불 대상이 아니므로 상태만 변경
+    if (!order.payment_id) {
+      const { error } = await supabase.from('orders').update({ status: 'cancelled' }).eq('id', order.id)
+      if (!error) setOrders(list => list.map(o => o.id === order.id ? { ...o, status: 'cancelled' } : o))
+      return
+    }
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) { window.alert('로그인이 만료되었습니다. 다시 로그인해주세요.'); return }
+    try {
+      const r = await fetch('/api/order-cancel', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({ paymentId: order.payment_id }),
+      })
+      const data = await r.json().catch(() => ({}))
+      if (!r.ok || !data.ok) {
+        window.alert(data.reason || '취소 처리에 실패했습니다. 잠시 후 다시 시도해주세요.')
+        return
+      }
+      // 같은 결제(payment_id)로 묶인 행 전부 취소됨
+      setOrders(list => list.map(o => o.payment_id === order.payment_id ? { ...o, status: 'cancelled' } : o))
+      window.alert(paid ? '취소 완료 — 환불 및 재고 복구까지 처리되었습니다.' : '취소 처리되었습니다.')
+    } catch {
+      window.alert('취소 요청에 실패했습니다. 네트워크를 확인해주세요.')
+    }
+  }
+
   const handleStatusChange = async (order: Order, next: Order['status']) => {
     const prev = order.status
+    if (next === 'cancelled') { await confirmCancel(order); return }
 
     // 배송중 전환 시 운송장 입력(선택) — 고객 주문내역에 그대로 표시됨
     let patch: Record<string, string | null> = { status: next }
