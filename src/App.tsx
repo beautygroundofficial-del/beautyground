@@ -92,6 +92,7 @@ export default function App() {
         </Route>
 
         {/* 앱 UI */}
+        <Route path="/app" element={<Navigate to="/app/home" replace />} />
         <Route path="/app/home" element={<AppHome />} />
         <Route path="/app/live" element={<ShopLiveList />} />
         <Route path="/app/live/:id" element={<ShopLiveWatch />} />
