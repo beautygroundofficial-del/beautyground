@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import * as PortOne from '@portone/browser-sdk/v2'
 import BackHeader from '../components/layout/BackHeader'
@@ -42,6 +42,7 @@ export default function AppOrder() {
   const [saveNewAddress, setSaveNewAddress] = useState(true)
   const [deliveryMemo, setDeliveryMemo] = useState('')
   const [agreed, setAgreed] = useState(false)
+  const agreeRef = useRef<HTMLDivElement | null>(null)
 
   // 배송지 입력칸 수정 시: 저장된 배송지를 그대로 쓰는 게 아니게 되므로 선택상태 해제(다시 "저장" 체크박스 노출)
   const editField = (setter: (v: string) => void) => (v: string) => {
@@ -452,7 +453,7 @@ export default function AppOrder() {
       </div>
 
       {/* 동의 */}
-      <div className="bg-white mt-2 px-5 py-5">
+      <div ref={agreeRef} className="bg-white mt-2 px-5 py-5">
         <label className="flex items-start gap-3 cursor-pointer">
           <input
             type="checkbox"
@@ -474,9 +475,17 @@ export default function AppOrder() {
       {/* 결제 버튼 */}
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-cream-2 px-4 py-4 z-40">
         <button
-          onClick={handlePay}
-          disabled={!agreed || busy}
-          className="w-full bg-[#232f52] text-white font-bold text-[15px] py-4 rounded-pill hover:bg-[#2e3d6a] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          onClick={() => {
+            // 동의 전에도 버튼은 눌리게 — 무반응 대신 동의 섹션으로 안내 (모바일에서 체크박스를 못 찾는 문제)
+            if (!agreed) {
+              setMessage('아래 주문 내용 동의에 체크해 주세요.')
+              agreeRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+              return
+            }
+            handlePay()
+          }}
+          disabled={busy}
+          className={`w-full font-bold text-[15px] py-4 rounded-pill transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${agreed ? 'bg-[#232f52] text-white hover:bg-[#2e3d6a]' : 'bg-[#8b93ab] text-white'}`}
           aria-disabled={!agreed || busy}
         >
           {status === 'paying' ? '결제 진행 중…'
