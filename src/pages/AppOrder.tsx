@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import * as PortOne from '@portone/browser-sdk/v2'
 import BackHeader from '../components/layout/BackHeader'
@@ -41,8 +41,6 @@ export default function AppOrder() {
   const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null)
   const [saveNewAddress, setSaveNewAddress] = useState(true)
   const [deliveryMemo, setDeliveryMemo] = useState('')
-  const [agreed, setAgreed] = useState(false)
-  const agreeRef = useRef<HTMLDivElement | null>(null)
 
   // 배송지 입력칸 수정 시: 저장된 배송지를 그대로 쓰는 게 아니게 되므로 선택상태 해제(다시 "저장" 체크박스 노출)
   const editField = (setter: (v: string) => void) => (v: string) => {
@@ -203,7 +201,6 @@ export default function AppOrder() {
       setMessage('연락처를 휴대폰 번호 형식(010-0000-0000)으로 입력해 주세요.')
       return
     }
-    if (!agreed) { setMessage('이용약관 및 개인정보처리방침에 동의해 주세요.'); return }
     if (!storeId || !channelKey) {
       setMessage('아직 결제 수단을 준비하고 있어요. 정식 오픈 후 결제하실 수 있습니다. 조금만 기다려 주세요!')
       return
@@ -452,20 +449,13 @@ export default function AppOrder() {
         </div>
       </div>
 
-      {/* 동의 */}
-      <div ref={agreeRef} className="bg-white mt-2 px-5 py-5">
-        <label className="flex items-start gap-3 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={agreed}
-            onChange={(e) => setAgreed(e.target.checked)}
-            className="w-4 h-4 accent-gold mt-0.5"
-            aria-required="true"
-          />
-          <span className="text-[13px] text-text-sub leading-relaxed">
-            주문 내용을 확인하였으며, 이용약관 및 개인정보처리방침에 동의합니다.
-          </span>
-        </label>
+      {/* 안내 — 체크박스 대신 결제 시 동의 간주(쿠팡·네이버식). 주문 확인·정정 절차는 이 주문서 화면 자체로 충족 */}
+      <div className="bg-white mt-2 px-5 py-5">
+        <p className="text-[12px] text-text-sub leading-relaxed">
+          결제하기 버튼을 누르면 주문 내용을 확인한 것으로 보며,{' '}
+          <a href="/terms" target="_blank" rel="noreferrer" className="underline">이용약관</a> 및{' '}
+          <a href="/privacy" target="_blank" rel="noreferrer" className="underline">개인정보처리방침</a>에 동의한 것으로 간주됩니다.
+        </p>
         {message && <p className="text-[13px] text-[#FF4757] mt-3" role="alert">{message}</p>}
         {paymentReady && (
           <p className="text-[11px] text-text-hint mt-3">테스트 모드 결제입니다. 실제 청구되지 않습니다.</p>
@@ -475,18 +465,10 @@ export default function AppOrder() {
       {/* 결제 버튼 */}
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-cream-2 px-4 py-4 z-40">
         <button
-          onClick={() => {
-            // 동의 전에도 버튼은 눌리게 — 무반응 대신 동의 섹션으로 안내 (모바일에서 체크박스를 못 찾는 문제)
-            if (!agreed) {
-              setMessage('아래 주문 내용 동의에 체크해 주세요.')
-              agreeRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-              return
-            }
-            handlePay()
-          }}
+          onClick={handlePay}
           disabled={busy}
-          className={`w-full font-bold text-[15px] py-4 rounded-pill transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${agreed ? 'bg-[#232f52] text-white hover:bg-[#2e3d6a]' : 'bg-[#8b93ab] text-white'}`}
-          aria-disabled={!agreed || busy}
+          className="w-full bg-[#232f52] text-white font-bold text-[15px] py-4 rounded-pill hover:bg-[#2e3d6a] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          aria-disabled={busy}
         >
           {status === 'paying' ? '결제 진행 중…'
             : status === 'verifying' ? '결제 확인 중…'
