@@ -31,7 +31,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       body = {}
     }
   }
-  const paymentId = (body as { paymentId?: string } | null)?.paymentId
+  // 두 경로 지원: ①결제 직후 브라우저가 호출({paymentId}) ②포트원 V2 웹훅({type, data:{paymentId}})
+  // 웹훅은 사용자가 결제창 닫고 이탈해도 서버가 직접 통보받아 주문확정·재고차감이 누락되지 않게 하는 안전망.
+  // 위변조 걱정 없음 — 어느 경로든 아래에서 포트원 API로 실제 결제 상태·금액을 재조회해 검증함.
+  const webhookType = (body as { type?: string } | null)?.type
+  const paymentId =
+    (body as { paymentId?: string } | null)?.paymentId ??
+    (body as { data?: { paymentId?: string } } | null)?.data?.paymentId
+  if (webhookType && webhookType !== 'Transaction.Paid') {
+    // 결제완료 외 웹훅(Ready/Failed/Cancelled 등)은 주문 상태를 건드리지 않고 응답만
+    res.status(200).json({ ok: true, skipped: webhookType })
+    return
+  }
   if (!paymentId) {
     res.status(400).json({ ok: false, reason: 'paymentId 가 필요합니다.' })
     return
