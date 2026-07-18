@@ -53,7 +53,11 @@ export default function AppOrder() {
     setAddress(a.address)
     setSelectedAddressId(a.id)
   }
-  const [status, setStatus] = useState<Status>('idle')
+  // 모바일 간편결제는 결제 후 이 페이지로 새로 리다이렉트됨 — 복귀 첫 화면부터 '결제 확인 중'으로 시작해야
+  // 확인이 끝나기 전에 "주문할 상품이 없습니다"(빈 주문서)가 먼저 보이는 혼란이 없다
+  const [status, setStatus] = useState<Status>(() =>
+    new URLSearchParams(window.location.search).get('paymentId') ? 'verifying' : 'idle'
+  )
   const [message, setMessage] = useState('')
   const [doneOrder, setDoneOrder] = useState<{ orderName: string; amount: number } | null>(null)
 
@@ -326,6 +330,33 @@ export default function AppOrder() {
     return <div className="min-h-screen bg-white flex items-center justify-center text-text-hint text-[14px]">불러오는 중...</div>
   }
 
+  // 결제 후 리다이렉트 복귀 중에는 주문상품 목록이 비어 있으므로(빈 주문서 오인 방지) 확인/실패 화면을 먼저 처리
+  if (status === 'verifying') {
+    return (
+      <div className="min-h-screen bg-cream-4 flex flex-col items-center justify-center px-8 text-center">
+        <div className="w-20 h-20 rounded-full bg-gold/15 flex items-center justify-center text-4xl mb-5 animate-pulse" aria-hidden="true">💳</div>
+        <h1 className="font-serif text-[20px] font-bold text-text mb-2">결제를 확인하고 있어요</h1>
+        <p className="text-text-sub text-[14px]">잠시만 기다려주세요…</p>
+      </div>
+    )
+  }
+  if (status === 'error' && items.length === 0) {
+    return (
+      <div className="min-h-screen bg-cream-4 flex flex-col items-center justify-center px-8 text-center">
+        <div className="text-4xl mb-5" aria-hidden="true">😢</div>
+        <h1 className="font-serif text-[20px] font-bold text-text mb-2">결제가 완료되지 않았습니다</h1>
+        <p className="text-text-sub text-[13.5px] leading-relaxed mb-8">{message || '결제가 취소되었거나 실패했습니다. 다시 시도해주세요.'}</p>
+        <div className="flex flex-col gap-3 w-full max-w-xs">
+          <button onClick={() => navigate('/app/cart')} className="w-full bg-gold text-white font-semibold text-[15px] py-4 rounded-pill hover:bg-gold-light transition-colors">
+            장바구니로 이동
+          </button>
+          <button onClick={() => navigate('/app/home')} className="w-full bg-cream-3 text-text-sub font-semibold text-[15px] py-4 rounded-pill hover:bg-cream-2 transition-colors">
+            홈으로
+          </button>
+        </div>
+      </div>
+    )
+  }
   if (items.length === 0) {
     return (
       <div className="min-h-screen bg-cream-4 flex flex-col items-center justify-center px-8 text-center">
@@ -471,7 +502,6 @@ export default function AppOrder() {
           aria-disabled={busy}
         >
           {status === 'paying' ? '결제 진행 중…'
-            : status === 'verifying' ? '결제 확인 중…'
             : paymentReady ? `${total.toLocaleString('ko-KR')}원 결제하기`
             : `${total.toLocaleString('ko-KR')}원 · 결제 오픈 준비 중`}
         </button>
