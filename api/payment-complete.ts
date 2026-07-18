@@ -57,7 +57,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     .eq('payment_id', paymentId)
 
   if (selErr || !orderRows || orderRows.length === 0) {
-    res.status(404).json({ ok: false, reason: '주문을 찾을 수 없습니다.' })
+    // 웹훅 경로는 200으로 응답 — 포트원 콘솔 '호출 테스트'(가짜 결제ID)와 재전송 폭주 방지.
+    // 브라우저 검증 경로는 기존대로 404 유지(클라이언트가 실패를 알아야 함).
+    res.status(webhookType ? 200 : 404).json({ ok: false, reason: '주문을 찾을 수 없습니다.' })
     return
   }
   if (orderRows[0].status === 'paid') {
