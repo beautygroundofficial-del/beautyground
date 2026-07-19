@@ -1,11 +1,12 @@
 import { useEffect, useState, useRef } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { IconArrowLeft, IconVideo, IconSend, IconPin, IconShoppingBag } from '@tabler/icons-react'
+import { IconArrowLeft, IconVideo, IconSend, IconPin, IconShoppingBag, IconEye } from '@tabler/icons-react'
 import { supabase } from '../../lib/supabase'
 import type { Live, Product } from '../../lib/types'
 import { useLiveChat } from '../../hooks/useLiveChat'
 import { streamIframeSrc } from '../../lib/cloudflare'
 import { useStreamStatus } from '../../hooks/useStreamStatus'
+import { useLiveViewerCount } from '../../hooks/useLiveViewerCount'
 
 interface StreamInfo {
   uid: string
@@ -55,6 +56,7 @@ export default function LiveDetail() {
 
   // 송출 채널 (Cloudflare Live Input) — 키는 서버에서 매번 조회, DB에 저장 안 함
   const streamState = useStreamStatus(live?.stream_uid, true, 5000)
+  const viewerCount = useLiveViewerCount(live?.stream_uid, live?.status === 'live')
   const [streamInfo, setStreamInfo] = useState<StreamInfo | null>(null)
   const [streamErr, setStreamErr] = useState('')
   const [provisioning, setProvisioning] = useState(false)
@@ -244,6 +246,12 @@ export default function LiveDetail() {
                   <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
                   LIVE
                 </span>
+              </div>
+            )}
+            {live.status === 'live' && (
+              <div className="absolute top-3 right-3 flex items-center gap-1 bg-black/50 text-white text-[11px] font-semibold px-2.5 py-1 rounded">
+                <IconEye size={13} />
+                {viewerCount !== null ? viewerCount.toLocaleString() : '—'}
               </div>
             )}
             {live.status === 'scheduled' && (
