@@ -1,10 +1,13 @@
 import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom'
-import { IconHome, IconClipboardCheck, IconLogout } from '@tabler/icons-react'
+import { IconHome, IconClipboardCheck, IconLogout, IconUsers, IconAward, IconCashBanknote } from '@tabler/icons-react'
 import { supabase } from '../../lib/supabase'
 
 const NAV_ITEMS = [
   { label: '홈 화면 관리', to: '/admin/home', icon: IconHome },
   { label: '파트너 신청 관리', to: '/admin/applications', icon: IconClipboardCheck },
+  { label: '진행자 관리', to: '/admin/hosts', icon: IconUsers },
+  { label: '수수료 등급 관리', to: '/admin/commission-tiers', icon: IconAward },
+  { label: '진행자 정산 관리', to: '/admin/host-settlements', icon: IconCashBanknote },
 ]
 
 export default function AdminLayout() {

@@ -45,6 +45,20 @@ import PartnerProfile from './pages/partner/Profile'
 import AdminLayout from './components/admin/AdminLayout'
 import AdminApplications from './pages/admin/Applications'
 import AdminHome from './pages/admin/Home'
+import AdminHosts from './pages/admin/Hosts'
+import AdminCommissionTiers from './pages/admin/CommissionTiers'
+import AdminHostSettlements from './pages/admin/HostSettlements'
+
+// 진행자(라이브 호스트) 인증/전용 (RequireHostAuth + HostLayout)
+import HostRegister from './pages/host/Register'
+import HostLogin from './pages/host/Login'
+import RequireHostAuth from './components/host/RequireHostAuth'
+import HostLayout from './components/host/HostLayout'
+import HostDashboard from './pages/host/Dashboard'
+import HostLives from './pages/host/Lives'
+import HostLiveSales from './pages/host/LiveSales'
+import HostSettlementPage from './pages/host/Settlement'
+import HostProfile from './pages/host/Profile'
 
 // 구매자 라이브 (Supabase 연동)
 import ShopLiveList from './pages/app/ShopLiveList'
@@ -88,6 +102,23 @@ export default function App() {
           <Route element={<AdminLayout />}>
             <Route path="/admin/applications" element={<AdminApplications />} />
             <Route path="/admin/home" element={<AdminHome />} />
+            <Route path="/admin/hosts" element={<AdminHosts />} />
+            <Route path="/admin/commission-tiers" element={<AdminCommissionTiers />} />
+            <Route path="/admin/host-settlements" element={<AdminHostSettlements />} />
+          </Route>
+        </Route>
+
+        {/* 진행자(라이브 호스트): 회원가입 → 승인 → 로그인 */}
+        <Route path="/host/register" element={<HostRegister />} />
+        <Route path="/host/login" element={<HostLogin />} />
+
+        <Route element={<RequireHostAuth />}>
+          <Route element={<HostLayout />}>
+            <Route path="/host/dashboard" element={<HostDashboard />} />
+            <Route path="/host/lives" element={<HostLives />} />
+            <Route path="/host/live/:id" element={<HostLiveSales />} />
+            <Route path="/host/settlement" element={<HostSettlementPage />} />
+            <Route path="/host/profile" element={<HostProfile />} />
           </Route>
         </Route>
 

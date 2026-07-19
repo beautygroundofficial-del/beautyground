@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { IconCalendar, IconPackage, IconCheck, IconTag } from '@tabler/icons-react'
+import { IconCalendar, IconPackage, IconCheck, IconTag, IconUserStar } from '@tabler/icons-react'
 import { supabase } from '../../lib/supabase'
 import { getMyPartner } from '../../lib/partner'
-import type { Live, LiveCoupon } from '../../lib/types'
+import type { Live, LiveCoupon, Host } from '../../lib/types'
 
 const inputCls =
   'w-full border border-[#e5e0d8] rounded-lg px-3.5 py-2.5 text-[13px] text-[#111] placeholder:text-[#bbb] focus:outline-none focus:border-[#b8924a] transition-colors bg-white'
@@ -35,6 +35,10 @@ export default function LiveForm() {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
 
+  // 진행자 지정 (선택) — 뷰티그라운드가 섭외한 별도 인력이 방송할 때만 선택(브랜드 자체 진행이면 미지정)
+  const [hostId, setHostId] = useState('')
+  const [hostOptions, setHostOptions] = useState<{ id: string; name: string }[]>([])
+
   // 라이브 전용 쿠폰 (선택) — live_coupons 1행, live_id 당 1개
   const [couponEnabled, setCouponEnabled] = useState(false)
   const [discountType, setDiscountType] = useState<'amount' | 'percent'>('amount')
@@ -57,6 +61,14 @@ export default function LiveForm() {
       if (!active) return
       setProducts((data as ProductOption[]) ?? [])
 
+      const { data: hostRows } = await supabase
+        .from('hosts')
+        .select('id,name')
+        .eq('status', 'active')
+        .order('name')
+      if (!active) return
+      setHostOptions((hostRows as Host[] | null)?.map(h => ({ id: h.id, name: h.name })) ?? [])
+
       // 수정 모드: 기존 라이브 로드
       if (isEdit && id) {
         const { data: liveRow } = await supabase.from('lives').select('*').eq('id', id).single()
@@ -67,6 +79,7 @@ export default function LiveForm() {
           setDescription(lr.description ?? '')
           setThumbnailUrl(lr.thumbnail_url ?? '')
           setSelectedIds(lr.product_ids ?? [])
+          setHostId(lr.host_id ?? '')
           if (lr.scheduled_at) {
             const d = new Date(lr.scheduled_at)
             const pad = (n: number) => String(n).padStart(2, '0')
@@ -115,6 +128,7 @@ export default function LiveForm() {
       scheduled_at: scheduledAt,
       thumbnail_url: thumbnailUrl || null,
       product_ids: selectedIds,
+      host_id: hostId || null,
     }
 
     let liveId = id
@@ -297,6 +311,21 @@ export default function LiveForm() {
         {selectedIds.length > 0 && (
           <p className="text-[12px] text-[#b8924a] mt-3">{selectedIds.length}개 상품 선택됨</p>
         )}
+      </div>
+
+      {/* 진행자 지정 */}
+      <div className="bg-white rounded-[14px] border border-[#e5e0d8] p-6">
+        <h3 className="flex items-center gap-1.5 text-[14px] font-bold text-[#111] mb-4">
+          <IconUserStar size={14} />진행자 지정 (선택)
+        </h3>
+        <select value={hostId} onChange={e => setHostId(e.target.value)} className={inputCls}>
+          <option value="">브랜드 자체 진행 (진행자 수수료 없음)</option>
+          {hostOptions.map(h => <option key={h.id} value={h.id}>{h.name}</option>)}
+        </select>
+        <p className="mt-2 text-[11px] text-[#9a9080]">
+          뷰티그라운드 소속 진행자가 방송할 경우에만 선택하세요. 선택 시 이 방송의 판매 실적이
+          해당 진행자의 수수료 정산 대상으로 집계됩니다.
+        </p>
       </div>
 
       {/* 라이브 전용 쿠폰 */}

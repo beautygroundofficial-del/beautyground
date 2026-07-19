@@ -91,6 +91,8 @@ export interface Live {
   pinned_message?: string | null
   // 방송 종료 후 통계 (supabase/lives_peak_viewers.sql)
   peak_viewers?: number
+  // 진행자 지정 (supabase/lives_host_id.sql) — null이면 브랜드 자체 진행(수수료 정산 대상 아님)
+  host_id?: string | null
   created_at: string
 }
 
@@ -136,6 +138,64 @@ export interface Settlement {
   payout_amount: number
   status: 'pending' | 'paid'
   created_at: string
+}
+
+// 진행자(라이브 호스트) — 브랜드 담당자 자체 방송이 아니라 뷰티그라운드가 섭외한
+// 별도 인력. 여러 브랜드를 옮겨다니며 방송하고 매출 등급에 따라 수수료를 받는다.
+// (supabase/hosts.sql)
+export interface Host {
+  id: string
+  user_id: string | null
+  name: string
+  phone: string | null
+  email: string | null
+  status: 'pending' | 'active' | 'suspended'
+  created_at: string
+}
+
+// 진행자 등급별 수수료율표 — 관리자가 자유롭게 추가/수정 (supabase/commission_tiers.sql)
+export interface CommissionTier {
+  id: string
+  name: string
+  min_sales: number
+  commission_rate: number
+  created_at: string
+}
+
+// 진행자 월별 정산 — 생성 시점의 등급/수수료율을 스냅샷으로 저장 (supabase/host_settlements.sql)
+export interface HostSettlement {
+  id: string
+  host_id: string
+  period: string
+  total_sales: number
+  tier_id: string | null
+  tier_name: string | null
+  commission_rate: number
+  commission_amount: number
+  status: 'pending' | 'paid'
+  paid_at: string | null
+  created_at: string
+}
+
+// admin_list_host_settlements() RPC 반환 행 — 호스트 이름 조인 포함
+export interface HostSettlementRow extends HostSettlement {
+  host_name: string
+}
+
+// host_sales_view 조회 결과 행 — 구매자 PII(이름/연락처)는 의도적으로 포함하지 않음
+export interface HostSaleRow {
+  id: string
+  live_id: string
+  product_id: string | null
+  amount: number
+  quantity: number
+  status: Order['status']
+  created_at: string
+  host_id: string
+  live_title: string
+  product_name: string | null
+  partner_id: string | null
+  brand_name: string | null
 }
 
 export const PRODUCT_CATEGORIES = [
