@@ -23,6 +23,10 @@ const youtubeEmbedSrc = (url: string | null | undefined): string | null => {
   return m ? `https://www.youtube.com/embed/${m[1]}?rel=0` : null
 }
 
+// 쇼츠(세로형 촬영) 링크 여부 — 키위글로우·바이리뮤 등 세로 영상은 16:9 박스에 넣으면 위아래로 크게 여백이 생겨 모바일 세로(9:16) 박스로 표시
+const isVerticalVideo = (url: string | null | undefined): boolean =>
+  Boolean(url && /youtube\.com\/shorts\//.test(url))
+
 export default function ShopLiveWatch() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
@@ -239,7 +243,14 @@ export default function ShopLiveWatch() {
                   />
                 </div>
               ) : youtubeEmbedSrc(live.stream_url) ? (
-                <div className="relative w-full" style={{ paddingTop: '56.25%' }}>
+                <div
+                  className="relative w-full mx-auto"
+                  style={
+                    isVerticalVideo(live.stream_url)
+                      ? { paddingTop: '177.78%', maxWidth: 360 }
+                      : { paddingTop: '56.25%' }
+                  }
+                >
                   <iframe
                     src={youtubeEmbedSrc(live.stream_url) as string}
                     className="absolute inset-0 w-full h-full"
