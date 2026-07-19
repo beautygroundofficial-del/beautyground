@@ -89,6 +89,8 @@ export interface Live {
   // 방송 중 실시간 동기화 (supabase/lives_realtime_sync.sql)
   highlight_product_id?: string | null
   pinned_message?: string | null
+  // 방송 종료 후 통계 (supabase/lives_peak_viewers.sql)
+  peak_viewers?: number
   created_at: string
 }
 

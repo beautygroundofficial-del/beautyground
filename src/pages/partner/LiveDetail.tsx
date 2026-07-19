@@ -88,6 +88,35 @@ export default function LiveDetail() {
   // 송출 채널 (Cloudflare Live Input) — 키는 서버에서 매번 조회, DB에 저장 안 함
   const streamState = useStreamStatus(live?.stream_uid, true, 5000)
   const viewerCount = useLiveViewerCount(live?.stream_uid, live?.status === 'live')
+
+  // 방송 종료 후 통계 — 최고 동시 시청자 수는 방송 중 폴링하며 신기록 때만 저장
+  useEffect(() => {
+    if (!id || live?.status !== 'live' || viewerCount === null) return
+    if (viewerCount <= (live.peak_viewers ?? 0)) return
+    const nextPeak = viewerCount
+    setLive(prev => (prev ? { ...prev, peak_viewers: nextPeak } : prev))
+    supabase.from('lives').update({ peak_viewers: nextPeak }).eq('id', id).then(({ error }) => {
+      if (error) console.error('[live] peak_viewers 저장 실패', error.message)
+    })
+  }, [id, live?.status, live?.peak_viewers, viewerCount])
+
+  // 총 판매액 — 방송 종료 후 이 라이브에 연결된 유효 주문 합산
+  const [salesTotal, setSalesTotal] = useState<number | null>(null)
+  useEffect(() => {
+    if (!id || live?.status !== 'ended') return
+    let active = true
+    supabase
+      .from('orders')
+      .select('amount')
+      .eq('live_id', id)
+      .in('status', ['paid', 'shipped', 'done'])
+      .then(({ data }) => {
+        if (!active) return
+        const sum = ((data as { amount: number }[] | null) ?? []).reduce((acc, o) => acc + o.amount, 0)
+        setSalesTotal(sum)
+      })
+    return () => { active = false }
+  }, [id, live?.status])
   const [streamInfo, setStreamInfo] = useState<StreamInfo | null>(null)
   const [streamErr, setStreamErr] = useState('')
   const [provisioning, setProvisioning] = useState(false)
@@ -618,15 +647,16 @@ export default function LiveDetail() {
               <h4 className="text-[12px] font-bold text-[#333] mb-3">방송 결과</h4>
               <div className="grid grid-cols-2 gap-3">
                 <div className="bg-white rounded-xl p-3 text-center">
-                  <p className="text-[11px] text-[#9a9080]">총 시청자</p>
-                  <p className="text-[16px] font-bold text-[#111]">—</p>
+                  <p className="text-[11px] text-[#9a9080]">최고 동시 시청자</p>
+                  <p className="text-[16px] font-bold text-[#111]">{(live.peak_viewers ?? 0).toLocaleString()}명</p>
                 </div>
                 <div className="bg-white rounded-xl p-3 text-center">
                   <p className="text-[11px] text-[#9a9080]">총 판매액</p>
-                  <p className="text-[14px] font-bold text-[#b8924a]">—</p>
+                  <p className="text-[14px] font-bold text-[#b8924a]">
+                    {salesTotal !== null ? `${salesTotal.toLocaleString()}원` : '집계 중...'}
+                  </p>
                 </div>
               </div>
-              <p className="text-[11px] text-[#9a9080] text-center mt-2">방송 통계는 추후 지원 예정입니다.</p>
             </div>
           )}
         </div>
