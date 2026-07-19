@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { IconCalendar, IconPackage, IconCheck, IconTag } from '@tabler/icons-react'
 import { supabase } from '../../lib/supabase'
 import { getMyPartner } from '../../lib/partner'
-import type { Live } from '../../lib/types'
+import type { Live, LiveCoupon } from '../../lib/types'
 
 const inputCls =
   'w-full border border-[#e5e0d8] rounded-lg px-3.5 py-2.5 text-[13px] text-[#111] placeholder:text-[#bbb] focus:outline-none focus:border-[#b8924a] transition-colors bg-white'
@@ -34,6 +34,13 @@ export default function LiveForm() {
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
+
+  // 라이브 전용 쿠폰 (선택) — live_coupons 1행, live_id 당 1개
+  const [couponEnabled, setCouponEnabled] = useState(false)
+  const [discountType, setDiscountType] = useState<'amount' | 'percent'>('amount')
+  const [discountValue, setDiscountValue] = useState('')
+  const [minPurchase, setMinPurchase] = useState('')
+  const [qtyLimit, setQtyLimit] = useState('')
 
   useEffect(() => {
     let active = true
@@ -67,6 +74,15 @@ export default function LiveForm() {
             setSchedTime(`${pad(d.getHours())}:${pad(d.getMinutes())}`)
           }
         }
+        const { data: coupon } = await supabase.from('live_coupons').select('*').eq('live_id', id).maybeSingle()
+        const cp = coupon as LiveCoupon | null
+        if (cp?.active) {
+          setCouponEnabled(true)
+          setDiscountType(cp.discount_type)
+          setDiscountValue(String(cp.discount_value))
+          setMinPurchase(String(cp.min_purchase))
+          setQtyLimit(cp.qty_limit != null ? String(cp.qty_limit) : '')
+        }
       }
 
       setLoading(false)
@@ -86,6 +102,10 @@ export default function LiveForm() {
 
     if (!title.trim()) { setError('라이브 제목을 입력해 주세요.'); return }
     if (!schedDate || !schedTime) { setError('방송 일시를 입력해 주세요.'); return }
+    if (couponEnabled && (!discountValue.trim() || Number(discountValue) <= 0)) {
+      setError('쿠폰 할인 금액(또는 할인율)을 입력해 주세요.')
+      return
+    }
 
     setSubmitting(true)
     const scheduledAt = new Date(`${schedDate}T${schedTime}:00`).toISOString()
@@ -97,11 +117,40 @@ export default function LiveForm() {
       product_ids: selectedIds,
     }
 
-    const { error: err } = isEdit && id
-      ? await supabase.from('lives').update(fields).eq('id', id)
-      : await supabase.from('lives').insert({ ...fields, partner_id: partnerId, status: 'scheduled' })
+    let liveId = id
+    if (isEdit && id) {
+      const { error: err } = await supabase.from('lives').update(fields).eq('id', id)
+      if (err) { setError('라이브 저장에 실패했습니다. 다시 시도해 주세요.'); setSubmitting(false); return }
+    } else {
+      const { data: inserted, error: err } = await supabase
+        .from('lives')
+        .insert({ ...fields, partner_id: partnerId, status: 'scheduled' })
+        .select('id')
+        .single()
+      if (err || !inserted) { setError('라이브 저장에 실패했습니다. 다시 시도해 주세요.'); setSubmitting(false); return }
+      liveId = inserted.id
+    }
 
-    if (err) { setError('라이브 저장에 실패했습니다. 다시 시도해 주세요.'); setSubmitting(false); return }
+    // 쿠폰 저장 — 실패해도 라이브 저장 자체는 이미 끝난 상태라 조용히 넘어가지 않고 안내만
+    if (liveId) {
+      if (couponEnabled) {
+        const { error: cErr } = await supabase.from('live_coupons').upsert(
+          {
+            live_id: liveId,
+            discount_type: discountType,
+            discount_value: Number(discountValue),
+            min_purchase: Number(minPurchase) || 0,
+            qty_limit: Number(qtyLimit) > 0 ? Number(qtyLimit) : null,
+            active: true,
+          },
+          { onConflict: 'live_id' }
+        )
+        if (cErr) { setError(`라이브는 저장됐지만 쿠폰 저장에 실패했습니다: ${cErr.message}`); setSubmitting(false); return }
+      } else {
+        await supabase.from('live_coupons').update({ active: false }).eq('live_id', liveId)
+      }
+    }
+
     navigate('/partner/live')
   }
 
@@ -250,43 +299,83 @@ export default function LiveForm() {
         )}
       </div>
 
-      {/* 쿠폰 설정 (UI only - 추후 지원 예정) */}
+      {/* 라이브 전용 쿠폰 */}
       <div className="bg-white rounded-[14px] border border-[#e5e0d8] p-6 space-y-4">
-        <div className="flex items-center justify-between">
-          <h3 className="flex items-center gap-1.5 text-[14px] font-bold text-[#111]">
+        <label className="flex items-center justify-between cursor-pointer">
+          <span className="flex items-center gap-1.5 text-[14px] font-bold text-[#111]">
             <IconTag size={14} />라이브 전용 쿠폰 (선택)
-          </h3>
-          <span className="text-[11px] text-[#9a9080] bg-[#f7f4ef] px-2 py-0.5 rounded">준비 중</span>
-        </div>
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="block text-[12px] font-semibold text-[#555] mb-1.5">할인 금액 또는 할인율</label>
-            <input
-              disabled
-              placeholder="예: 5000 또는 10%"
-              className={`${inputCls} opacity-50 cursor-not-allowed`}
-            />
-          </div>
-          <div>
-            <label className="block text-[12px] font-semibold text-[#555] mb-1.5">최소 구매 금액 (원)</label>
-            <input
-              disabled
-              type="number"
-              placeholder="0"
-              className={`${inputCls} opacity-50 cursor-not-allowed`}
-            />
-          </div>
-        </div>
-        <div>
-          <label className="block text-[12px] font-semibold text-[#555] mb-1.5">수량 제한</label>
+          </span>
           <input
-            disabled
-            type="number"
-            placeholder="0 (무제한)"
-            className={`${inputCls} opacity-50 cursor-not-allowed`}
+            type="checkbox"
+            checked={couponEnabled}
+            onChange={e => setCouponEnabled(e.target.checked)}
+            className="w-4 h-4 accent-[#b8924a]"
           />
-        </div>
-        <p className="text-[11px] text-[#9a9080]">쿠폰 기능은 추후 지원 예정입니다.</p>
+        </label>
+
+        {couponEnabled && (
+          <>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setDiscountType('amount')}
+                className={`flex-1 py-2 rounded-lg text-[12px] font-semibold border transition-colors ${
+                  discountType === 'amount' ? 'border-[#b8924a] bg-[#fdf8f0] text-[#b8924a]' : 'border-[#e5e0d8] text-[#9a9080]'
+                }`}
+              >
+                금액 할인
+              </button>
+              <button
+                type="button"
+                onClick={() => setDiscountType('percent')}
+                className={`flex-1 py-2 rounded-lg text-[12px] font-semibold border transition-colors ${
+                  discountType === 'percent' ? 'border-[#b8924a] bg-[#fdf8f0] text-[#b8924a]' : 'border-[#e5e0d8] text-[#9a9080]'
+                }`}
+              >
+                퍼센트 할인
+              </button>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-[12px] font-semibold text-[#555] mb-1.5">
+                  {discountType === 'percent' ? '할인율 (%)' : '할인 금액 (원)'}
+                </label>
+                <input
+                  type="number"
+                  min={1}
+                  value={discountValue}
+                  onChange={e => setDiscountValue(e.target.value)}
+                  placeholder={discountType === 'percent' ? '예: 10' : '예: 5000'}
+                  className={inputCls}
+                />
+              </div>
+              <div>
+                <label className="block text-[12px] font-semibold text-[#555] mb-1.5">최소 구매 금액 (원)</label>
+                <input
+                  type="number"
+                  min={0}
+                  value={minPurchase}
+                  onChange={e => setMinPurchase(e.target.value)}
+                  placeholder="0"
+                  className={inputCls}
+                />
+              </div>
+            </div>
+            <div>
+              <label className="block text-[12px] font-semibold text-[#555] mb-1.5">수량 제한</label>
+              <input
+                type="number"
+                min={0}
+                value={qtyLimit}
+                onChange={e => setQtyLimit(e.target.value)}
+                placeholder="0 (무제한)"
+                className={inputCls}
+              />
+            </div>
+            <p className="text-[11px] text-[#9a9080]">방송 중 이 조건을 만족하는 주문에 결제 직전 자동 적용됩니다.</p>
+          </>
+        )}
       </div>
 
       {error && (

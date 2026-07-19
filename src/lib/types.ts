@@ -94,6 +94,19 @@ export interface Live {
   created_at: string
 }
 
+// 라이브 한정 쿠폰/특가 (supabase/live_coupons.sql)
+export interface LiveCoupon {
+  id: string
+  live_id: string
+  discount_type: 'amount' | 'percent'
+  discount_value: number
+  min_purchase: number
+  qty_limit: number | null
+  qty_used: number
+  active: boolean
+  created_at: string
+}
+
 export interface Order {
   id: string
   partner_id: string | null

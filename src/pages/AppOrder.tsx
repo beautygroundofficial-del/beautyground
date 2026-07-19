@@ -5,6 +5,8 @@ import BackHeader from '../components/layout/BackHeader'
 import { supabase } from '../lib/supabase'
 import { SHIPPING_FEE, FREE_SHIPPING_THRESHOLD } from '../constants'
 import { getAddresses, addAddress, type Address } from '../lib/addresses'
+import type { LiveCoupon } from '../lib/types'
+import { couponDiscountAmount, couponEligible, couponLabel, couponSoldOut } from '../lib/coupons'
 
 interface OrderItem {
   product_id: string
@@ -60,6 +62,7 @@ export default function AppOrder() {
   )
   const [message, setMessage] = useState('')
   const [doneOrder, setDoneOrder] = useState<{ orderName: string; amount: number } | null>(null)
+  const [liveCoupon, setLiveCoupon] = useState<LiveCoupon | null>(null)
 
   const storeId = import.meta.env.VITE_PORTONE_STORE_ID as string | undefined
   const channelKey = import.meta.env.VITE_PORTONE_CHANNEL_KEY as string | undefined
@@ -136,6 +139,22 @@ export default function AppOrder() {
     return () => { active = false }
   }, [navigate])
 
+  // 라이브 구매면 해당 방송의 활성 쿠폰을 조회(있으면 배너 노출 + 결제 직전 자동 적용)
+  useEffect(() => {
+    if (!liveId) return
+    let active = true
+    supabase
+      .from('live_coupons')
+      .select('*')
+      .eq('live_id', liveId)
+      .eq('active', true)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (active) setLiveCoupon(data as LiveCoupon | null)
+      })
+    return () => { active = false }
+  }, [liveId])
+
   // 결제창 리다이렉트 복귀(모바일 간편결제 등) 처리 — location.state 는 유실될 수 있어 DB에서 재조회
   useEffect(() => {
     const paymentId = params.get('paymentId')
@@ -192,7 +211,9 @@ export default function AppOrder() {
 
   const subtotal = items.reduce((s, i) => s + i.price * i.quantity, 0)
   const deliveryFee = subtotal === 0 || subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_FEE
-  const total = subtotal + deliveryFee
+  // 결제 직전 실제 적용 여부는 handlePay 에서 서버(redeem_live_coupon)로 원자적으로 확정됨 — 이건 화면 미리보기용
+  const couponPreview = liveCoupon && couponEligible(liveCoupon, subtotal) ? couponDiscountAmount(liveCoupon, subtotal) : 0
+  const total = subtotal + deliveryFee - couponPreview
 
   const handlePay = async () => {
     setMessage('')
@@ -233,6 +254,28 @@ export default function AppOrder() {
     const { data: products } = await supabase.from('products').select('id, partner_id').in('id', productIds)
     const partnerOf = new Map(((products ?? []) as { id: string; partner_id: string | null }[]).map((p) => [p.id, p.partner_id]))
 
+    // 라이브 쿠폰 결제 직전 확정 — 재고처럼 원자적으로 처리(동시 결제 시 선착순, redeem_live_coupon 이 조건 재검증)
+    let couponDiscount = 0
+    let redeemedCoupon = false
+    if (liveId && liveCoupon && couponEligible(liveCoupon, subtotal)) {
+      const { data: redeemed, error: redeemErr } = await supabase.rpc('redeem_live_coupon', {
+        p_live_id: liveId,
+        p_subtotal: subtotal,
+      })
+      if (redeemErr) {
+        console.error('[order] coupon redeem failed', redeemErr.message)
+      } else {
+        const row = (redeemed as LiveCoupon[] | null)?.[0] ?? null
+        if (row) {
+          redeemedCoupon = true
+          couponDiscount = couponDiscountAmount(row, subtotal)
+        } else {
+          setItemNotices((prev) => [...prev, '라이브 쿠폰이 모두 소진되어 할인 없이 진행돼요.'])
+        }
+      }
+    }
+    const finalTotal = subtotal + deliveryFee - couponDiscount
+
     const paymentId = `order_${Date.now()}_${crypto.randomUUID().slice(0, 8)}`
     const orderName = items.length > 1 ? `${items[0].name} 외 ${items.length - 1}건` : items[0].name
 
@@ -270,6 +313,23 @@ export default function AppOrder() {
         delivery_memo: memo,
       })
     }
+    if (couponDiscount > 0) {
+      rows.push({
+        payment_id: paymentId,
+        order_name: '라이브 쿠폰 할인',
+        product_id: null as unknown as string,
+        partner_id: null,
+        live_id: liveId,
+        quantity: 1,
+        amount: -couponDiscount,
+        buyer_name: name.trim(),
+        buyer_phone: phone.trim(),
+        buyer_email: user?.email ?? null,
+        status: 'pending',
+        user_id: user?.id ?? null,
+        delivery_memo: memo,
+      })
+    }
 
     let { error: insErr } = await supabase.from('orders').insert(rows)
     if (insErr && /delivery_memo/i.test(insErr.message)) {
@@ -288,7 +348,7 @@ export default function AppOrder() {
       channelKey,
       paymentId,
       orderName,
-      totalAmount: total,
+      totalAmount: finalTotal,
       currency: 'CURRENCY_KRW',
       payMethod: 'CARD',
       customer: { fullName: name.trim(), phoneNumber: phone.trim(), email: user?.email ?? undefined },
@@ -297,6 +357,8 @@ export default function AppOrder() {
 
     if (res?.code != null) {
       await supabase.from('orders').update({ status: 'failed' }).eq('payment_id', paymentId)
+      // 결제창이 그 자리에서 닫힌 동기 실패 경로에 한해 쿠폰 반환(모바일 리다이렉트 흐름은 상태 유실로 반환 안 됨 — 알려진 한계)
+      if (redeemedCoupon && liveId) await supabase.rpc('release_live_coupon', { p_live_id: liveId })
       setStatus('error')
       setMessage(res.message || '결제가 취소되었거나 실패했습니다.')
       return
@@ -376,6 +438,14 @@ export default function AppOrder() {
         <div className="bg-[#FDF6E7] border-b border-[#EFE3C4] px-5 py-3">
           <p className="text-[12.5px] text-[#8a6d1f] leading-relaxed">
             🔔 지금은 <b>오픈 준비 기간</b>이에요. 주문서 작성까지 미리 확인하실 수 있고, 결제는 정식 오픈 후 가능합니다.
+          </p>
+        </div>
+      )}
+
+      {liveCoupon && !couponSoldOut(liveCoupon) && subtotal < liveCoupon.min_purchase && (
+        <div className="bg-[#FDF8F0] border-b border-[#F0E4CC] px-5 py-3">
+          <p className="text-[12.5px] text-[#8a6d1f]">
+            🎁 {(liveCoupon.min_purchase - subtotal).toLocaleString('ko-KR')}원 더 담으면 라이브 쿠폰 {couponLabel(liveCoupon)} 적용!
           </p>
         </div>
       )}
@@ -467,6 +537,12 @@ export default function AppOrder() {
             <span className="text-text-sub">상품 금액</span>
             <span className="text-text">{subtotal.toLocaleString('ko-KR')}원</span>
           </div>
+          {couponPreview > 0 && (
+            <div className="flex justify-between">
+              <span className="text-[#b8924a]">라이브 쿠폰 할인</span>
+              <span className="text-[#b8924a] font-medium">-{couponPreview.toLocaleString('ko-KR')}원</span>
+            </div>
+          )}
           <div className="flex justify-between">
             <span className="text-text-sub">배송비</span>
             <span className={deliveryFee === 0 ? 'text-[#1D9E75] font-medium' : 'text-text'}>

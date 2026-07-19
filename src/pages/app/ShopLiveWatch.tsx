@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
-import type { Live, Product } from '../../lib/types'
+import type { Live, LiveCoupon, Product } from '../../lib/types'
 import { won } from '../../lib/format'
 import { streamIframeSrc } from '../../lib/cloudflare'
 import { useLiveChat } from '../../hooks/useLiveChat'
 import { useStreamStatus } from '../../hooks/useStreamStatus'
+import { couponLabel, couponRemaining, couponSoldOut } from '../../lib/coupons'
 import AppHeader from '../../components/layout/AppHeader'
 import AppFrame from '../../components/layout/AppFrame'
 
@@ -29,6 +30,7 @@ export default function ShopLiveWatch() {
   const [live, setLive] = useState<Live | null>(null)
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState<boolean>(true)
+  const [liveCoupon, setLiveCoupon] = useState<LiveCoupon | null>(null)
 
   // 구매 폼 상태 — 수량만 고르고 정식 주문/결제 페이지(/app/order)로 넘긴다
   const [buyProduct, setBuyProduct] = useState<Product | null>(null)
@@ -83,6 +85,22 @@ export default function ShopLiveWatch() {
     return () => {
       active = false
     }
+  }, [id])
+
+  // 라이브 한정 쿠폰 — 있으면 배너로 노출(실제 적용/차감은 주문 페이지에서)
+  useEffect(() => {
+    if (!id) return
+    let active = true
+    supabase
+      .from('live_coupons')
+      .select('*')
+      .eq('live_id', id)
+      .eq('active', true)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (active) setLiveCoupon(data as LiveCoupon | null)
+      })
+    return () => { active = false }
   }, [id])
 
   // 판매자 조작(지금판매·공지핀·방송상태)을 실시간 수신 — lives 행 UPDATE 구독
@@ -271,6 +289,20 @@ export default function ShopLiveWatch() {
               <p className="text-[14px] text-text-sub leading-relaxed mb-5 whitespace-pre-line">
                 {live.description}
               </p>
+            )}
+
+            {liveCoupon && !couponSoldOut(liveCoupon) && (
+              <div className="bg-gold/10 border border-gold/30 rounded-md px-4 py-3 mb-4">
+                <p className="text-[13px] font-bold text-gold">
+                  🎉 라이브 한정 쿠폰 · {couponLabel(liveCoupon)}
+                </p>
+                <p className="text-[12px] text-text-sub mt-0.5">
+                  {liveCoupon.min_purchase > 0
+                    ? `${won(liveCoupon.min_purchase)} 이상 구매 시 결제 단계에서 자동 적용`
+                    : '결제 단계에서 자동 적용'}
+                  {couponRemaining(liveCoupon) !== null && ` · 선착순 ${couponRemaining(liveCoupon)}건 남음`}
+                </p>
+              </div>
             )}
 
             <h2 className="text-[15px] font-bold text-text mb-3">판매 상품</h2>
