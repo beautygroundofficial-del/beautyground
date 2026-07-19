@@ -37,6 +37,12 @@ export default function LiveDetail() {
   const [activeProduct, setActiveProduct] = useState<string | null>(null)
   const [syncErr, setSyncErr] = useState('')
 
+  // 방송 중 상품 즉석 추가 — 파트너의 판매중 상품 전체 카탈로그에서 검색해 product_ids 에 반영
+  const [catalog, setCatalog] = useState<Product[]>([])
+  const [addOpen, setAddOpen] = useState(false)
+  const [addQuery, setAddQuery] = useState('')
+  const [productErr, setProductErr] = useState('')
+
   // 하이라이트/공지핀을 lives 행에 기록 — 시청자(ShopLiveWatch)가 Realtime 으로 수신
   const syncLive = async (patch: { highlight_product_id?: string | null; pinned_message?: string | null }) => {
     if (!id) return false
@@ -52,6 +58,31 @@ export default function LiveDetail() {
   const toggleHighlight = async (productId: string) => {
     const next = activeProduct === productId ? null : productId
     if (await syncLive({ highlight_product_id: next })) setActiveProduct(next)
+  }
+
+  const addProduct = async (product: Product) => {
+    if (!id || !live) return
+    const nextIds = [...(live.product_ids ?? []), product.id]
+    const { error } = await supabase.from('lives').update({ product_ids: nextIds }).eq('id', id)
+    if (error) { setProductErr(`상품 추가 실패: ${error.message}`); return }
+    setProductErr('')
+    setLive(prev => (prev ? { ...prev, product_ids: nextIds } : prev))
+    setProducts(prev => [...prev, product])
+    setAddQuery('')
+  }
+
+  const removeProduct = async (productId: string) => {
+    if (!id || !live) return
+    const nextIds = (live.product_ids ?? []).filter(pid => pid !== productId)
+    const { error } = await supabase.from('lives').update({ product_ids: nextIds }).eq('id', id)
+    if (error) { setProductErr(`상품 제외 실패: ${error.message}`); return }
+    setProductErr('')
+    setLive(prev => (prev ? { ...prev, product_ids: nextIds } : prev))
+    setProducts(prev => prev.filter(p => p.id !== productId))
+    if (activeProduct === productId) {
+      await syncLive({ highlight_product_id: null })
+      setActiveProduct(null)
+    }
   }
 
   // 송출 채널 (Cloudflare Live Input) — 키는 서버에서 매번 조회, DB에 저장 안 함
@@ -128,6 +159,15 @@ export default function LiveDetail() {
         if (!active) return
         setProducts((pd as Product[]) ?? [])
       }
+      if (row?.partner_id) {
+        const { data: cat } = await supabase
+          .from('products')
+          .select('*')
+          .eq('partner_id', row.partner_id)
+          .eq('status', 'on_sale')
+        if (!active) return
+        setCatalog((cat as Product[]) ?? [])
+      }
       setLoading(false)
     }
     load()
@@ -186,6 +226,9 @@ export default function LiveDetail() {
 
   const badge = STATUS[live.status]
   const streamSrc = streamIframeSrc(live.stream_uid)
+  const addCandidates = catalog
+    .filter(p => !products.some(existing => existing.id === p.id))
+    .filter(p => p.name.toLowerCase().includes(addQuery.trim().toLowerCase()))
 
   return (
     <>
@@ -465,7 +508,53 @@ export default function LiveDetail() {
         {/* 우측: 상품 패널 */}
         <div className="bg-white rounded-[14px] border border-[#e5e0d8] flex flex-col overflow-hidden min-h-[400px] lg:min-h-0">
           <div className="px-5 py-4 border-b border-[#eee] shrink-0">
-            <h3 className="text-[13px] font-bold text-[#111]">상품 패널 ({products.length})</h3>
+            <div className="flex items-center justify-between">
+              <h3 className="text-[13px] font-bold text-[#111]">상품 패널 ({products.length})</h3>
+              {live.status !== 'ended' && (
+                <button
+                  onClick={() => setAddOpen(v => !v)}
+                  className="text-[12px] text-[#b8924a] font-semibold hover:underline"
+                >
+                  {addOpen ? '닫기' : '+ 상품 추가'}
+                </button>
+              )}
+            </div>
+            {addOpen && (
+              <div className="mt-3">
+                <input
+                  value={addQuery}
+                  onChange={e => setAddQuery(e.target.value)}
+                  placeholder="상품명 검색..."
+                  className="w-full border border-[#e5e0d8] rounded-lg px-3 py-2 text-[12px] focus:outline-none focus:border-[#b8924a]"
+                />
+                <div className="mt-2 max-h-40 overflow-y-auto space-y-1">
+                  {addCandidates.length === 0 ? (
+                    <p className="text-[11px] text-[#9a9080] text-center py-3">
+                      {catalog.length === 0 ? '판매중 상품이 없습니다' : '추가할 상품이 없습니다'}
+                    </p>
+                  ) : (
+                    addCandidates.map(p => (
+                      <button
+                        key={p.id}
+                        onClick={() => addProduct(p)}
+                        className="w-full flex items-center gap-2 p-2 rounded-lg hover:bg-[#fdf8f0] text-left transition-colors"
+                      >
+                        <div className="w-8 h-8 bg-[#f7f4ef] rounded-lg flex items-center justify-center overflow-hidden shrink-0">
+                          {p.thumbnail_url
+                            ? <img src={p.thumbnail_url} alt={p.name} className="w-full h-full object-cover" />
+                            : <span className="text-[14px]">🛍️</span>}
+                        </div>
+                        <span className="flex-1 min-w-0 text-[12px] text-[#333] truncate">{p.name}</span>
+                        <span className="shrink-0 text-[11px] text-[#b8924a] font-medium">추가</span>
+                      </button>
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
+            {productErr && (
+              <p className="mt-2 text-[11px] text-[#c0392b] leading-relaxed">{productErr}</p>
+            )}
           </div>
 
           <div className="flex-1 overflow-y-auto p-4 space-y-3">
@@ -480,10 +569,18 @@ export default function LiveDetail() {
                 return (
                   <div
                     key={product.id}
-                    className={`p-4 rounded-xl border transition-all ${
+                    className={`relative p-4 pr-8 rounded-xl border transition-all ${
                       isActive ? 'border-[#b8924a] bg-[#fdf8f0]' : 'border-[#e5e0d8]'
                     }`}
                   >
+                    <button
+                      onClick={() => removeProduct(product.id)}
+                      className="absolute top-2 right-2 text-[#bbb] hover:text-[#c0392b] text-[12px] leading-none"
+                      title="상품 제외"
+                      aria-label="상품 제외"
+                    >
+                      ✕
+                    </button>
                     <div className="flex items-center gap-3 mb-3">
                       <div className="w-10 h-10 bg-[#f7f4ef] rounded-lg flex items-center justify-center overflow-hidden shrink-0">
                         {product.thumbnail_url
