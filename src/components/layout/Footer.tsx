@@ -4,6 +4,7 @@ import { COMPANY_INFO } from '../../lib/companyInfo'
 const FOOTER_LINKS = [
   { href: '/about', label: '회사소개' },
   { href: '/partner/apply', label: '입점안내' },
+  { href: '/host/register', label: '진행자 지원' },
   { href: '/privacy', label: '개인정보처리방침' },
 ]
 
