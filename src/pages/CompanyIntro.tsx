@@ -48,7 +48,7 @@ const PORTFOLIO = [
 ]
 
 const ROADMAP = [
-  { when: '2026년 7월', what: 'AK플라자 수원역점 입점', highlight: true },
+  { when: '2026년 7월', what: 'AK플라자 수원역점 오픈 — 운영 중', highlight: true },
   { when: '2026년 10월', what: '뷰티그라운드 플래그십 강남 역삼점 오픈', highlight: true },
   { when: '2027년', what: 'AK 분당 서현 · 롯데 영등포 · 신세계 영등포 확장 추진', highlight: false },
 ]
@@ -102,7 +102,7 @@ export default function CompanyIntro() {
               ['설립', '2022년'],
               ['본사', COMPANY_INFO.address],
               ['사업 영역', '백화점 뷰티 편집샵 · 라이브커머스 · K-Beauty 글로벌 유통·마케팅'],
-              ['오프라인 매장', 'AK플라자 광명점 운영 중 · 수원역점 2026년 7월 입점'],
+              ['오프라인 매장', 'AK플라자 광명점 · 수원점 운영 중'],
             ].map(([k, v]) => (
               <div key={k}>
                 <p className="text-[12px] text-text-hint mb-1">{k}</p>
@@ -133,9 +133,11 @@ export default function CompanyIntro() {
 
         {/* 매장 */}
         <section className="max-w-[1080px] mx-auto px-6 py-20">
-          <p className={sectionTitle}>03 · Store</p>
-          <h2 className={h2}>AK플라자 광명점</h2>
-          <div className="grid sm:grid-cols-2 gap-4 mb-8">
+          <p className={sectionTitle}>03 · Stores</p>
+          <h2 className={h2}>오프라인 매장</h2>
+
+          <p className="text-gold font-bold text-[15px] mb-4">AK플라자 광명점</p>
+          <div className="grid sm:grid-cols-2 gap-4 mb-12">
             <figure>
               <img src="/images/about/store-front.jpg" alt="AK플라자 광명점 매장 정면 전경" className="w-full aspect-[4/3] object-cover rounded-md" />
               <figcaption className="text-[12px] text-text-hint mt-2 text-center">매장 정면 전경</figcaption>
@@ -145,9 +147,22 @@ export default function CompanyIntro() {
               <figcaption className="text-[12px] text-text-hint mt-2 text-center">큐레이션 디스플레이</figcaption>
             </figure>
           </div>
+
+          <p className="text-gold font-bold text-[15px] mb-4">AK플라자 수원점</p>
+          <div className="grid sm:grid-cols-2 gap-4 mb-8">
+            <figure>
+              <img src="/images/about/store-suwon-front.jpg" alt="AK플라자 수원점 매장 정면 전경" className="w-full aspect-[4/3] object-cover rounded-md" />
+              <figcaption className="text-[12px] text-text-hint mt-2 text-center">매장 정면 전경</figcaption>
+            </figure>
+            <figure>
+              <img src="/images/about/store-suwon-wide.jpg" alt="AK플라자 수원점 뷰티존 전경" className="w-full aspect-[4/3] object-cover rounded-md" />
+              <figcaption className="text-[12px] text-text-hint mt-2 text-center">뷰티존 전경</figcaption>
+            </figure>
+          </div>
+
           <p className="text-text-sub text-[14px] leading-relaxed max-w-[720px]">
             에스테틱·더마코스메틱·트렌디 브랜드를 큐레이션한 K-Beauty 편집샵으로,
-            본사 직영으로 VMD·판매·재고·프로모션 전체를 직접 운영합니다.
+            두 매장 모두 본사 직영으로 VMD·판매·재고·프로모션 전체를 직접 운영합니다.
           </p>
         </section>
 
