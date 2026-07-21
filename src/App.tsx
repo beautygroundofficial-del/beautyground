@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import WebHome from './pages/WebHome'
 import CompanyProposal from './pages/CompanyProposal'
+import CompanyIntro from './pages/CompanyIntro'
 import AppHome from './pages/AppHome'
 import AppCategory from './pages/AppCategory'
 import AppCategoryDetail from './pages/AppCategoryDetail'
@@ -71,6 +72,7 @@ export default function App() {
         {/* 웹 홈페이지 */}
         <Route path="/" element={<WebHome />} />
         <Route path="/proposal" element={<CompanyProposal />} />
+        <Route path="/company" element={<CompanyIntro />} />
 
         {/* 법적 고지 */}
         <Route path="/terms" element={<Terms />} />
