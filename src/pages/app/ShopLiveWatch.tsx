@@ -6,12 +6,9 @@ import { won } from '../../lib/format'
 import { streamIframeSrc } from '../../lib/cloudflare'
 import { useLiveChat } from '../../hooks/useLiveChat'
 import { useStreamStatus } from '../../hooks/useStreamStatus'
-import { useLiveVertical } from '../../hooks/useLiveVertical'
 import { useLiveHearts } from '../../hooks/useLiveHearts'
 import { IconHeartFilled } from '@tabler/icons-react'
 import { couponLabel, couponRemaining, couponSoldOut } from '../../lib/coupons'
-import AppHeader from '../../components/layout/AppHeader'
-import AppFrame from '../../components/layout/AppFrame'
 
 const statusLabel: Record<Live['status'], string> = {
   live: 'LIVE',
@@ -26,9 +23,14 @@ const youtubeEmbedSrc = (url: string | null | undefined): string | null => {
   return m ? `https://www.youtube.com/embed/${m[1]}?rel=0` : null
 }
 
-// 쇼츠(세로형 촬영) 링크 여부 — 키위글로우·바이리뮤 등 세로 영상은 16:9 박스에 넣으면 위아래로 크게 여백이 생겨 모바일 세로(9:16) 박스로 표시
-const isVerticalVideo = (url: string | null | undefined): boolean =>
-  Boolean(url && /youtube\.com\/shorts\//.test(url))
+// 채팅용 이모지 — 표준 유니코드 문자만 사용(저작권 문제 없음, 카카오 캐릭터 이모티콘 아님)
+const CHAT_EMOJIS = [
+  '😍', '❤️', '👍', '🔥', '😂', '😮', '👏', '🎉',
+  '💯', '🙌', '✨', '💄', '💅', '🛍️', '😊', '🥰',
+  '😘', '👀', '🤩', '😭', '🙏', '💖', '🎁', '⭐',
+]
+
+const textShadow = { textShadow: '0 1px 5px rgba(0,0,0,.55)' }
 
 export default function ShopLiveWatch() {
   const { id } = useParams<{ id: string }>()
@@ -38,6 +40,7 @@ export default function ShopLiveWatch() {
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState<boolean>(true)
   const [liveCoupon, setLiveCoupon] = useState<LiveCoupon | null>(null)
+  const [productSheetOpen, setProductSheetOpen] = useState(false)
 
   // 구매 폼 상태 — 수량만 고르고 정식 주문/결제 페이지(/app/order)로 넘긴다
   const [buyProduct, setBuyProduct] = useState<Product | null>(null)
@@ -46,11 +49,6 @@ export default function ShopLiveWatch() {
   // 실시간 채팅 (판매자 LiveDetail 과 동일 훅/채널 공유 → 양방향)
   const { messages, loading: chatLoading, isLoggedIn, sendMessage: sendChat } = useLiveChat(id)
   const [chatInput, setChatInput] = useState<string>('')
-  const chatEndRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages])
 
   const sendChatMessage = async () => {
     if (!chatInput.trim()) return
@@ -73,6 +71,19 @@ export default function ShopLiveWatch() {
   const tapHeart = () => {
     spawnHeart()
     sendHeart()
+  }
+
+  // 채팅 — 이모지 삽입 + 닉네임 탭해서 멘션(@닉네임)
+  const chatInputRef = useRef<HTMLInputElement>(null)
+  const [emojiOpen, setEmojiOpen] = useState(false)
+  const insertEmoji = (emoji: string) => {
+    setChatInput((prev) => prev + emoji)
+    chatInputRef.current?.focus()
+  }
+  const mentionUser = (nickname: string) => {
+    setChatInput(`@${nickname} `)
+    setEmojiOpen(false)
+    chatInputRef.current?.focus()
   }
 
   useEffect(() => {
@@ -146,6 +157,7 @@ export default function ShopLiveWatch() {
   }, [id])
 
   const openBuy = (product: Product) => {
+    setProductSheetOpen(false)
     setBuyProduct(product)
     setQuantity(1)
   }
@@ -186,6 +198,7 @@ export default function ShopLiveWatch() {
   const orderedProducts = highlightId
     ? [...products].sort((a, b) => (a.id === highlightId ? -1 : b.id === highlightId ? 1 : 0))
     : products
+  const primaryProduct = orderedProducts[0] ?? null
 
   const streamSrc = streamIframeSrc(live?.stream_uid)
   // 실제 송출 연결 여부 — status='live'인데 송출이 끊겨 있으면 대기 화면을 보여주고,
@@ -193,312 +206,312 @@ export default function ShopLiveWatch() {
   const streamState = useStreamStatus(live?.stream_uid, live?.status === 'live')
   const waitingForStream = live?.status === 'live' && streamState === 'disconnected'
   const onAir = live?.status === 'live' && Boolean(live.stream_uid) && streamState !== 'disconnected'
-  const liveVertical = useLiveVertical(live?.stream_uid, streamState === 'connected')
+  const topBadge = onAir ? 'LIVE' : live && live.status === 'live' ? '준비중' : live ? statusLabel[live.status] : ''
 
   const inputClass =
     'w-full bg-white border border-cream-2 rounded-md px-4 py-3 text-[14px] text-text placeholder:text-text-hint focus:outline-none focus:shadow-focus transition'
 
+  const recentMessages = messages.slice(-4)
+
   return (
-    <AppFrame>
-      <AppHeader />
-
-      <main className="px-4 py-4">
-        <button
-          type="button"
-          onClick={() => navigate(-1)}
-          className="text-[14px] text-text-sub mb-3 hover:text-text transition"
-        >
-          ← 뒤로
-        </button>
-
+    <div className="fixed inset-0 z-0 bg-black flex justify-center">
+      <div className="relative w-full h-full max-w-[480px] overflow-hidden">
         {loading ? (
-          <div className="py-20 text-center text-[14px] text-text-hint">
-            불러오는 중…
-          </div>
+          <div className="h-full flex items-center justify-center text-white/70 text-[14px]">불러오는 중…</div>
         ) : !live ? (
-          <div className="py-20 text-center">
-            <p className="text-[14px] text-text-hint mb-3">
-              라이브를 찾을 수 없습니다.
-            </p>
-            <Link to="/app/live" className="text-[14px] text-gold font-medium">
-              라이브 목록으로
-            </Link>
+          <div className="h-full flex flex-col items-center justify-center gap-3 text-white/80 text-[14px] px-6 text-center">
+            <p>라이브를 찾을 수 없습니다.</p>
+            <Link to="/app/live" className="text-gold-light font-medium">라이브 목록으로</Link>
           </div>
         ) : (
           <>
-            {/* 비디오 영역 */}
-            <div className="relative rounded-md overflow-hidden mb-4">
+            {/* 비디오 배경 (화면 전체) */}
+            <div className="absolute inset-0 bg-[#14120e]">
               {waitingForStream ? (
                 <div
-                  className="w-full aspect-video bg-cream-3 flex flex-col items-center justify-center relative"
+                  className="absolute inset-0 flex flex-col items-center justify-center"
                   style={
                     live.thumbnail_url
-                      ? {
-                          backgroundImage: `url(${live.thumbnail_url})`,
-                          backgroundSize: 'cover',
-                          backgroundPosition: 'center',
-                        }
+                      ? { backgroundImage: `url(${live.thumbnail_url})`, backgroundSize: 'cover', backgroundPosition: 'center' }
                       : undefined
                   }
                 >
-                  <div className="absolute inset-0 bg-black/40" />
-                  <p className="relative text-white text-[15px] font-bold mb-1">
-                    방송 준비 중입니다
-                  </p>
-                  <p className="relative text-white/80 text-[12px]">
-                    잠시 후 자동으로 시작됩니다
-                  </p>
-                  <span className="absolute top-3 left-3 inline-flex items-center rounded-pill bg-black/50 text-white text-[12px] font-bold px-3 py-1">
-                    준비중
-                  </span>
+                  <div className="absolute inset-0 bg-black/45" />
+                  <p className="relative text-white text-[15px] font-bold mb-1">방송 준비 중입니다</p>
+                  <p className="relative text-white/80 text-[12px]">잠시 후 자동으로 시작됩니다</p>
                 </div>
               ) : streamSrc ? (
-                <div
-                  className="relative w-full mx-auto"
-                  style={liveVertical ? { paddingTop: '177.78%', maxWidth: 360 } : { paddingTop: '56.25%' }}
-                >
-                  <iframe
-                    src={streamSrc}
-                    className="absolute inset-0 w-full h-full"
-                    style={{ border: 'none' }}
-                    allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;"
-                    allowFullScreen
-                    title="라이브 영상"
-                  />
-                </div>
+                <iframe
+                  src={streamSrc}
+                  className="absolute inset-0 w-full h-full"
+                  style={{ border: 'none' }}
+                  allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;"
+                  allowFullScreen
+                  title="라이브 영상"
+                />
               ) : youtubeEmbedSrc(live.stream_url) ? (
-                <div
-                  className="relative w-full mx-auto"
-                  style={
-                    isVerticalVideo(live.stream_url)
-                      ? { paddingTop: '177.78%', maxWidth: 360 }
-                      : { paddingTop: '56.25%' }
-                  }
-                >
-                  <iframe
-                    src={youtubeEmbedSrc(live.stream_url) as string}
-                    className="absolute inset-0 w-full h-full"
-                    style={{ border: 'none' }}
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
-                    title="다시보기 영상"
-                  />
-                </div>
+                <iframe
+                  src={youtubeEmbedSrc(live.stream_url) as string}
+                  className="absolute inset-0 w-full h-full"
+                  style={{ border: 'none' }}
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                  title="다시보기 영상"
+                />
               ) : live.stream_url ? (
                 <video
                   controls
                   src={live.stream_url}
                   poster={live.thumbnail_url ?? undefined}
-                  className="w-full bg-black aspect-video"
+                  className="absolute inset-0 w-full h-full object-contain bg-black"
                 />
               ) : (
                 <div
-                  className="w-full aspect-video bg-cream-3 flex items-center justify-center relative"
+                  className="absolute inset-0 flex items-center justify-center"
                   style={
                     live.thumbnail_url
-                      ? {
-                          backgroundImage: `url(${live.thumbnail_url})`,
-                          backgroundSize: 'cover',
-                          backgroundPosition: 'center',
-                        }
+                      ? { backgroundImage: `url(${live.thumbnail_url})`, backgroundSize: 'cover', backgroundPosition: 'center' }
                       : undefined
                   }
                 >
-                  {!live.thumbnail_url && (
-                    <span className="text-[48px]">💄</span>
-                  )}
-                  <span className="absolute top-3 left-3 inline-flex items-center rounded-pill bg-black/50 text-white text-[12px] font-bold px-3 py-1">
-                    {statusLabel[live.status]}
+                  {!live.thumbnail_url && <span className="text-[64px]">💄</span>}
+                </div>
+              )}
+            </div>
+
+            {/* 상단 스크림 + 헤더 */}
+            <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-black/60 to-transparent pointer-events-none z-20" />
+            <div
+              className="absolute inset-x-0 z-30 flex items-center gap-2 px-4"
+              style={{ top: 'max(14px, env(safe-area-inset-top))' }}
+            >
+              <button
+                type="button"
+                onClick={() => navigate(-1)}
+                aria-label="뒤로"
+                className="shrink-0 w-8 h-8 rounded-full bg-black/35 text-white flex items-center justify-center text-[17px]"
+              >
+                ‹
+              </button>
+              <p className="flex-1 min-w-0 text-white text-[13px] font-medium truncate" style={textShadow}>
+                {live.title}
+              </p>
+              <span className="shrink-0 flex items-center gap-1.5 rounded-pill bg-black/40 text-white text-[11px] font-bold px-2.5 py-1">
+                {onAir && <span className="w-1.5 h-1.5 rounded-full bg-[#ff5470] animate-pulse" />}
+                {topBadge}
+              </span>
+            </div>
+
+            {/* 떠오르는 좋아요 하트 */}
+            {onAir && (
+              <div className="absolute z-25 pointer-events-none" style={{ right: 30, bottom: 200 }}>
+                {hearts.map((h) => (
+                  <IconHeartFilled
+                    key={h.id}
+                    size={28}
+                    className="absolute bottom-0 right-0 text-[#ff4d6d] animate-float-heart"
+                    style={{ marginRight: h.x }}
+                  />
+                ))}
+              </div>
+            )}
+
+            {/* 우측 아이콘 레일 */}
+            <div className="absolute right-3 z-30 flex flex-col items-center gap-5" style={{ bottom: 152 }}>
+              {onAir && (
+                <button type="button" onClick={tapHeart} aria-label="좋아요" className="flex flex-col items-center active:scale-90 transition-transform">
+                  <span className="w-11 h-11 rounded-full bg-black/38 backdrop-blur-sm flex items-center justify-center">
+                    <IconHeartFilled size={21} className="text-[#ff4d6d]" />
                   </span>
+                </button>
+              )}
+              {products.length > 0 && (
+                <button type="button" onClick={() => setProductSheetOpen(true)} aria-label="판매 상품 보기" className="relative flex flex-col items-center">
+                  <span className="w-11 h-11 rounded-full bg-black/38 backdrop-blur-sm flex items-center justify-center text-[18px]">
+                    🛍️
+                  </span>
+                  <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-gold text-[9px] font-extrabold text-[#1a1508] flex items-center justify-center">
+                    {products.length}
+                  </span>
+                </button>
+              )}
+            </div>
+
+            {/* 하단 스크림 */}
+            <div className="absolute inset-x-0 bottom-0 h-64 bg-gradient-to-t from-black/70 via-black/35 to-transparent pointer-events-none z-20" />
+
+            {/* 하단 스택: 쿠폰 배너 → 지금판매 칩 → 채팅 피드 → 입력줄 */}
+            <div
+              className="absolute inset-x-0 bottom-0 z-30 px-3 flex flex-col gap-2"
+              style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 10px)' }}
+            >
+              {liveCoupon && !couponSoldOut(liveCoupon) && (
+                <div className="mr-14 bg-black/45 backdrop-blur-sm border border-gold/40 rounded-lg px-3 py-2">
+                  <p className="text-[11.5px] font-bold text-gold-light">
+                    🎉 라이브 한정 쿠폰 · {couponLabel(liveCoupon)}
+                    {couponRemaining(liveCoupon) !== null && ` · 선착순 ${couponRemaining(liveCoupon)}건`}
+                  </p>
                 </div>
               )}
 
-              {/* 좋아요 하트 — 방송 중에만 노출 */}
-              {onAir && (
-                <>
-                  <div className="absolute inset-0 pointer-events-none overflow-hidden">
-                    {hearts.map((h) => (
-                      <IconHeartFilled
-                        key={h.id}
-                        size={32}
-                        className="absolute bottom-16 right-6 text-[#ff4d6d] animate-float-heart"
-                        style={{ marginRight: h.x }}
-                      />
+              {primaryProduct && (
+                <button
+                  type="button"
+                  onClick={() => openBuy(primaryProduct)}
+                  className="mr-14 flex items-center gap-2.5 bg-black/55 backdrop-blur-sm border border-gold/30 rounded-2xl px-2.5 py-2 text-left"
+                >
+                  {primaryProduct.thumbnail_url ? (
+                    <img src={primaryProduct.thumbnail_url} alt={primaryProduct.name} className="w-9 h-9 rounded-lg object-cover shrink-0" />
+                  ) : (
+                    <div className="w-9 h-9 rounded-lg bg-white/15 flex items-center justify-center text-[16px] shrink-0">💄</div>
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <p className="flex items-center gap-1 text-[9.5px] font-extrabold text-gold-light mb-0.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-gold-light" />
+                      {primaryProduct.id === highlightId ? '지금 판매중' : '판매 상품'}
+                    </p>
+                    <p className="text-[12px] text-white font-semibold truncate" style={textShadow}>{primaryProduct.name}</p>
+                  </div>
+                  <p className="shrink-0 text-[12px] font-extrabold text-white" style={textShadow}>
+                    {won(primaryProduct.sale_price ?? primaryProduct.price)}
+                  </p>
+                </button>
+              )}
+
+              {live.pinned_message && (
+                <div className="mr-14 flex items-start gap-1.5 bg-black/45 backdrop-blur-sm rounded-lg px-3 py-1.5">
+                  <span className="shrink-0 text-[11px]" aria-hidden="true">📌</span>
+                  <p className="text-[11.5px] text-white leading-snug whitespace-pre-line" style={textShadow}>{live.pinned_message}</p>
+                </div>
+              )}
+
+              <div className="mr-14 flex flex-col gap-1.5">
+                {recentMessages.map((m) => (
+                  <p key={m.id} className="text-[12.5px] text-white leading-snug" style={textShadow}>
+                    <button
+                      type="button"
+                      onClick={() => mentionUser(m.nickname ?? '익명')}
+                      className="font-bold text-gold-light mr-1"
+                    >
+                      {m.nickname ?? '익명'}
+                    </button>
+                    {m.message}
+                  </p>
+                ))}
+              </div>
+
+              <div className="relative flex items-center gap-2">
+                {emojiOpen && (
+                  <div className="absolute bottom-11 left-0 right-14 bg-[#1c1912]/95 backdrop-blur rounded-xl p-2 grid grid-cols-8 gap-0.5 border border-white/10">
+                    {CHAT_EMOJIS.map((emoji) => (
+                      <button
+                        key={emoji}
+                        type="button"
+                        onClick={() => insertEmoji(emoji)}
+                        className="text-[17px] py-1 rounded hover:bg-white/10"
+                      >
+                        {emoji}
+                      </button>
                     ))}
                   </div>
-                  <button
-                    type="button"
-                    onClick={tapHeart}
-                    aria-label="좋아요"
-                    className="absolute bottom-4 right-4 w-11 h-11 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center active:scale-90 transition-transform"
-                  >
-                    <IconHeartFilled size={22} className="text-white" />
-                  </button>
-                </>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setEmojiOpen((v) => !v)}
+                  disabled={!isLoggedIn}
+                  aria-label="이모지"
+                  className="shrink-0 w-9 h-9 rounded-full bg-white/15 flex items-center justify-center text-[16px] disabled:opacity-40"
+                >
+                  🙂
+                </button>
+                <input
+                  ref={chatInputRef}
+                  value={chatInput}
+                  onChange={(e) => setChatInput(e.target.value)}
+                  onFocus={() => setEmojiOpen(false)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') sendChatMessage() }}
+                  disabled={!isLoggedIn}
+                  placeholder={isLoggedIn ? '메시지를 입력하세요…' : '로그인 후 채팅 참여 가능'}
+                  className="flex-1 min-w-0 h-9 rounded-pill bg-white/15 px-3.5 text-[12.5px] text-white placeholder:text-white/50 focus:outline-none"
+                />
+                <button
+                  type="button"
+                  onClick={sendChatMessage}
+                  disabled={!isLoggedIn}
+                  aria-label="전송"
+                  className="shrink-0 w-9 h-9 rounded-full bg-gold flex items-center justify-center text-[#1a1508] text-[14px] disabled:opacity-40"
+                >
+                  ➤
+                </button>
+              </div>
+              {chatLoading ? null : !isLoggedIn && (
+                <p className="text-[10.5px] text-white/60 text-center">로그인 후 채팅 참여 가능 (읽기는 누구나 가능)</p>
               )}
             </div>
 
-            <h1 className="text-[18px] font-bold text-text mb-1">
-              {live.title}
-            </h1>
-            <p className="text-[12px] text-text-hint mb-3">
-              {live.status === 'live' && !onAir ? '방송 준비 중' : statusLabel[live.status]}
-            </p>
-            {live.description && (
-              <p className="text-[14px] text-text-sub leading-relaxed mb-5 whitespace-pre-line">
-                {live.description}
-              </p>
-            )}
-
-            {liveCoupon && !couponSoldOut(liveCoupon) && (
-              <div className="bg-gold/10 border border-gold/30 rounded-md px-4 py-3 mb-4">
-                <p className="text-[13px] font-bold text-gold">
-                  🎉 라이브 한정 쿠폰 · {couponLabel(liveCoupon)}
-                </p>
-                <p className="text-[12px] text-text-sub mt-0.5">
-                  {liveCoupon.min_purchase > 0
-                    ? `${won(liveCoupon.min_purchase)} 이상 구매 시 결제 단계에서 자동 적용`
-                    : '결제 단계에서 자동 적용'}
-                  {couponRemaining(liveCoupon) !== null && ` · 선착순 ${couponRemaining(liveCoupon)}건 남음`}
-                </p>
-              </div>
-            )}
-
-            <h2 className="text-[15px] font-bold text-text mb-3">판매 상품</h2>
-
-            {products.length === 0 ? (
-              <div className="py-10 text-center text-[14px] text-text-hint">
-                등록된 판매 상품이 없습니다.
-              </div>
-            ) : (
-              <div className="flex flex-col gap-3">
-                {orderedProducts.map((product) => {
-                  const hasSale =
-                    product.sale_price != null &&
-                    product.sale_price < product.price
-                  const isHighlight = product.id === highlightId
-                  return (
-                    <div
-                      key={product.id}
-                      className={`bg-white rounded-md border p-3 ${isHighlight ? 'ring-2 ring-gold' : ''}`}
-                      style={{ borderColor: isHighlight ? '#b8924a' : '#e5e0d8', borderWidth: '0.5px' }}
-                    >
-                      {isHighlight && (
-                        <p className="flex items-center gap-1.5 text-[11px] font-bold text-gold mb-2">
-                          <span className="w-1.5 h-1.5 rounded-full bg-gold animate-pulse" />
-                          지금 방송에서 판매 중
-                        </p>
-                      )}
-                      <div className="flex items-center gap-3">
-                      {product.thumbnail_url ? (
-                        <img
-                          src={product.thumbnail_url}
-                          alt={product.name}
-                          className="w-16 h-16 rounded-md object-cover shrink-0"
-                        />
-                      ) : (
-                        <div className="w-16 h-16 rounded-md bg-cream-3 flex items-center justify-center text-[24px] shrink-0">
-                          💄
-                        </div>
-                      )}
-
-                      <div className="flex-1 min-w-0">
-                        <p className="text-[14px] font-medium text-text line-clamp-1">
-                          {product.name}
-                        </p>
-                        <div className="flex items-baseline gap-2 mt-1">
-                          <span className="text-[15px] font-bold text-text">
-                            {won(product.sale_price ?? product.price)}
-                          </span>
-                          {hasSale && (
-                            <span className="text-[12px] text-text-hint line-through">
-                              {won(product.price)}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-
-                      <button
-                        type="button"
-                        onClick={() => openBuy(product)}
-                        className="shrink-0 rounded-pill bg-gold text-white hover:bg-gold-light text-[13px] font-medium px-4 py-2 transition-colors"
-                      >
-                        구매하기
-                      </button>
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            )}
-
-            {/* 실시간 채팅 */}
-            <div
-              className="bg-white rounded-md border mt-6"
-              style={{ borderColor: '#e5e0d8', borderWidth: '0.5px' }}
-            >
-              <div className="px-4 py-3 border-b border-cream-2">
-                <h2 className="text-[15px] font-bold text-text">실시간 채팅</h2>
-                {live.pinned_message && (
-                  <div className="mt-2 flex items-start gap-2 bg-gold/10 rounded-md px-3 py-2">
-                    <span className="shrink-0 text-[12px]" aria-hidden="true">📌</span>
-                    <p className="text-[12.5px] text-text leading-snug whitespace-pre-line">
-                      {live.pinned_message}
-                    </p>
+            {/* 전체 판매 상품 시트 */}
+            {productSheetOpen && (
+              <div className="absolute inset-0 z-40 bg-black/50 flex items-end" onClick={() => setProductSheetOpen(false)}>
+                <div
+                  className="w-full max-h-[75%] bg-white rounded-t-2xl overflow-y-auto"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="sticky top-0 bg-white flex items-center justify-between px-4 py-3 border-b border-cream-2">
+                    <h2 className="text-[15px] font-bold text-text">판매 상품</h2>
+                    <button type="button" onClick={() => setProductSheetOpen(false)} aria-label="닫기" className="text-text-hint text-[18px] leading-none">✕</button>
                   </div>
-                )}
-              </div>
 
-              <div className="px-4 py-3 max-h-[280px] overflow-y-auto flex flex-col gap-2">
-                {chatLoading ? (
-                  <p className="text-center py-6 text-[13px] text-text-hint">채팅 불러오는 중…</p>
-                ) : messages.length === 0 ? (
-                  <p className="text-center py-6 text-[13px] text-text-hint">첫 메시지를 남겨보세요</p>
-                ) : (
-                  messages.map((m) => (
-                    <div key={m.id} className="flex gap-2 items-start">
-                      <span className="shrink-0 w-6 h-6 rounded-full bg-gold/15 text-gold text-[11px] font-bold flex items-center justify-center uppercase">
-                        {(m.nickname ?? '익')[0]}
-                      </span>
-                      <p className="text-[13px] text-text leading-snug">
-                        <span className="text-text-hint font-medium mr-1">{m.nickname ?? '익명'}</span>
-                        {m.message}
-                      </p>
-                    </div>
-                  ))
-                )}
-                <div ref={chatEndRef} />
-              </div>
+                  {live.description && (
+                    <p className="px-4 pt-3 text-[13px] text-text-sub leading-relaxed whitespace-pre-line">{live.description}</p>
+                  )}
 
-              <div className="px-4 py-3 border-t border-cream-2">
-                {!isLoggedIn && (
-                  <p className="text-[11px] text-text-hint text-center mb-2">
-                    로그인 후 채팅 참여 가능합니다 (읽기는 누구나 가능)
-                  </p>
-                )}
-                <div className="flex gap-2">
-                  <input
-                    value={chatInput}
-                    onChange={(e) => setChatInput(e.target.value)}
-                    onKeyDown={(e) => { if (e.key === 'Enter') sendChatMessage() }}
-                    disabled={!isLoggedIn}
-                    placeholder={isLoggedIn ? '메시지를 입력하세요…' : '로그인 후 채팅 참여 가능'}
-                    className="flex-1 bg-white border border-cream-2 rounded-pill px-4 py-2 text-[14px] text-text placeholder:text-text-hint focus:outline-none focus:shadow-focus transition disabled:bg-cream-3 disabled:cursor-not-allowed"
-                  />
-                  <button
-                    type="button"
-                    onClick={sendChatMessage}
-                    disabled={!isLoggedIn}
-                    className="shrink-0 rounded-pill bg-gold text-white hover:bg-gold-light disabled:opacity-50 disabled:cursor-not-allowed text-[13px] font-medium px-5 py-2 transition-colors"
-                  >
-                    전송
-                  </button>
+                  <div className="p-4 flex flex-col gap-3">
+                    {orderedProducts.map((product) => {
+                      const hasSale = product.sale_price != null && product.sale_price < product.price
+                      const isHighlight = product.id === highlightId
+                      return (
+                        <div
+                          key={product.id}
+                          className={`bg-white rounded-md border p-3 ${isHighlight ? 'ring-2 ring-gold' : ''}`}
+                          style={{ borderColor: isHighlight ? '#b8924a' : '#e5e0d8', borderWidth: '0.5px' }}
+                        >
+                          {isHighlight && (
+                            <p className="flex items-center gap-1.5 text-[11px] font-bold text-gold mb-2">
+                              <span className="w-1.5 h-1.5 rounded-full bg-gold animate-pulse" />
+                              지금 방송에서 판매 중
+                            </p>
+                          )}
+                          <div className="flex items-center gap-3">
+                            {product.thumbnail_url ? (
+                              <img src={product.thumbnail_url} alt={product.name} className="w-16 h-16 rounded-md object-cover shrink-0" />
+                            ) : (
+                              <div className="w-16 h-16 rounded-md bg-cream-3 flex items-center justify-center text-[24px] shrink-0">💄</div>
+                            )}
+                            <div className="flex-1 min-w-0">
+                              <p className="text-[14px] font-medium text-text line-clamp-1">{product.name}</p>
+                              <div className="flex items-baseline gap-2 mt-1">
+                                <span className="text-[15px] font-bold text-text">{won(product.sale_price ?? product.price)}</span>
+                                {hasSale && <span className="text-[12px] text-text-hint line-through">{won(product.price)}</span>}
+                              </div>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => openBuy(product)}
+                              className="shrink-0 rounded-pill bg-gold text-white hover:bg-gold-light text-[13px] font-medium px-4 py-2 transition-colors"
+                            >
+                              구매하기
+                            </button>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
           </>
         )}
-      </main>
+      </div>
 
       {/* 구매 모달 */}
       {buyProduct && (
@@ -571,7 +584,6 @@ export default function ShopLiveWatch() {
           </div>
         </div>
       )}
-
-    </AppFrame>
+    </div>
   )
 }
