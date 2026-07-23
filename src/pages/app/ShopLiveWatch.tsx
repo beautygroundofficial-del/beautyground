@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import type { Live, LiveCoupon, Product } from '../../lib/types'
@@ -7,6 +7,8 @@ import { streamIframeSrc } from '../../lib/cloudflare'
 import { useLiveChat } from '../../hooks/useLiveChat'
 import { useStreamStatus } from '../../hooks/useStreamStatus'
 import { useLiveVertical } from '../../hooks/useLiveVertical'
+import { useLiveHearts } from '../../hooks/useLiveHearts'
+import { IconHeartFilled } from '@tabler/icons-react'
 import { couponLabel, couponRemaining, couponSoldOut } from '../../lib/coupons'
 import AppHeader from '../../components/layout/AppHeader'
 import AppFrame from '../../components/layout/AppFrame'
@@ -54,6 +56,23 @@ export default function ShopLiveWatch() {
     if (!chatInput.trim()) return
     const ok = await sendChat(chatInput)
     if (ok) setChatInput('')
+  }
+
+  // 좋아요 하트 — 탭할 때마다 화면에 하트가 떠오르고, 다른 시청자 화면에도 실시간으로 같이 뜬다
+  const [hearts, setHearts] = useState<{ id: number; x: number }[]>([])
+  const heartSeq = useRef(0)
+  const spawnHeart = useCallback(() => {
+    const heartId = heartSeq.current++
+    const x = Math.round(Math.random() * 60 - 30) // -30~30px 랜덤 흔들림
+    setHearts((prev) => [...prev, { id: heartId, x }])
+    setTimeout(() => {
+      setHearts((prev) => prev.filter((h) => h.id !== heartId))
+    }, 1800)
+  }, [])
+  const { sendHeart } = useLiveHearts(id, spawnHeart)
+  const tapHeart = () => {
+    spawnHeart()
+    sendHeart()
   }
 
   useEffect(() => {
@@ -208,7 +227,7 @@ export default function ShopLiveWatch() {
         ) : (
           <>
             {/* 비디오 영역 */}
-            <div className="rounded-md overflow-hidden mb-4">
+            <div className="relative rounded-md overflow-hidden mb-4">
               {waitingForStream ? (
                 <div
                   className="w-full aspect-video bg-cream-3 flex flex-col items-center justify-center relative"
@@ -292,6 +311,30 @@ export default function ShopLiveWatch() {
                     {statusLabel[live.status]}
                   </span>
                 </div>
+              )}
+
+              {/* 좋아요 하트 — 방송 중에만 노출 */}
+              {onAir && (
+                <>
+                  <div className="absolute inset-0 pointer-events-none overflow-hidden">
+                    {hearts.map((h) => (
+                      <IconHeartFilled
+                        key={h.id}
+                        size={32}
+                        className="absolute bottom-16 right-6 text-[#ff4d6d] animate-float-heart"
+                        style={{ marginRight: h.x }}
+                      />
+                    ))}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={tapHeart}
+                    aria-label="좋아요"
+                    className="absolute bottom-4 right-4 w-11 h-11 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center active:scale-90 transition-transform"
+                  >
+                    <IconHeartFilled size={22} className="text-white" />
+                  </button>
+                </>
               )}
             </div>
 
