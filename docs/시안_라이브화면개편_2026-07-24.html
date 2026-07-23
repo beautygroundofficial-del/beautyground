@@ -1,0 +1,452 @@
+<title>라이브 화면 개편 시안</title>
+<style>
+  :root {
+    --page-bg: #f7f4ef;
+    --page-bg-2: #edeae3;
+    --ink: #1a1710;
+    --ink-sub: #5a5547;
+    --ink-hint: #9a9080;
+    --gold: #b8924a;
+    --gold-light: #d4af6e;
+    --line: #e5e0d8;
+    --card-bg: #ffffff;
+  }
+  :root[data-theme="dark"] {
+    --page-bg: #14120e;
+    --page-bg-2: #1c1912;
+    --ink: #f2ede4;
+    --ink-sub: #beb4a2;
+    --ink-hint: #877c6b;
+    --line: #332e24;
+    --card-bg: #1e1b15;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --page-bg: #14120e;
+      --page-bg-2: #1c1912;
+      --ink: #f2ede4;
+      --ink-sub: #beb4a2;
+      --ink-hint: #877c6b;
+      --line: #332e24;
+      --card-bg: #1e1b15;
+    }
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--page-bg);
+    color: var(--ink);
+    font-family: -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 48px 24px 80px;
+    display: grid;
+    grid-template-columns: minmax(0, 400px) minmax(0, 400px);
+    gap: 56px;
+    align-items: start;
+    justify-content: center;
+  }
+  @media (max-width: 860px) {
+    .wrap { grid-template-columns: 1fr; justify-items: center; gap: 40px; }
+  }
+
+  /* ── 좌측: 설명 패널 ── */
+  .panel { max-width: 400px; }
+  .eyebrow {
+    font-size: 12px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--gold);
+    font-weight: 700;
+    margin: 0 0 10px;
+  }
+  h1 {
+    font-family: "Noto Serif KR", Georgia, serif;
+    font-size: 26px;
+    line-height: 1.35;
+    margin: 0 0 14px;
+    text-wrap: balance;
+    letter-spacing: -0.01em;
+  }
+  .lede {
+    font-size: 14.5px;
+    line-height: 1.75;
+    color: var(--ink-sub);
+    margin: 0 0 30px;
+    max-width: 60ch;
+  }
+  .change-list {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    padding: 22px 0 0;
+    border-top: 1px solid var(--line);
+  }
+  .change {
+    display: grid;
+    grid-template-columns: 22px 1fr;
+    gap: 12px;
+  }
+  .change .dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--gold);
+    margin-top: 6px;
+  }
+  .change h3 {
+    font-size: 14px;
+    font-weight: 700;
+    margin: 0 0 4px;
+    color: var(--ink);
+  }
+  .change p {
+    font-size: 13px;
+    line-height: 1.65;
+    color: var(--ink-sub);
+    margin: 0;
+  }
+  .change .before {
+    color: var(--ink-hint);
+    text-decoration: line-through;
+    text-decoration-color: var(--line);
+  }
+
+  .note {
+    margin-top: 28px;
+    padding: 14px 16px;
+    border-radius: 12px;
+    background: var(--page-bg-2);
+    border: 1px solid var(--line);
+    font-size: 12.5px;
+    line-height: 1.7;
+    color: var(--ink-sub);
+  }
+  .note b { color: var(--ink); }
+
+  /* ── 우측: 폰 목업 ── */
+  .phone-stage {
+    position: sticky;
+    top: 40px;
+    display: flex;
+    justify-content: center;
+  }
+  .phone {
+    width: 340px;
+    height: 700px;
+    border-radius: 44px;
+    padding: 12px;
+    background: linear-gradient(155deg, #2a2620, #100e0a);
+    box-shadow:
+      0 30px 60px -20px rgba(0,0,0,.5),
+      0 0 0 1px rgba(184,146,74,.12);
+    position: relative;
+  }
+  .screen {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    border-radius: 34px;
+    overflow: hidden;
+    background:
+      radial-gradient(120% 70% at 50% 0%, rgba(212,175,110,.22), transparent 60%),
+      radial-gradient(90% 60% at 20% 100%, rgba(184,146,74,.14), transparent 55%),
+      linear-gradient(200deg, #211d17 0%, #14120e 55%, #0b0a07 100%);
+  }
+  .notch {
+    position: absolute;
+    top: 12px; left: 50%; transform: translateX(-50%);
+    width: 90px; height: 22px;
+    background: #0b0a07;
+    border-radius: 999px;
+    z-index: 40;
+  }
+
+  /* ── 상단 스크림 + 헤더 ── */
+  .top-scrim {
+    position: absolute; top: 0; left: 0; right: 0;
+    height: 130px;
+    background: linear-gradient(to bottom, rgba(0,0,0,.55), transparent);
+    z-index: 20;
+  }
+  .top-bar {
+    position: absolute; top: 44px; left: 16px; right: 16px;
+    z-index: 30;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .back-btn {
+    width: 30px; height: 30px; border-radius: 50%;
+    background: rgba(0,0,0,.35);
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-size: 15px;
+  }
+  .brand-mark {
+    font-family: "Noto Serif KR", Georgia, serif;
+    font-size: 12.5px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: #f4ecdd;
+    text-shadow: 0 1px 6px rgba(0,0,0,.5);
+  }
+  .live-pill {
+    display: flex; align-items: center; gap: 6px;
+    background: rgba(0,0,0,.4);
+    border-radius: 999px;
+    padding: 4px 10px 4px 8px;
+    font-size: 11.5px; font-weight: 700; color: #fff;
+  }
+  .live-pill .dot { width: 6px; height: 6px; border-radius: 50%; background: #ff5470; }
+  .live-pill .views { color: #e8e0d2; font-weight: 500; font-variant-numeric: tabular-nums; margin-left: 2px; }
+
+  /* ── 우측 아이콘 레일 ── */
+  .rail {
+    position: absolute; right: 12px; bottom: 168px;
+    z-index: 30;
+    display: flex; flex-direction: column; align-items: center; gap: 20px;
+  }
+  .rail-btn {
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+    color: #fff;
+  }
+  .rail-btn .circle {
+    width: 42px; height: 42px; border-radius: 50%;
+    background: rgba(0,0,0,.38);
+    backdrop-filter: blur(2px);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 19px;
+  }
+  .rail-btn .circle.heart { color: #ff4d6d; }
+  .rail-btn .count {
+    font-size: 10.5px; font-weight: 700; color: #f4ecdd;
+    text-shadow: 0 1px 4px rgba(0,0,0,.5);
+    font-variant-numeric: tabular-nums;
+  }
+  .rail-btn .badge {
+    position: absolute;
+    transform: translate(13px,-13px);
+    background: var(--gold);
+    color: #1a1508;
+    font-size: 9.5px; font-weight: 800;
+    width: 16px; height: 16px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  /* 떠오르는 하트 애니메이션 */
+  .float-hearts { position: absolute; right: 26px; bottom: 210px; z-index: 25; pointer-events: none; }
+  .fheart {
+    position: absolute; font-size: 20px; color: #ff4d6d;
+    animation: floatup 2.4s ease-out infinite;
+    opacity: 0;
+  }
+  .fheart:nth-child(1) { left: 0px; animation-delay: 0s; }
+  .fheart:nth-child(2) { left: -18px; animation-delay: .8s; }
+  .fheart:nth-child(3) { left: 10px; animation-delay: 1.6s; }
+  @keyframes floatup {
+    0%   { transform: translateY(0) scale(.7); opacity: 0; }
+    12%  { opacity: 1; transform: translateY(-14px) scale(1.05); }
+    100% { transform: translateY(-150px) scale(.85); opacity: 0; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .fheart { animation: none; opacity: 0; }
+  }
+
+  /* ── 지금판매 상품 미니카드 ── */
+  .product-chip {
+    position: absolute; left: 14px; right: 66px; bottom: 168px;
+    z-index: 30;
+    background: rgba(20,17,12,.62);
+    backdrop-filter: blur(6px);
+    border: 1px solid rgba(212,175,110,.35);
+    border-radius: 14px;
+    padding: 8px 10px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .product-chip .thumb {
+    width: 38px; height: 38px; border-radius: 9px; flex-shrink: 0;
+    background: linear-gradient(150deg, #d9c9a8, #a98a5a);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+  }
+  .product-chip .info { min-width: 0; flex: 1; }
+  .product-chip .tag {
+    font-size: 9.5px; font-weight: 800; color: var(--gold-light);
+    display: flex; align-items: center; gap: 4px; margin-bottom: 1px;
+  }
+  .product-chip .tag .blip { width: 5px; height: 5px; border-radius: 50%; background: var(--gold-light); }
+  .product-chip .name {
+    font-size: 12px; color: #f4ecdd; font-weight: 600;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .product-chip .price {
+    font-size: 12px; font-weight: 800; color: #fff; flex-shrink: 0;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ── 하단 채팅 오버레이 + 입력창 ── */
+  .bottom-scrim {
+    position: absolute; left: 0; right: 0; bottom: 0;
+    height: 260px;
+    background: linear-gradient(to top, rgba(0,0,0,.68) 20%, rgba(0,0,0,.35) 55%, transparent);
+    z-index: 20;
+  }
+  .chat-feed {
+    position: absolute; left: 14px; right: 66px; bottom: 66px;
+    z-index: 25;
+    display: flex; flex-direction: column; gap: 7px;
+  }
+  .chat-line {
+    font-size: 12.5px; line-height: 1.5; color: #f2ede4;
+    text-shadow: 0 1px 5px rgba(0,0,0,.55);
+  }
+  .chat-line .nick { color: var(--gold-light); font-weight: 700; margin-right: 5px; }
+  .chat-line .mention { color: #fff; font-weight: 700; }
+
+  .input-bar {
+    position: absolute; left: 10px; right: 10px; bottom: 12px;
+    z-index: 30;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .emoji-btn {
+    width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0;
+    background: rgba(255,255,255,.14);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+  }
+  .chat-input {
+    flex: 1; height: 34px; border-radius: 999px;
+    background: rgba(255,255,255,.16);
+    display: flex; align-items: center;
+    padding: 0 14px;
+    font-size: 12.5px; color: rgba(255,255,255,.65);
+  }
+  .send-btn {
+    width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0;
+    background: var(--gold);
+    display: flex; align-items: center; justify-content: center;
+    color: #1a1508; font-size: 14px;
+  }
+
+  .caption {
+    text-align: center;
+    font-size: 11.5px;
+    color: var(--ink-hint);
+    margin-top: 14px;
+  }
+</style>
+
+<div class="wrap">
+  <div class="panel">
+    <p class="eyebrow">Beautyground · Live Watch Redesign</p>
+    <h1>영상은 화면 전체를, 채팅·구매는 그 위에 겹치게</h1>
+    <p class="lede">
+      지금은 영상 박스 아래로 상품·채팅이 순서대로 나열돼 있어서 스크롤해야 다 보이고,
+      틱톡·유튜브 라이브 같은 몰입감이 없습니다. 아래 시안은 영상을 화면 꽉 채우는 배경으로 쓰고
+      그 위에 채팅·좋아요·판매 상품을 오버레이로 얹는 방식입니다. 라이브 커머스 특성상 시청 중
+      바로 구매까지 이어져야 해서, 채팅으로 화면을 완전히 덮지 않고 상품은 항상 붙박이로 보이게 했습니다.
+    </p>
+
+    <div class="change-list">
+      <div class="change">
+        <span class="dot"></span>
+        <div>
+          <h3>영상 — 박스 → 전체화면</h3>
+          <p><span class="before">화면 위쪽 좁은 박스</span> → 화면 전체가 영상. 세로 방송이면 꽉 차게, 가로 방송이면 위아래 여백만.</p>
+        </div>
+      </div>
+      <div class="change">
+        <span class="dot"></span>
+        <div>
+          <h3>채팅 — 아래 별도 칸 → 영상 위 오버레이</h3>
+          <p><span class="before">스크롤해야 보이던 채팅창</span> → 영상 하단에 최근 메시지가 반투명하게 떠서 스크롤 없이 바로 보임. 닉네임 탭하면 멘션.</p>
+        </div>
+      </div>
+      <div class="change">
+        <span class="dot"></span>
+        <div>
+          <h3>좋아요 하트 — 위치 조정</h3>
+          <p><span class="before">영상 모서리에 어색하게 떠있던 위치</span> → 우측 아이콘 레일로 정리, 카운트 표시 추가.</p>
+        </div>
+      </div>
+      <div class="change">
+        <span class="dot"></span>
+        <div>
+          <h3>판매 상품 — 스크롤 없이 항상 노출</h3>
+          <p>지금 판매 중인 상품 1개를 채팅 위에 작은 카드로 고정 — 탭하면 구매 시트가 올라오는 방식(전체 목록은 우측 쇼핑백 아이콘).</p>
+        </div>
+      </div>
+      <div class="change">
+        <span class="dot"></span>
+        <div>
+          <h3>입력창 — 이모지 버튼 추가</h3>
+          <p>채팅 입력창 왼쪽에 이모지 버튼. 표준 유니코드 이모지라 저작권 문제 없음.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="note">
+      <b>참고</b> — 이 화면은 영상 위에 얹는 오버레이 UI라 라이트/다크 모드 구분 없이 항상 어두운 톤으로 고정했습니다 (틱톡·인스타 라이브도 동일한 방식). 페이지의 다른 화면들은 기존처럼 라이트/다크 모두 대응됩니다.
+    </div>
+  </div>
+
+  <div class="phone-stage">
+    <div>
+      <div class="phone">
+        <div class="screen">
+          <div class="notch"></div>
+
+          <div class="top-scrim"></div>
+          <div class="top-bar">
+            <div class="back-btn">‹</div>
+            <div class="brand-mark">BEAUTYGROUND</div>
+            <div class="live-pill">
+              <span class="dot"></span> LIVE <span class="views">· 1</span>
+            </div>
+          </div>
+
+          <div class="float-hearts">
+            <span class="fheart">♥</span>
+            <span class="fheart">♥</span>
+            <span class="fheart">♥</span>
+          </div>
+
+          <div class="rail">
+            <div class="rail-btn">
+              <div class="circle heart">♥</div>
+              <span class="count">128</span>
+            </div>
+            <div class="rail-btn" style="position:relative;">
+              <div class="circle">🛍️</div>
+              <span class="badge">3</span>
+            </div>
+          </div>
+
+          <div class="product-chip">
+            <div class="thumb">💄</div>
+            <div class="info">
+              <p class="tag"><span class="blip"></span>지금 판매중</p>
+              <p class="name">호스트검증방송 특가 세트</p>
+            </div>
+            <p class="price">29,000원</p>
+          </div>
+
+          <div class="bottom-scrim"></div>
+          <div class="chat-feed">
+            <p class="chat-line"><span class="nick">test3</span>안녕하세요</p>
+            <p class="chat-line"><span class="nick">익명</span>이 제품 재입고 언제 되나요?</p>
+            <p class="chat-line"><span class="nick">test3</span><span class="mention">@익명</span> 다음 주에 들어와요 😊</p>
+            <p class="chat-line"><span class="nick">lexy8112</span>방금 주문했어요 🎉</p>
+          </div>
+
+          <div class="input-bar">
+            <div class="emoji-btn">🙂</div>
+            <div class="chat-input">메시지를 입력하세요…</div>
+            <div class="send-btn">➤</div>
+          </div>
+        </div>
+      </div>
+      <p class="caption">실제 사용 중인 브랜드 컬러(골드 #b8924a)·서체·문구 그대로 반영한 시안</p>
+    </div>
+  </div>
+</div>
