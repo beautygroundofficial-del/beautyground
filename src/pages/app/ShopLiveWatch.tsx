@@ -6,6 +6,7 @@ import { won } from '../../lib/format'
 import { streamIframeSrc } from '../../lib/cloudflare'
 import { useLiveChat } from '../../hooks/useLiveChat'
 import { useStreamStatus } from '../../hooks/useStreamStatus'
+import { useLiveVertical } from '../../hooks/useLiveVertical'
 import { couponLabel, couponRemaining, couponSoldOut } from '../../lib/coupons'
 import AppHeader from '../../components/layout/AppHeader'
 import AppFrame from '../../components/layout/AppFrame'
@@ -173,6 +174,7 @@ export default function ShopLiveWatch() {
   const streamState = useStreamStatus(live?.stream_uid, live?.status === 'live')
   const waitingForStream = live?.status === 'live' && streamState === 'disconnected'
   const onAir = live?.status === 'live' && Boolean(live.stream_uid) && streamState !== 'disconnected'
+  const liveVertical = useLiveVertical(live?.stream_uid, streamState === 'connected')
 
   const inputClass =
     'w-full bg-white border border-cream-2 rounded-md px-4 py-3 text-[14px] text-text placeholder:text-text-hint focus:outline-none focus:shadow-focus transition'
@@ -232,7 +234,10 @@ export default function ShopLiveWatch() {
                   </span>
                 </div>
               ) : streamSrc ? (
-                <div className="relative w-full" style={{ paddingTop: '56.25%' }}>
+                <div
+                  className="relative w-full mx-auto"
+                  style={liveVertical ? { paddingTop: '177.78%', maxWidth: 360 } : { paddingTop: '56.25%' }}
+                >
                   <iframe
                     src={streamSrc}
                     className="absolute inset-0 w-full h-full"
