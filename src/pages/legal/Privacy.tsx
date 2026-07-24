@@ -2,6 +2,7 @@ import GNB from '../../components/layout/GNB'
 import Footer from '../../components/layout/Footer'
 import { COMPANY_INFO } from '../../lib/companyInfo'
 
+// ⚠️ PG 재신청 전 법률 검토 대상 — 소비자에게 공개되는 페이지이므로 화면에 "템플릿" 경고문구를 노출하지 말 것
 export default function Privacy() {
   return (
     <>
@@ -10,10 +11,6 @@ export default function Privacy() {
         <div className="max-w-[720px] mx-auto px-6">
           <h1 className="font-serif text-[28px] font-bold text-text mb-8">개인정보처리방침</h1>
           <div className="bg-white rounded-md p-6 md:p-8 border text-[14px] text-text-sub leading-relaxed space-y-5" style={{ borderColor: '#e5e0d8', borderWidth: '0.5px' }}>
-            <p>
-              ⚠️ 본 방침은 표준 템플릿이며, 서비스 실제 오픈 전 개인정보보호책임자·사업자 정보를 확정해
-              법률 검토 후 게시해야 합니다.
-            </p>
             <section>
               <h2 className="text-[15px] font-bold text-text mb-2">1. 수집하는 개인정보 항목</h2>
               <p>
@@ -51,11 +48,11 @@ export default function Privacy() {
             <section>
               <h2 className="text-[15px] font-bold text-text mb-2">6. 개인정보 보호책임자</h2>
               <p>
-                성명: 정보 준비 중 · 연락처: {COMPANY_INFO.csEmail} / {COMPANY_INFO.csPhone}
+                성명: {COMPANY_INFO.ceo}(대표) · 연락처: {COMPANY_INFO.csEmail} / {COMPANY_INFO.csPhone}
               </p>
             </section>
             <p className="text-[12px] text-text-hint pt-4 border-t" style={{ borderColor: '#e5e0d8' }}>
-              공고일자: 정보 준비 중 · 시행일자: 정보 준비 중
+              공고일자: 2026-07-24 · 시행일자: 2026-07-24
             </p>
           </div>
         </div>

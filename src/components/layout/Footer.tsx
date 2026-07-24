@@ -68,7 +68,6 @@ export default function Footer() {
           <p>{COMPANY_INFO.name} | 대표: {COMPANY_INFO.ceo} | 사업자등록번호: {COMPANY_INFO.bizNumber}</p>
           <p>통신판매업신고: {COMPANY_INFO.mailOrderNumber} | 주소: {COMPANY_INFO.address}</p>
           <p>고객센터: {COMPANY_INFO.csPhone} | 이메일: {COMPANY_INFO.csEmail}</p>
-          <p className="mt-1">{COMPANY_INFO.name}는 통신판매중개자로서 거래 당사자가 아니며, 판매자가 제공하는 상품 정보 및 거래에 대한 책임을 지지 않습니다.</p>
         </div>
 
         <p className="mt-6 text-[12px] text-white/25">

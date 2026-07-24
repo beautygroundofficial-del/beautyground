@@ -3,6 +3,7 @@ import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import * as PortOne from '@portone/browser-sdk/v2'
 import BackHeader from '../components/layout/BackHeader'
 import { supabase } from '../lib/supabase'
+import { COMPANY_INFO } from '../lib/companyInfo'
 import { SHIPPING_FEE, FREE_SHIPPING_THRESHOLD } from '../constants'
 import { getAddresses, addAddress, type Address } from '../lib/addresses'
 import type { LiveCoupon } from '../lib/types'
@@ -567,6 +568,11 @@ export default function AppOrder() {
         {paymentReady && (
           <p className="text-[11px] text-text-hint mt-3">테스트 모드 결제입니다. 실제 청구되지 않습니다.</p>
         )}
+        <p className="text-[11px] text-text-hint mt-4 pt-3 border-t border-cream-2 leading-relaxed">
+          {COMPANY_INFO.name} | 대표: {COMPANY_INFO.ceo} | 사업자등록번호: {COMPANY_INFO.bizNumber} | 통신판매업신고: {COMPANY_INFO.mailOrderNumber}
+          <br />
+          {COMPANY_INFO.address} | 고객센터: {COMPANY_INFO.csPhone}
+        </p>
       </div>
 
       {/* 결제 버튼 */}

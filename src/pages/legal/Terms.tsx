@@ -2,6 +2,8 @@ import GNB from '../../components/layout/GNB'
 import Footer from '../../components/layout/Footer'
 import { COMPANY_INFO } from '../../lib/companyInfo'
 
+// ⚠️ PG 재신청 전 법률 검토 대상 — 소비자에게 공개되는 페이지이므로 화면에 "템플릿" 경고문구를 노출하지 말 것
+// (2026-07-24: 통신판매중개자 문구가 PG 반려 사유였음 — 이 문서에 미완성/플레이스홀더 표기를 남기면 동일 문제 재발 가능)
 export default function Terms() {
   return (
     <>
@@ -10,11 +12,6 @@ export default function Terms() {
         <div className="max-w-[720px] mx-auto px-6">
           <h1 className="font-serif text-[28px] font-bold text-text mb-8">이용약관</h1>
           <div className="bg-white rounded-md p-6 md:p-8 border text-[14px] text-text-sub leading-relaxed space-y-5" style={{ borderColor: '#e5e0d8', borderWidth: '0.5px' }}>
-            <p>
-              ⚠️ 본 약관은 표준 템플릿이며, 서비스 실제 오픈 전 {COMPANY_INFO.name}의 사업 실태에 맞게
-              법률 검토 후 확정해야 합니다. 사업자 정보(사업자등록번호·통신판매업신고번호 등)가 확정되는 대로
-              함께 반영합니다.
-            </p>
             <section>
               <h2 className="text-[15px] font-bold text-text mb-2">제1조 (목적)</h2>
               <p>
@@ -25,8 +22,10 @@ export default function Terms() {
             <section>
               <h2 className="text-[15px] font-bold text-text mb-2">제2조 (회사의 지위)</h2>
               <p>
-                회사는 입점 판매자(파트너)가 등록한 상품 정보 및 거래에 대해 통신판매중개자의 지위를 가지며,
-                판매자가 등록한 상품, 상품정보, 거래에 관한 의무와 책임은 원칙적으로 각 판매자에게 있습니다.
+                회사는 몰에서 판매되는 모든 상품에 대하여 통신판매업자로서 계약 당사자의 지위를 가지며,
+                상품의 하자·배송·교환·환불 등 소비자와의 거래에 관한 책임을 부담합니다. 파트너(브랜드)는
+                회사와의 별도 계약에 따라 상품을 공급하며, 상품정보의 정확성 등에 대하여 회사에 대해
+                책임을 부담합니다.
               </p>
             </section>
             <section>
@@ -54,12 +53,12 @@ export default function Terms() {
             <section>
               <h2 className="text-[15px] font-bold text-text mb-2">제6조 (면책)</h2>
               <p>
-                회사는 천재지변, 판매자의 귀책사유 등 회사의 고의·과실 없이 발생한 손해에 대해서는 책임을
+                회사는 천재지변 등 불가항력적 사유로 회사의 고의·과실 없이 발생한 손해에 대해서는 책임을
                 지지 않습니다.
               </p>
             </section>
             <p className="text-[12px] text-text-hint pt-4 border-t" style={{ borderColor: '#e5e0d8' }}>
-              공고일자: 정보 준비 중 · 시행일자: 정보 준비 중 · 문의: {COMPANY_INFO.csEmail}
+              공고일자: 2026-07-24 · 시행일자: 2026-07-24 · 문의: {COMPANY_INFO.csEmail}
             </p>
           </div>
         </div>

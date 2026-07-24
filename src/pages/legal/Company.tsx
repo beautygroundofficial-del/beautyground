@@ -34,10 +34,6 @@ export default function Company() {
                 ))}
               </tbody>
             </table>
-            <p className="mt-6 text-[12px] text-text-hint leading-relaxed">
-              {COMPANY_INFO.name}는 통신판매중개자로서 거래 당사자가 아니며, 판매자가 제공하는
-              상품 정보 및 거래에 대한 책임을 지지 않습니다.
-            </p>
           </div>
         </div>
       </main>
