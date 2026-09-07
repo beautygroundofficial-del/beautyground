@@ -3,6 +3,7 @@ import DesktopHeader from '../layout/DesktopHeader'
 import DesktopFooter from '../layout/DesktopFooter'
 import PromoBar from './PromoBar'
 import MissionBanner from './MissionBanner'
+import TodayQuestion from '../community/TodayQuestion'
 import DiaryHomeFeed from './DiaryHomeFeed'
 import type { HeroBanner } from '../../hooks/useHeroBanners'
 import type { ShopProduct } from '../../hooks/useShopProducts'
@@ -37,6 +38,12 @@ export default function DesktopHome(_: Props) {
           읽기 좋은 폭(680px)으로 가운데 모은다. */}
       <div className="max-w-[680px] mx-auto px-6 py-10">
         <MissionBanner />
+
+        {/* 오늘의 질문 — 모바일과 같은 컴포넌트를 쓴다.
+            ⚠️ 홈은 모바일·PC 컴포넌트가 나뉘어 있어 한쪽만 고치면 반쪽만 바뀐다(2026-09-02 사고). */}
+        <div className="pb-5">
+          <TodayQuestion />
+        </div>
 
         <button
           onClick={() => navigate('/app/diary')}

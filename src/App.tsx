@@ -69,6 +69,8 @@ const AdminLiveSupport = lazy(() => import('./pages/admin/LiveSupport'))
 const AdminCoupons = lazy(() => import('./pages/admin/Coupons'))
 const AdminCouponGenerator = lazy(() => import('./pages/admin/CouponGenerator'))
 const AdminMissions = lazy(() => import('./pages/admin/Missions'))
+const AdminDailyQuestions = lazy(() => import('./pages/admin/DailyQuestions'))
+const AdminMonthlyPicks = lazy(() => import('./pages/admin/MonthlyPicks'))
 const AdminExportInquiries = lazy(() => import('./pages/admin/ExportInquiries'))
 const AdminExportBuyers = lazy(() => import('./pages/admin/ExportBuyers'))
 const AdminPartnerHubPosts = lazy(() => import('./pages/admin/PartnerHubPosts'))
@@ -222,6 +224,8 @@ export default function App() {
             <Route path="/admin/coupons" element={<AdminCoupons />} />
             <Route path="/admin/coupon-generator" element={<AdminCouponGenerator />} />
             <Route path="/admin/missions" element={<AdminMissions />} />
+            <Route path="/admin/daily-questions" element={<AdminDailyQuestions />} />
+            <Route path="/admin/monthly-picks" element={<AdminMonthlyPicks />} />
             <Route path="/admin/export-inquiries" element={<AdminExportInquiries />} />
             <Route path="/admin/export-buyers" element={<AdminExportBuyers />} />
             <Route path="/admin/partner-hub-posts" element={<AdminPartnerHubPosts />} />

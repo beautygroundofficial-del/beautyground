@@ -79,7 +79,9 @@ export default function DiaryHomeFeed() {
                   {i + 1}
                 </span>
                 <p className="text-[13px] text-ink leading-snug line-clamp-3 min-h-[3.6em]">{b.content}</p>
-                <p className="text-[11.5px] text-ink-faint mt-2.5">♥ {b.like_count}</p>
+                {b.reaction_count > 0 && (
+                  <p className="text-[11.5px] text-ink-faint mt-2.5">🤍 {b.reaction_count}</p>
+                )}
               </button>
             ))}
           </div>
@@ -145,7 +147,12 @@ export default function DiaryHomeFeed() {
                           <span className="text-[12px] font-semibold text-ink truncate">{maskName(d.nickname)}</span>
                           <span className="text-[11.5px] text-ink-faint shrink-0">{timeAgo(d.created_at)}</span>
                         </div>
-                        <span className="text-[13px] text-ink-soft shrink-0">♡ {d.like_count}</span>
+                        {/* 홈 카드는 전체가 '이야기로 가기' 버튼이라 반응 버튼을 넣으면 버튼이 겹친다.
+                            여기서는 받은 공감 수만 보여주고, 누르는 것은 이야기 화면에서 한다. */}
+                        <span className="flex items-center gap-2 text-[12.5px] text-ink-soft shrink-0">
+                          {d.pat + d.same + d.cheer > 0 && <span>🤍 {d.pat + d.same + d.cheer}</span>}
+                          {d.comment_count > 0 && <span>💬 {d.comment_count}</span>}
+                        </span>
                       </div>
                     </div>
                   </button>

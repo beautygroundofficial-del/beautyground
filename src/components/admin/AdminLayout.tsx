@@ -17,6 +17,8 @@ import {
   IconWorld,
   IconTargetArrow,
   IconClipboardList,
+  IconMessageQuestion,
+  IconTrophy,
   IconChevronRight, IconTruck, IconGift, IconFlag } from '@tabler/icons-react'
 import { supabase } from '../../lib/supabase'
 
@@ -76,6 +78,10 @@ const NAV_GROUPS = [
       { label: '회원 관리', to: '/admin/members', icon: IconAddressBook },
       { label: '쿠폰 생성기', to: '/admin/coupon-generator', icon: IconGift },
       { label: '활동 미션 관리', to: '/admin/missions', icon: IconFlag },
+      // 커뮤니티 놀거리 — 홈에 하루 한 개씩 걸리는 질문(2026-09-07)
+      { label: '오늘의 질문 관리', to: '/admin/daily-questions', icon: IconMessageQuestion },
+      // 월 1회 선정 — 지수는 자동 계산하되 지급은 사람이 확인하고 누른다(2026-09-07)
+      { label: '월간 선정', to: '/admin/monthly-picks', icon: IconTrophy },
     ],
   },
 ]

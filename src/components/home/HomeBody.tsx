@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom'
 import AppHeader from '../layout/AppHeader'
 import MarqueeBar from './MarqueeBar'
 import MissionBanner from './MissionBanner'
+import TodayQuestion from '../community/TodayQuestion'
 import DiaryHomeFeed from './DiaryHomeFeed'
 import type { HeroBanner } from '../../hooks/useHeroBanners'
 import type { ShopProduct } from '../../hooks/useShopProducts'
@@ -39,6 +40,11 @@ export default function HomeBody({ marqueeItems }: HomeBodyProps) {
 
       {/* 오늘 할 수 있는 일 — 관리자가 미션을 켜야 나타난다 */}
       <MissionBanner />
+
+      {/* 오늘의 질문 — 한 줄만 답하면 되는 자리. 오늘 걸린 질문이 없으면 스스로 감춘다 */}
+      <div className="px-5">
+        <TodayQuestion />
+      </div>
 
       {/* 오늘의 이야기 쓰기 */}
       <section className="px-5 pt-5">

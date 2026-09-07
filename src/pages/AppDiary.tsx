@@ -5,9 +5,11 @@ import AppFrame from '../components/layout/AppFrame'
 import BottomNav from '../components/layout/BottomNav'
 import { supabase } from '../lib/supabase'
 import {
-  getDiaryFeed, getMonthlyBestDiaries, createDiary, toggleDiaryLike, deleteDiary,
+  getDiaryFeed, getMonthlyBestDiaries, createDiary, deleteDiary,
   uploadDiaryImages, type Diary, type BestDiary, type DiarySort,
 } from '../lib/diaries'
+import ReactionBar from '../components/community/ReactionBar'
+import DiaryComments from '../components/community/DiaryComments'
 
 // 살아가는 이야기 — 유저가 사진과 함께 일상을 남기는 곳.
 // 글을 올리면 create_diary RPC 안에서 diary_post 미션이 자동 적립된다(화면에서 따로 적립 호출 안 함).
@@ -135,16 +137,10 @@ export default function AppDiary() {
     void load(sort)
   }
 
-  const onLike = async (d: Diary) => {
-    if (!loggedIn) { navigate('/app/login'); return }
-    // 응답을 기다리는 동안 먼저 화면부터 바꿔 준다(느린 네트워크에서 눌린 느낌이 나도록).
-    setFeed((prev) => prev.map((x) => x.id === d.id
-      ? { ...x, liked_by_me: !x.liked_by_me, like_count: x.like_count + (x.liked_by_me ? -1 : 1) }
-      : x))
-    const res = await toggleDiaryLike(d.id)
-    if (!res) { void load(sort); return }
-    setFeed((prev) => prev.map((x) => x.id === d.id
-      ? { ...x, liked_by_me: res.liked, like_count: res.like_count } : x))
+  // 좋아요(평가) 대신 공감 반응으로 바꿨다(2026-09-07) — 누르는 처리는 ReactionBar 안에 있고,
+  // 여기서는 결과만 받아 목록에 반영한다(정렬·재조회 없이 그 자리에서만 바뀐다).
+  const onReacted = (id: string, next: { pat: number; same: number; cheer: number; my_kind: Diary['my_kind'] }) => {
+    setFeed((prev) => prev.map((x) => (x.id === id ? { ...x, ...next } : x)))
   }
 
   const onDelete = async (d: Diary) => {
@@ -234,7 +230,9 @@ export default function AppDiary() {
                   {i + 1}
                 </span>
                 <p className="text-[13px] text-ink leading-snug line-clamp-3 min-h-[3.6em]">{b.content}</p>
-                <p className="text-[11.5px] text-ink-faint mt-2.5">♥ {b.like_count}</p>
+                {b.reaction_count > 0 && (
+                  <p className="text-[11.5px] text-ink-faint mt-2.5">🤍 {b.reaction_count}</p>
+                )}
               </div>
             ))}
           </div>
@@ -301,18 +299,37 @@ export default function AppDiary() {
                         <span className="text-[12px] font-semibold text-ink truncate">{maskName(d.nickname)}</span>
                         <span className="text-[11.5px] text-ink-faint shrink-0">{timeAgo(d.created_at)}</span>
                       </div>
-                      <div className="flex items-center gap-3 shrink-0">
-                        {d.is_mine && (
-                          <button onClick={() => void onDelete(d)} className="text-[11.5px] text-ink-faint">삭제</button>
-                        )}
-                        <button onClick={() => void onLike(d)}
-                          className={`inline-flex items-center gap-1.5 text-[13px] ${
-                            d.liked_by_me ? 'text-signal-blue font-semibold' : 'text-ink-soft'}`}>
-                          <span>{d.liked_by_me ? '♥' : '♡'}</span>
-                          <span className="tabular-nums">{d.like_count}</span>
-                        </button>
-                      </div>
+                      {d.is_mine && (
+                        <button onClick={() => void onDelete(d)} className="text-[11.5px] text-ink-faint shrink-0">삭제</button>
+                      )}
                     </div>
+
+                    {/* 공감 — 내 글에는 띄우지 않는다(셀프 공감은 적립도 안 되고 의미도 없다) */}
+                    {!d.is_mine && (
+                      <div className="mt-3">
+                        <ReactionBar
+                          target="diary"
+                          targetId={d.id}
+                          counts={d}
+                          loggedIn={!!loggedIn}
+                          size="sm"
+                          onChange={(next) => onReacted(d.id, next)}
+                          onAward={(p) => showToast(`${p}P를 받았어요`)}
+                        />
+                      </div>
+                    )}
+
+                    {/* 댓글 — 내 글에도 달린다(글쓴이가 답을 해야 대화가 된다) */}
+                    <DiaryComments
+                      diaryId={d.id}
+                      count={d.comment_count}
+                      loggedIn={!!loggedIn}
+                      myName={myName}
+                      onCountChange={(n) => setFeed((prev) => prev.map((x) =>
+                        (x.id === d.id ? { ...x, comment_count: n } : x)))}
+                      onAward={(p) => showToast(`${p}P를 받았어요`)}
+                      onNotice={showToast}
+                    />
                   </div>
                 </li>
               )

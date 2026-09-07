@@ -9,10 +9,19 @@ export interface Diary {
   nickname: string | null
   content: string
   images: string[]
+  // ⚠️ like_count / liked_by_me 는 2026-09-07 이후 화면에서 쓰지 않는다.
+  //    좋아요(평가) 대신 공감 반응(pat/same/cheer)으로 바꿨고, 기존 데이터·함수는
+  //    삭제 전 보고 원칙에 따라 지우지 않고 남겨뒀다.
   like_count: number
   liked_by_me: boolean
   is_mine: boolean
   created_at: string
+  // 공감 반응 — ReactionCounts 와 같은 모양이라 ReactionBar 에 그대로 넘길 수 있다.
+  pat: number
+  same: number
+  cheer: number
+  my_kind: 'pat' | 'same' | 'cheer' | null
+  comment_count: number
 }
 
 export interface BestDiary {
@@ -20,7 +29,8 @@ export interface BestDiary {
   nickname: string | null
   content: string
   images: string[]
-  like_count: number
+  // 좋아요 수가 아니라 '공감한 사람 수'(1인 1표) — 2026-09-07 기준 변경
+  reaction_count: number
   created_at: string
 }
 
@@ -66,6 +76,48 @@ export async function toggleDiaryLike(diaryId: string): Promise<{ liked: boolean
 
 export async function deleteDiary(diaryId: string): Promise<boolean> {
   const { error } = await supabase.from('diaries').delete().eq('id', diaryId)
+  return !error
+}
+
+// ── 댓글 ───────────────────────────────────────────────────────────────────
+// 남의 글에 처음 댓글을 달 때만 comment_give 미션이 적립된다(자기 글·5자 미만·재작성은 0P).
+export interface DiaryComment {
+  id: string
+  nickname: string | null
+  content: string
+  created_at: string
+  is_mine: boolean
+}
+
+export async function getDiaryComments(diaryId: string, limit = 50): Promise<DiaryComment[]> {
+  const { data, error } = await supabase.rpc('get_diary_comments', {
+    p_diary_id: diaryId, p_limit: limit, p_offset: 0,
+  })
+  if (error) return []
+  return (data ?? []) as DiaryComment[]
+}
+
+export interface CreateCommentResult {
+  comment_id: string | null
+  awarded: number
+  message: string
+}
+
+export async function createDiaryComment(
+  diaryId: string, content: string, nickname?: string | null,
+): Promise<CreateCommentResult> {
+  const fail: CreateCommentResult = { comment_id: null, awarded: 0, message: '잠시 후 다시 시도해 주세요' }
+  const { data, error } = await supabase.rpc('create_diary_comment', {
+    p_diary_id: diaryId, p_content: content, p_nickname: nickname ?? null,
+  })
+  if (error) return fail
+  const row = Array.isArray(data) ? data[0] : data
+  return (row ?? fail) as CreateCommentResult
+}
+
+// 본인 댓글만 지워진다(RLS). 실패하면 false.
+export async function deleteDiaryComment(commentId: string): Promise<boolean> {
+  const { error } = await supabase.from('diary_comments').delete().eq('id', commentId)
   return !error
 }
 
