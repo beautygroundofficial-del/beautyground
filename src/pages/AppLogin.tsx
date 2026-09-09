@@ -71,23 +71,74 @@ export default function AppLogin() {
     if (oauthError) setError('카카오 로그인 연결에 실패했습니다. 잠시 후 다시 시도해주세요.')
   }
 
+  // 네이버 로그인 — 회원가입 화면(AppSignup.tsx)과 같은 방식.
+  // 네이버는 Supabase 공식 지원 밖이라 커스텀 OAuth다: state/from 을 sessionStorage 에 저장해두고
+  // 콜백(AppNaverCallback.tsx)에서 CSRF 대조 후 /api/auth-naver 로 code 를 넘겨 세션을 완성한다.
+  const handleNaver = () => {
+    setError('')
+    const clientId = import.meta.env.VITE_NAVER_CLIENT_ID as string | undefined
+    if (!clientId) {
+      setError('네이버 로그인이 아직 설정되지 않았습니다.')
+      return
+    }
+    const state = crypto.randomUUID()
+    sessionStorage.setItem('naver_oauth_state', state)
+    sessionStorage.setItem('naver_oauth_from', from)
+    const url = new URL('https://nid.naver.com/oauth2.0/authorize')
+    url.searchParams.set('response_type', 'code')
+    url.searchParams.set('client_id', clientId)
+    url.searchParams.set('redirect_uri', `${window.location.origin}/app/auth/naver/callback`)
+    url.searchParams.set('state', state)
+    window.location.href = url.toString()
+  }
+
   const formContent = (
     <>
-      {/* 카카오 로그인 — 공식 버튼 규격(#FEE500 배경 + 검정 85% 텍스트, 카카오 고유색 예외) */}
-      <button
-        type="button"
-        onClick={handleKakao}
-        className="w-full flex items-center justify-center gap-2 rounded-control font-bold text-[15px] py-3.5 mb-3 focus:outline-none focus-visible:shadow-ring"
-        style={{ backgroundColor: '#FEE500', color: 'rgba(0,0,0,0.85)' }}
-      >
-        <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
-          <path
-            fill="rgba(0,0,0,0.85)"
-            d="M12 3C6.48 3 2 6.54 2 10.9c0 2.8 1.86 5.26 4.66 6.66l-.95 3.52c-.08.31.27.56.54.38l4.19-2.79c.51.05 1.03.08 1.56.08 5.52 0 10-3.54 10-7.85C22 6.54 17.52 3 12 3z"
-          />
-        </svg>
-        카카오 1초 회원가입
-      </button>
+      {/* 로그인 화면 구성 — 2026-09-09 대표님 지시
+          "이메일 로그인도 있으나 카카오 네이버가 상단에 보여지게 해서 로그인 편리성을 강조"
+          "우리가 지향하는 곳은 40대에서 60대의 고객이야 복잡하면 안돼"
+
+          그래서 ①간편 로그인 두 개를 위에 크게(py-4·16px — 이 연령대는 작은 버튼을 잘 못 누른다)
+          ②이메일/비밀번호는 아래로 내려 기존 가입자용으로 남긴다.
+
+          ⚠️ 네이버 버튼은 회원가입 화면에만 있고 이 화면엔 없었다 — 네이버로 가입한 분이
+             로그인하러 오면 들어올 방법이 아예 없던 실제 결함(2026-09-09 발견). */}
+      <div className="space-y-2.5">
+        {/* 카카오 — 공식 버튼 규격(#FEE500 배경 + 검정 85% 텍스트, 카카오 고유색 예외) */}
+        <button
+          type="button"
+          onClick={handleKakao}
+          className="w-full flex items-center justify-center gap-2 rounded-control font-bold text-[16px] py-4 focus:outline-none focus-visible:shadow-ring"
+          style={{ backgroundColor: '#FEE500', color: 'rgba(0,0,0,0.85)' }}
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              fill="rgba(0,0,0,0.85)"
+              d="M12 3C6.48 3 2 6.54 2 10.9c0 2.8 1.86 5.26 4.66 6.66l-.95 3.52c-.08.31.27.56.54.38l4.19-2.79c.51.05 1.03.08 1.56.08 5.52 0 10-3.54 10-7.85C22 6.54 17.52 3 12 3z"
+            />
+          </svg>
+          카카오로 시작하기
+        </button>
+
+        {/* 네이버 — 공식 버튼 규격(#03C75A 배경 + 흰 텍스트) */}
+        <button
+          type="button"
+          onClick={handleNaver}
+          className="w-full flex items-center justify-center gap-2 rounded-control font-bold text-[16px] py-4 text-paper focus:outline-none focus-visible:shadow-ring"
+          style={{ backgroundColor: '#03C75A' }}
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
+            <path fill="#fff" d="M13.6 12.5 8.9 5.5H4.9v13h4.5v-7l4.7 7h4v-13h-4.5v7Z" />
+          </svg>
+          네이버로 시작하기
+        </button>
+      </div>
+
+      {/* 가입인지 로그인인지 고민하지 않게 한 줄로 정리한다 —
+          두 버튼 모두 처음이면 가입, 이미 있으면 로그인으로 그대로 이어진다. */}
+      <p className="text-center text-[12.5px] text-ink-faint mt-3">
+        처음이면 가입, 이미 하셨다면 로그인됩니다
+      </p>
 
       <div className="flex items-center gap-3 my-5">
         <div className="flex-1 h-px bg-rule" />
