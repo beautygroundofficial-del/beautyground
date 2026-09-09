@@ -14,6 +14,8 @@ const GMAIL_USER = process.env.GMAIL_USER || 'beautyground.official@gmail.com'
 const GMAIL_APP_PASSWORD = process.env.GMAIL_APP_PASSWORD || ''
 // 주문·취소가 나면 대표님이 바로 아셔야 한다(2026-09-09 지시). 손님 메일과 별개로 사본을 보낸다.
 const ADMIN_MAIL = 'beautyground.official@gmail.com'
+// 대사 작업(?job=reconcile)은 Vercel 크론만 호출할 수 있게 막는다
+const CRON_SECRET = process.env.CRON_SECRET
 
 // 배송정책 상수 — src/constants/index.ts 와 동일하게 유지할 것(불일치 시 정상결제가 거부되는 방향이라 안전).
 // 2026-08-12 대표님 지시: 배송비 3,000원 · 3만원 이상 무료
@@ -40,7 +42,101 @@ async function sendMail(to: string, subject: string, html: string) {
 
 const won = (n: number) => `${(n || 0).toLocaleString('ko-KR')}원`
 
+// ── ?job=reconcile ────────────────────────────────────────────────────────
+// 하루 한 번 DB 와 포트원 원장을 맞춰본다.
+//
+// 왜 필요한가: 우리 주문 상태는 ①브라우저 콜백 ②포트원 웹훅 두 경로로만 갱신된다.
+// 둘 다 네트워크 너머의 일이라 언젠가는 빠진다 — 웹훅 구독이 빠져 있거나, 배포 중이라
+// 응답을 못 하거나, 재전송이 모두 실패하는 경우다. 그러면 DB 와 실제 돈이 어긋난 채로
+// 아무도 모르게 남는다. 특히 '포트원은 취소됐는데 우리는 paid' 는 재고와 정산이 같이 틀어진다.
+//
+// 그래서 웹훅을 믿지 않고, 최근 주문을 직접 조회해 어긋난 것만 바로잡는다.
+// 고친 게 있으면 대표님께 메일로 알린다. 조용히 고치면 왜 바뀌었는지 아무도 모른다.
+async function reconcileHandler(req: VercelRequest, res: VercelResponse) {
+  if (CRON_SECRET && req.headers.authorization !== `Bearer ${CRON_SECRET}`) {
+    res.status(401).json({ ok: false, reason: '인증 실패' })
+    return
+  }
+  const supabase = createClient(SUPABASE_URL, SERVICE_ROLE as string)
+  const since = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString()
+  const { data: rows } = await supabase
+    .from('orders')
+    .select('payment_id, status')
+    .gte('created_at', since)
+    .not('payment_id', 'is', null)
+  type R = { payment_id: string; status: string }
+  const list = (rows ?? []) as unknown as R[]
+
+  // payment_id 하나가 여러 행(상품·배송비)으로 쪼개져 있으므로 결제 단위로 묶는다
+  const byPid = new Map<string, string[]>()
+  for (const r of list) {
+    if (!r.payment_id.startsWith('order')) continue // staff_* 는 무통장입금이라 PG 원장이 없다
+    byPid.set(r.payment_id, [...(byPid.get(r.payment_id) ?? []), r.status])
+  }
+
+  // 포트원 상태 → 우리가 가져야 할 상태. shipped/done 은 배송이 진행된 것이라 건드리지 않는다.
+  const want = (pgStatus: string): string | null =>
+    pgStatus === 'PAID' ? 'paid' : pgStatus === 'CANCELLED' ? 'cancelled' : pgStatus === 'FAILED' ? 'failed' : null
+
+  const fixed: string[] = []
+  const alerts: string[] = []
+  let checked = 0
+  for (const [pid, statuses] of byPid) {
+    let pg: { status?: string; amount?: { total?: number } }
+    try {
+      const r = await fetch(`https://api.portone.io/payments/${encodeURIComponent(pid)}`, {
+        headers: { Authorization: `PortOne ${PORTONE_SECRET}` },
+      })
+      if (!r.ok) continue
+      pg = await r.json()
+    } catch {
+      continue
+    }
+    checked++
+    const target = want(pg.status ?? '')
+    if (!target) continue
+    const current = statuses[0]
+    if (current === target) continue
+    if (['shipped', 'done'].includes(current)) {
+      // 배송이 나간 뒤 PG 에서 취소된 건 — 자동으로 되돌리면 안 된다. 사람이 판단할 일이다.
+      if (target === 'cancelled') alerts.push(`${pid}: 배송(${current}) 뒤 PG 취소됨 — 확인 필요`)
+      continue
+    }
+    // cancel_requested 는 손님이 요청만 한 상태라, PG 가 아직 PAID 면 그대로 둔다
+    if (current === 'cancel_requested' && target === 'paid') continue
+    const { data: flipped } = await supabase
+      .from('orders')
+      .update({ status: target })
+      .eq('payment_id', pid)
+      .neq('status', target)
+      .select('id')
+    if ((flipped ?? []).length > 0) fixed.push(`${pid}: ${current} → ${target} (PG=${pg.status})`)
+  }
+
+  if (fixed.length > 0 || alerts.length > 0) {
+    await sendMail(
+      ADMIN_MAIL,
+      `[주문 대사] ${fixed.length}건 정정${alerts.length ? ` · ${alerts.length}건 확인필요` : ''}`,
+      `<div style="font-family:sans-serif">
+         <h3>포트원 원장과 어긋난 주문을 맞췄습니다</h3>
+         <p style="color:#888">최근 14일 · 결제 ${checked}건 확인</p>
+         ${fixed.length ? `<h4>정정됨</h4><ul>${fixed.map((s) => `<li>${s}</li>`).join('')}</ul>` : ''}
+         ${alerts.length ? `<h4>🔴 사람이 확인해야 함</h4><ul>${alerts.map((s) => `<li>${s}</li>`).join('')}</ul>` : ''}
+       </div>`
+    )
+  }
+  res.status(200).json({ ok: true, checked, fixed, alerts })
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  if (req.query.job === 'reconcile') {
+    if (!SERVICE_ROLE || !PORTONE_SECRET) {
+      res.status(500).json({ ok: false, reason: '서버 환경변수 누락' })
+      return
+    }
+    await reconcileHandler(req, res)
+    return
+  }
   if (req.method !== 'POST') {
     res.status(405).json({ ok: false, reason: 'POST 요청만 허용됩니다.' })
     return

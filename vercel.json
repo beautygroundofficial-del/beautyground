@@ -1,13 +1,38 @@
 {
   "rewrites": [
-    { "source": "/company", "destination": "/api/company-og" },
-    { "source": "/live", "destination": "/api/company-og?page=live" },
-    { "source": "/export", "destination": "/api/company-og?page=export" },
-    { "source": "/host/join", "destination": "/api/company-og?page=hostjoin" },
-    { "source": "/((?!api/).*)", "destination": "/" }
+    {
+      "source": "/company",
+      "destination": "/api/company-og"
+    },
+    {
+      "source": "/live",
+      "destination": "/api/company-og?page=live"
+    },
+    {
+      "source": "/export",
+      "destination": "/api/company-og?page=export"
+    },
+    {
+      "source": "/host/join",
+      "destination": "/api/company-og?page=hostjoin"
+    },
+    {
+      "source": "/((?!api/).*)",
+      "destination": "/"
+    }
   ],
   "crons": [
-    { "path": "/api/company-og?job=gov-support-sync", "schedule": "10 0 * * *" },
-    { "path": "/api/export-brand?action=military-px-sync", "schedule": "20 0 * * *" }
+    {
+      "path": "/api/company-og?job=gov-support-sync",
+      "schedule": "10 0 * * *"
+    },
+    {
+      "path": "/api/export-brand?action=military-px-sync",
+      "schedule": "20 0 * * *"
+    },
+    {
+      "path": "/api/payment-complete?job=reconcile",
+      "schedule": "30 0 * * *"
+    }
   ]
 }
