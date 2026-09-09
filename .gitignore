@@ -32,3 +32,6 @@ graphify-out/
 
 # 일회성 조사 산출물 (Supabase 사용량 점검 등) — 코드가 아니라 그때의 결과값
 _supa_usage.json
+
+# 빌드 캐시 — 기계마다 달라 충돌만 만든다
+.vite/
