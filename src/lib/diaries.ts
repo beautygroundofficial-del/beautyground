@@ -144,13 +144,18 @@ async function shrinkToWebp(file: File): Promise<Blob> {
 }
 
 export async function uploadDiaryImages(files: File[]): Promise<string[]> {
+  return uploadCommunityImages(files, 'diaries')
+}
+
+// 게시판(board/) 등 다른 커뮤니티 글도 같은 버킷·같은 축소 규칙으로 올린다.
+export async function uploadCommunityImages(files: File[], folder: 'diaries' | 'board'): Promise<string[]> {
   const { data: { session } } = await supabase.auth.getSession()
   if (!session) return []
 
   const urls: string[] = []
   for (let i = 0; i < files.length; i++) {
     const blob = await shrinkToWebp(files[i])
-    const path = `diaries/${session.user.id}/${Date.now()}_${i}.webp`
+    const path = `${folder}/${session.user.id}/${Date.now()}_${i}.webp`
     const { error } = await supabase.storage
       .from('product-images')
       .upload(path, blob, { upsert: true, contentType: 'image/webp' })

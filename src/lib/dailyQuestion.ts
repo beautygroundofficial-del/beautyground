@@ -10,7 +10,7 @@ import { supabase } from './supabase'
 
 // ── 반응(좋아요를 대신하는 공감 표시) ────────────────────────────────────
 export type ReactionKind = 'pat' | 'same' | 'cheer'
-export type ReactionTarget = 'diary' | 'answer'
+export type ReactionTarget = 'diary' | 'answer' | 'board'
 
 export const REACTION_META: { kind: ReactionKind; label: string; emoji: string }[] = [
   { kind: 'pat', label: '토닥토닥', emoji: '🤍' },

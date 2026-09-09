@@ -43,6 +43,9 @@ const AppBenefits = lazy(() => import('./pages/AppBenefits'))
 const AppMissions = lazy(() => import('./pages/AppMissions'))
 const AppTodayActivity = lazy(() => import('./pages/AppTodayActivity'))
 const AppDiary = lazy(() => import('./pages/AppDiary'))
+const AppBoard = lazy(() => import('./pages/AppBoard'))
+const AppBoardWrite = lazy(() => import('./pages/AppBoardWrite'))
+const AppBoardPost = lazy(() => import('./pages/AppBoardPost'))
 const AppSkinTest = lazy(() => import('./pages/AppSkinTest'))
 
 // 법적 고지
@@ -335,6 +338,9 @@ export default function App() {
         <Route path="/app/missions" element={<AppMissions />} />
         <Route path="/app/today" element={<AppTodayActivity />} />
         <Route path="/app/diary" element={<AppDiary />} />
+        <Route path="/app/board" element={<AppBoard />} />
+        <Route path="/app/board/write" element={<AppBoardWrite />} />
+        <Route path="/app/board/:id" element={<AppBoardPost />} />
         <Route path="/app/skin-test" element={<AppSkinTest />} />
 
         {/* fallback */}

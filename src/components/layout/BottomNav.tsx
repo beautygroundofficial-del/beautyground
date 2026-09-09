@@ -24,7 +24,8 @@ export default function BottomNav() {
       <div className="max-w-[480px] mx-auto bg-paper border-t border-rule pb-safe">
         <div className="flex items-stretch h-14">
           {NAV_ITEMS.map(({ path, Icon, label }) => {
-            const isActive = pathname === path
+            // '이야기'는 하루 이야기(/app/diary)와 속 이야기(/app/board) 두 갈래 — 둘 다 같은 탭이 켜진다
+            const isActive = pathname === path || (path === '/app/diary' && pathname.startsWith('/app/board'))
             return (
               <Link
                 key={label}

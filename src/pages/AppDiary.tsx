@@ -10,6 +10,7 @@ import {
 } from '../lib/diaries'
 import ReactionBar from '../components/community/ReactionBar'
 import DiaryComments from '../components/community/DiaryComments'
+import StoryTabs from '../components/community/StoryTabs'
 
 // 살아가는 이야기 — 유저가 사진과 함께 일상을 남기는 곳.
 // 글을 올리면 create_diary RPC 안에서 diary_post 미션이 자동 적립된다(화면에서 따로 적립 호출 안 함).
@@ -157,10 +158,11 @@ export default function AppDiary() {
 
   return (
     <AppFrame>
-      <BackHeader title="살아가는 이야기" />
+      <BackHeader title="이야기" />
+      <StoryTabs current="/app/diary" />
 
       {/* 쓰기 — 화면에 들어오면 가장 먼저 보이는 행동 */}
-      <section className="px-5 pt-5">
+      <section className="px-5 pt-4">
         {!composing ? (
           <button
             onClick={openComposer}

@@ -1,0 +1,124 @@
+import { supabase } from './supabase'
+import type { ReactionKind } from './dailyQuestion'
+
+// 속 이야기(손님 게시판) — 주제별로 속마음을 꺼내놓는 곳. (2026-09-10)
+//
+// 히로인스 게시판을 분석해 기능만 가져오고 이름·구조는 새로 지었다.
+//   · 카테고리 7개(15개를 묶음), 제목 없이 본문만, 최신순만, 숫자 0이면 감춤
+//   · 공감·댓글은 일기(diaries)와 같은 방식 — ReactionBar 를 그대로 쓴다
+// ⚠️ 카테고리 이름은 타사 표현 금지 목록(옵시디언)의 대조표를 따른다. 화면에 원문을 쓰지 않는다.
+
+export type BoardCategory = 'kids' | 'spouse' | 'parents' | 'body' | 'mind' | 'living' | 'chat'
+
+export const BOARD_CATEGORIES: { key: BoardCategory; label: string; hint: string }[] = [
+  { key: 'kids',    label: '아이 키우는 이야기',  hint: '어리든 다 컸든' },
+  { key: 'spouse',  label: '남편이랑 사는 이야기', hint: '부부·시댁·헤어짐까지' },
+  { key: 'parents', label: '부모님 생각나는 날',   hint: '돌봄, 그리움' },
+  { key: 'body',    label: '몸이 달라지는 이야기', hint: '건강·체력·운동' },
+  { key: 'mind',    label: '마음이 힘든 날',       hint: '감정, 사람 사이' },
+  { key: 'living',  label: '살림하는 이야기',      hint: '돈·일·노후' },
+  { key: 'chat',    label: '그냥 하는 이야기',     hint: '취미·여행·잡담' },
+]
+
+export const categoryLabel = (key: string) =>
+  BOARD_CATEGORIES.find((c) => c.key === key)?.label ?? '이야기'
+
+export interface BoardPost {
+  id: string
+  user_id: string
+  nickname: string | null
+  category: BoardCategory
+  content: string
+  images: string[]
+  is_mine: boolean
+  created_at: string
+  pat: number
+  same: number
+  cheer: number
+  my_kind: ReactionKind | null
+  comment_count: number
+}
+
+export async function getBoardFeed(categories: BoardCategory[] = [], limit = 30, offset = 0): Promise<BoardPost[]> {
+  const { data, error } = await supabase.rpc('get_board_feed', {
+    p_categories: categories, p_limit: limit, p_offset: offset,
+  })
+  if (error) return []
+  return (data ?? []) as BoardPost[]
+}
+
+export async function getBoardPost(id: string): Promise<BoardPost | null> {
+  const { data, error } = await supabase.rpc('get_board_post', { p_id: id })
+  if (error) return null
+  const row = Array.isArray(data) ? data[0] : data
+  return (row ?? null) as BoardPost | null
+}
+
+export interface CreateBoardPostResult {
+  post_id: string | null
+  awarded: number
+  message: string
+}
+
+export async function createBoardPost(
+  category: BoardCategory, content: string, images: string[] = [], nickname?: string | null,
+): Promise<CreateBoardPostResult | null> {
+  const { data, error } = await supabase.rpc('create_board_post', {
+    p_category: category, p_content: content, p_images: images, p_nickname: nickname ?? null,
+  })
+  if (error) return null
+  const row = Array.isArray(data) ? data[0] : data
+  return (row ?? null) as CreateBoardPostResult | null
+}
+
+export async function deleteBoardPost(id: string): Promise<boolean> {
+  const { error } = await supabase.from('board_posts').delete().eq('id', id)
+  return !error
+}
+
+export async function reportBoardPost(id: string, reason?: string): Promise<{ ok: boolean; message: string }> {
+  const { data, error } = await supabase.rpc('report_board_post', { p_post_id: id, p_reason: reason ?? null })
+  if (error) return { ok: false, message: '잠시 후 다시 시도해 주세요' }
+  const row = Array.isArray(data) ? data[0] : data
+  return (row ?? { ok: false, message: '잠시 후 다시 시도해 주세요' }) as { ok: boolean; message: string }
+}
+
+// ── 댓글 ───────────────────────────────────────────────────────────────────
+export interface BoardComment {
+  id: string
+  nickname: string | null
+  content: string
+  created_at: string
+  is_mine: boolean
+}
+
+export async function getBoardComments(postId: string, limit = 50): Promise<BoardComment[]> {
+  const { data, error } = await supabase.rpc('get_board_comments', {
+    p_post_id: postId, p_limit: limit, p_offset: 0,
+  })
+  if (error) return []
+  return (data ?? []) as BoardComment[]
+}
+
+export interface CreateBoardCommentResult {
+  comment_id: string | null
+  awarded: number
+  message: string
+}
+
+export async function createBoardComment(
+  postId: string, content: string, nickname?: string | null,
+): Promise<CreateBoardCommentResult> {
+  const fail: CreateBoardCommentResult = { comment_id: null, awarded: 0, message: '잠시 후 다시 시도해 주세요' }
+  const { data, error } = await supabase.rpc('create_board_comment', {
+    p_post_id: postId, p_content: content, p_nickname: nickname ?? null,
+  })
+  if (error) return fail
+  const row = Array.isArray(data) ? data[0] : data
+  return (row ?? fail) as CreateBoardCommentResult
+}
+
+export async function deleteBoardComment(commentId: string): Promise<boolean> {
+  const { error } = await supabase.from('board_comments').delete().eq('id', commentId)
+  return !error
+}
