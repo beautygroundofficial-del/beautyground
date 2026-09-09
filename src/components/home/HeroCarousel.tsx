@@ -149,7 +149,7 @@ export default function HeroCarousel({ banners, loading }: { banners: HeroBanner
                   itemRefs.current[i] = el
                 }}
                 onClick={() => navigate(`/app/product/${product.id}`)}
-                className="relative min-h-[220px] w-[86%] flex-shrink-0 snap-start overflow-hidden rounded-card border border-rule bg-paper p-5 text-left shadow-card focus:outline-none focus-visible:shadow-ring"
+                className="relative min-h-[176px] w-[86%] flex-shrink-0 snap-start overflow-hidden rounded-card border border-rule bg-paper p-4 text-left shadow-card focus:outline-none focus-visible:shadow-ring"
                 aria-label={product.name}
               >
                 <div className="relative z-10 max-w-[62%]">
