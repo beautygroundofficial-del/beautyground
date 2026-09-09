@@ -114,7 +114,9 @@ export default function TodayQuestion() {
                 onFocus={() => { if (!loggedIn) navigate('/app/login') }}
                 rows={2}
                 maxLength={MAX_LEN}
-                placeholder="한 줄이면 충분해요"
+                // 관리자가 곁들이는 한 줄(hint)을 넣으면 같은 문구가 위아래로 두 번 보인다.
+                // hint 가 있을 때는 입력칸 안내를 다른 말로 바꾼다.
+                placeholder={question.hint ? '여기에 남겨주세요' : '한 줄이면 충분해요'}
                 className="w-full resize-none bg-transparent text-[14px] text-ink placeholder:text-ink-faint focus:outline-none"
               />
               <div className="flex items-center justify-between pt-2 border-t border-rule">
