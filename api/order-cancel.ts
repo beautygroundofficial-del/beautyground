@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { createClient } from '@supabase/supabase-js'
+import nodemailer from 'nodemailer'
 
 // 주문 취소 확정(환불) — 포트원 실취소 → 주문 상태 cancelled → 재고 복구까지 한 번에 처리.
 // 호출 주체 3가지:
@@ -12,6 +13,9 @@ const SUPABASE_URL =
 const SERVICE_ROLE = process.env.SUPABASE_SERVICE_ROLE_KEY
 const PORTONE_SECRET = process.env.PORTONE_V2_API_SECRET
 const ADMIN_EMAILS = ['beautyground.official@gmail.com']
+// 취소 알림 발송용 — api/export-brand.ts 가 쓰는 것과 같은 Gmail 앱 비밀번호
+const GMAIL_USER = process.env.GMAIL_USER || 'beautyground.official@gmail.com'
+const GMAIL_APP_PASSWORD = process.env.GMAIL_APP_PASSWORD || ''
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
@@ -136,19 +140,25 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
   }
 
-  const { error: updErr } = await supabase
+  // ⚠️ neq('status','cancelled') 가 핵심이다. 포트원 취소 웹훅(api/payment-complete.ts)도 같은 주문을
+  // cancelled 로 바꾸고 재고를 복구하므로, 조건 없이 전부 업데이트하면 어느 쪽이 먼저 도착하느냐에 따라
+  // 재고가 두 번 복구된다. 실제로 뒤집힌 행만 돌려받아 그 행에 대해서만 재고를 되돌린다(2026-09-09).
+  const { data: flipped, error: updErr } = await supabase
     .from('orders')
     .update({ status: 'cancelled' })
     .eq('payment_id', paymentId)
+    .neq('status', 'cancelled')
+    .select('id, product_id, quantity')
   if (updErr) {
     console.error('[order-cancel] order update failed', updErr)
     res.status(200).json({ ok: false, reason: '환불은 됐지만 주문 상태 변경에 실패했습니다. 새로고침 후 확인해주세요.' })
     return
   }
+  const flippedRows = (flipped ?? []) as unknown as { id: string; product_id: string | null; quantity: number }[]
 
   // 재고 복구 — 결제 시 차감됐던 수량을 되돌린다 (배송비 행 등 product_id 없는 행 제외)
   if (hadPayment) {
-    for (const row of orderRows) {
+    for (const row of flippedRows) {
       if (!row.product_id) continue
       const { data: product } = await supabase
         .from('products')
@@ -156,11 +166,36 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         .eq('id', row.product_id)
         .single()
       if (!product) continue
-      const nextStock = (product.stock as number) + (row.quantity as number)
+      const nextStock = (product.stock as number) + row.quantity
       await supabase
         .from('products')
         .update({ stock: nextStock, ...(product.status === 'sold_out' && nextStock > 0 ? { status: 'on_sale' } : {}) })
         .eq('id', row.product_id)
+    }
+  }
+
+  // 취소·환불이 나면 대표님이 바로 아셔야 한다(2026-09-09 지시). 메일 실패가 취소를 막지는 않는다.
+  if (flippedRows.length > 0 && GMAIL_APP_PASSWORD) {
+    try {
+      const transporter = nodemailer.createTransport({
+        service: 'gmail',
+        auth: { user: GMAIL_USER, pass: GMAIL_APP_PASSWORD },
+      })
+      const who = role === 'buyer' ? '구매자 본인' : '관리자/파트너'
+      await transporter.sendMail({
+        from: `"뷰티그라운드" <${GMAIL_USER}>`,
+        to: ADMIN_EMAILS.join(','),
+        subject: `[취소] ${who} 취소 — ${paymentId}`,
+        html: `<div style="font-family:sans-serif">
+                 <h3>주문이 취소되었습니다</h3>
+                 <ul><li>주문번호: ${paymentId}</li><li>취소 주체: ${who}</li>
+                 <li>환불: ${hadPayment ? '포트원 전액 환불 완료' : '해당없음(미결제 주문)'}</li>
+                 <li>재고 복구: ${hadPayment ? `${flippedRows.filter((r) => r.product_id).length}개 상품` : '해당없음'}</li></ul>
+                 <p><a href="https://beautyground.co.kr/admin/orders">주문 관리 열기</a></p>
+               </div>`,
+      })
+    } catch (e) {
+      console.error('[order-cancel] 취소 알림 메일 실패', e)
     }
   }
 
