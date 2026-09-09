@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom'
 import { IconUser } from '../common/Icon'
 import DesktopHeader from '../layout/DesktopHeader'
+import { useActiveMissions } from '../../hooks/useActiveMissions'
 import type { MembershipInfo, MembershipTier } from '../../lib/membership'
 
 interface RealUser {
@@ -12,7 +13,10 @@ interface RealUser {
   wishlist: number
 }
 
-function buildMenuItems(user: RealUser) {
+// 모바일(AppMyPage.tsx)과 같은 메뉴 구성이어야 하는데 이 파일은 별도 컴포넌트라 그동안
+// "살아가는 이야기"·"오늘의 활동" 링크가 통째로 빠져 있었다(2026-09-09 발견·수정) —
+// PC 마이페이지에서 커뮤니티로 들어갈 방법이 아예 없었던 실제 결함.
+function buildMenuItems(user: RealUser, showMissions: boolean) {
   return [
     { label: '주문 내역', path: '/app/orders' },
     { label: '배송지 관리', path: '/app/addresses' },
@@ -20,6 +24,11 @@ function buildMenuItems(user: RealUser) {
     { label: '혜택', path: '/app/benefits' },
     { label: '쿠폰함', count: user.coupons, path: '/app/benefits' },
     { label: '포인트', value: `${user.points.toLocaleString()}P`, path: '/app/benefits' },
+    // 참여형 기능은 관리자가 활동 미션을 켰을 때만 노출한다(=붙이는 스위치) — AppMyPage.tsx와 동일 규칙.
+    ...(showMissions ? [
+      { label: '살아가는 이야기', path: '/app/diary' },
+      { label: '오늘의 활동', path: '/app/today' },
+    ] : []),
     { label: '최근 본 상품', path: '/app/recently-viewed' },
     { label: '리뷰 관리', path: '/app/my-reviews' },
   ]
@@ -55,6 +64,7 @@ export default function DesktopMyPage({
   isStaff,
 }: Props) {
   const navigate = useNavigate()
+  const { missions: activeMissions } = useActiveMissions()
 
   return (
     <div className="bg-paper min-h-screen">
@@ -173,7 +183,7 @@ export default function DesktopMyPage({
         {/* 메뉴 · 설정 2열 */}
         <div className="mt-6 grid grid-cols-2 gap-6">
           <div className="border border-rule">
-            {buildMenuItems(user).map(({ label, path, count, value }) => (
+            {buildMenuItems(user, activeMissions.length > 0).map(({ label, path, count, value }) => (
               <button
                 key={label}
                 onClick={() => path && navigate(path)}

@@ -1,4 +1,6 @@
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { supabase } from '../../lib/supabase'
 import { COMPANY_INFO } from '../../lib/companyInfo'
 
 // PC 전용 공용 푸터 — 모바일 AppFooter와 내용은 완전히 동일(사업자정보는 통신판매업자로서
@@ -10,11 +12,24 @@ const FTC_URL = `https://www.ftc.go.kr/bizCommPop.do?wrkr_no=${bizDigits}`
 const sep = <span className="text-rule" aria-hidden="true">|</span>
 
 export default function DesktopFooter() {
+  // 로그인 상태와 무관하게 "로그인" 링크만 고정으로 떠 있었음(2026-09-09 지적) —
+  // 이미 로그인한 손님한테는 로그인 화면으로 다시 보내는 대신 마이페이지로 보낸다.
+  const [loggedIn, setLoggedIn] = useState(false)
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => setLoggedIn(!!session))
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => setLoggedIn(!!session))
+    return () => sub.subscription.unsubscribe()
+  }, [])
+
   return (
     <footer className="bg-paper border-t border-rule">
       <div className="max-w-[1280px] mx-auto px-6 pt-10 pb-12">
         <nav className="flex items-center gap-4 text-[13px] font-semibold text-ink-soft pb-6 border-b border-rule" aria-label="하단 메뉴">
-          <Link to="/app/login" className="hover:text-ink transition-colors">로그인</Link>
+          {loggedIn ? (
+            <Link to="/app/mypage" className="hover:text-ink transition-colors">마이페이지</Link>
+          ) : (
+            <Link to="/app/login" className="hover:text-ink transition-colors">로그인</Link>
+          )}
         </nav>
 
         <div className="mt-6 grid grid-cols-2 gap-10">

@@ -41,6 +41,7 @@ const AppRecentlyViewed = lazy(() => import('./pages/AppRecentlyViewed'))
 const AppMyReviews = lazy(() => import('./pages/AppMyReviews'))
 const AppBenefits = lazy(() => import('./pages/AppBenefits'))
 const AppMissions = lazy(() => import('./pages/AppMissions'))
+const AppTodayActivity = lazy(() => import('./pages/AppTodayActivity'))
 const AppDiary = lazy(() => import('./pages/AppDiary'))
 const AppSkinTest = lazy(() => import('./pages/AppSkinTest'))
 
@@ -332,6 +333,7 @@ export default function App() {
         <Route path="/app/my-reviews" element={<AppMyReviews />} />
         <Route path="/app/benefits" element={<AppBenefits />} />
         <Route path="/app/missions" element={<AppMissions />} />
+        <Route path="/app/today" element={<AppTodayActivity />} />
         <Route path="/app/diary" element={<AppDiary />} />
         <Route path="/app/skin-test" element={<AppSkinTest />} />
 

@@ -89,7 +89,19 @@ export default function AppMissions() {
 
   return (
     <AppFrame>
-      <BackHeader title="활동 미션" />
+      {/* "아직 안 한 것"(이 화면)과 "이미 한 것"(오늘의 활동)을 오갈 수 있게 짝지어 둔다(2026-09-09) */}
+      <BackHeader
+        title="활동 미션"
+        rightElement={
+          <button
+            type="button"
+            onClick={() => navigate('/app/today')}
+            className="text-[12.5px] text-ink-soft underline underline-offset-2 focus:outline-none focus-visible:shadow-ring"
+          >
+            오늘의 활동
+          </button>
+        }
+      />
 
       {/* 내 포인트 */}
       <section className="mx-5 mt-4 rounded-card bg-ink text-paper px-5 py-4 flex items-center justify-between">

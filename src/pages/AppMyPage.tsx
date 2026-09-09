@@ -33,7 +33,10 @@ function buildMenuItems(user: RealUser, showMissions: boolean) {
     { label: '쿠폰함', count: user.coupons, path: '/app/benefits' },
     { label: '포인트', value: `${user.points.toLocaleString()}P`, path: '/app/benefits' },
     // 참여형 기능은 관리자가 활동 미션을 켰을 때만 노출한다(=붙이는 스위치).
-    ...(showMissions ? [{ label: '살아가는 이야기', path: '/app/diary' }] : []),
+    ...(showMissions ? [
+      { label: '살아가는 이야기', path: '/app/diary' },
+      { label: '오늘의 활동', path: '/app/today' },
+    ] : []),
     { label: '최근 본 상품', path: '/app/recently-viewed' },
     { label: '리뷰 관리', path: '/app/my-reviews' },
   ]
