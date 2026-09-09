@@ -107,11 +107,12 @@ security definer
 set search_path = public
 as $$
 declare
-  v_uid    uuid := auth.uid();
-  v_id     uuid;
-  v_author uuid;
-  v_len    integer;
-  v_claim  record;
+  v_uid     uuid := auth.uid();
+  v_id      uuid;
+  v_author  uuid;
+  v_len     integer;
+  v_claim   record;
+  v_awarded integer := 0;
 begin
   if v_uid is null then
     return query select null::uuid, 0, '로그인이 필요합니다'::text; return;
@@ -143,14 +144,18 @@ begin
      )
   then
     select * into v_claim from public.claim_mission('comment_give', 1);
+    v_awarded := coalesce(v_claim.awarded, 0);
     -- 하루 상한에 걸려 0P였다면 기록하지 않는다 — 내일 다시 받을 수 있어야 한다.
-    if coalesce(v_claim.awarded, 0) > 0 then
+    if v_awarded > 0 then
       insert into public.comment_awards (user_id, diary_id) values (v_uid, p_diary_id)
       on conflict do nothing;
     end if;
   end if;
 
-  return query select v_id, coalesce(v_claim.awarded, 0), ''::text;
+  -- 자기 글 댓글(적립 분기를 안 탄 경우) 등 v_claim 이 한 번도 대입되지 않았을 수 있다.
+  -- 대입된 적 없는 record 변수의 필드를 읽으면 PL/pgSQL 이 런타임 에러를 낸다 — 그래서
+  -- v_claim.awarded 를 여기서 직접 읽지 않고, 위에서 미리 뽑아둔 v_awarded 만 쓴다.
+  return query select v_id, v_awarded, ''::text;
 end;
 $$;
 

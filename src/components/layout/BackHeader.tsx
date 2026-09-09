@@ -34,7 +34,7 @@ export default function BackHeader({ title, rightElement, onBack, transparent = 
           {title}
         </h1>
       )}
-      <div className="w-9 flex justify-end">
+      <div className="min-w-9 flex justify-end whitespace-nowrap">
         {rightElement}
       </div>
     </header>
