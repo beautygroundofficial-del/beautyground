@@ -4,6 +4,7 @@ import DesktopFooter from '../layout/DesktopFooter'
 import PromoBar from './PromoBar'
 import MissionBanner from './MissionBanner'
 import TodayQuestion from '../community/TodayQuestion'
+import PhoneVerifyBanner from '../community/PhoneVerifyBanner'
 import DiaryHomeFeed from './DiaryHomeFeed'
 import type { HeroBanner } from '../../hooks/useHeroBanners'
 import type { ShopProduct } from '../../hooks/useShopProducts'
@@ -39,8 +40,13 @@ export default function DesktopHome(_: Props) {
       <div className="max-w-[680px] mx-auto px-6 py-10">
         <MissionBanner />
 
-        {/* 오늘의 질문 — 모바일과 같은 컴포넌트를 쓴다.
+        {/* 전화번호 인증 배너 — 모바일(HomeBody.tsx)과 같은 컴포넌트, 같은 이유로 여기도 넣는다(2026-09-09).
             ⚠️ 홈은 모바일·PC 컴포넌트가 나뉘어 있어 한쪽만 고치면 반쪽만 바뀐다(2026-09-02 사고). */}
+        <div className="pb-4">
+          <PhoneVerifyBanner />
+        </div>
+
+        {/* 오늘의 질문 — 모바일과 같은 컴포넌트를 쓴다. */}
         <div className="pb-5">
           <TodayQuestion />
         </div>
