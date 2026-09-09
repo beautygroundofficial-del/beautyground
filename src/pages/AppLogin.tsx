@@ -13,7 +13,10 @@ export default function AppLogin() {
   const navigate = useNavigate()
   const { mode, isDesktop, toggle } = useViewMode()
   const location = useLocation()
-  const from = (location.state as { from?: string } | null)?.from ?? '/app/mypage'
+  // 로그인 링크(푸터·헤더 등)를 그냥 눌러 들어온 경우(from 없음)는 홈(커뮤니티)으로 보낸다.
+  // 예전엔 마이페이지로 보내서 "로그인했더니 관리자 화면으로 넘어간다"는 혼동이 있었다(2026-09-09).
+  // 주문·찜·최근본상품 등에서 로그인을 요구할 때는 각 화면이 자기 경로를 from 으로 명시해서 넘기므로 영향 없다.
+  const from = (location.state as { from?: string } | null)?.from ?? '/app/home'
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')

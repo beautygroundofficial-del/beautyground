@@ -15,7 +15,8 @@ import { supabase } from '../lib/supabase'
 export default function AppSignup() {
   const location = useLocation()
   const { mode, isDesktop, toggle } = useViewMode()
-  const from = (location.state as { from?: string } | null)?.from ?? '/app/mypage'
+  // AppLogin.tsx 와 같은 이유로 기본 목적지를 홈(커뮤니티)으로 맞춘다(2026-09-09).
+  const from = (location.state as { from?: string } | null)?.from ?? '/app/home'
   const [notice, setNotice] = useState('')
 
   const handleKakao = async () => {
