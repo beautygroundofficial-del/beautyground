@@ -37,7 +37,6 @@ interface Group {
 }
 
 const CJ_TRACK = (no: string) => `https://trace.cjlogistics.com/next/tracking.html?wblNo=${encodeURIComponent(no.replace(/-/g, ''))}`
-const SENDER = { name: '뷰티그라운드 광명점', phone: '02-897-8287', address: '경기도 광명시 양지로 17 AK PLAZA 1층 뷰티그라운드' }
 
 // 배송지: 정식 컬럼 우선, 없으면 옛 주문(delivery_memo "배송지: ...")에서 파싱
 function resolveAddress(r: Row): { address: string; memo: string } {
@@ -114,31 +113,33 @@ export default function AdminShipping() {
   const toggle = (id: string) => setSelected((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n })
   const toggleAll = () => setSelected(selected.size === visible.length ? new Set() : new Set(visible.map((g) => g.paymentId)))
 
-  // ── CJ(LoIS) 접수용 엑셀 내보내기 — 열 순서는 LoIS 일괄등록 양식 확정 후 조정 ──
+  // ── LoIS 파일접수용 엑셀 내보내기 (2026-09-09 LoIS 실제 확인 후 열 확정) ──
+  // 매장이 이미 쓰는 고객사LAYOUT "뷰티그라운드"는 7열(받는분성명·전화·주소·배송메세지1·품목명·내품명·내품수량)이고
+  // 고객주문번호 칸이 없어 송장을 되가져올 때 주문과 자동으로 못 맞춘다. 그래서 그 7열 뒤에 고객주문번호를
+  // 붙인 8열짜리 LAYOUT "뷰티그라운드몰"을 LoIS에 따로 만들었다 — 매장 기존 양식은 그대로 두고, 이 파일은
+  // 업로드할 때 형식명만 "뷰티그라운드몰"로 고르면 된다. 보내는분(광명점)은 LoIS 화면 기본값이 채운다.
+  // 열 순서가 곧 규격이다(LoIS는 제목행을 건너뛰고 순서로 읽음) — 아래 순서를 바꾸면 접수가 깨진다.
   const exportExcel = () => {
     const target = visible.filter((g) => selected.size === 0 || selected.has(g.paymentId))
     if (target.length === 0) { setMsg('내보낼 주문이 없습니다.'); return }
+    const itemName = (r: Row) => `${r.products?.name ?? r.order_name}${r.option_label ? `(${r.option_label})` : ''}`
     const data = target.map((g) => ({
-      '주문번호': g.paymentId,
-      '받는분': g.recipient,
-      '받는분 전화': g.phone,
-      '받는분 우편번호': g.zip,
-      '받는분 주소': g.address,
-      '상품명': g.items.length > 1 ? `${g.items[0].products?.name ?? g.items[0].order_name} 외 ${g.items.length - 1}건` : (g.items[0]?.products?.name ?? g.items[0]?.order_name ?? ''),
-      '수량': g.items.reduce((s, r) => s + r.quantity, 0),
-      '배송메시지': g.memo,
-      '보내는분': SENDER.name,
-      '보내는분 전화': SENDER.phone,
-      '보내는분 주소': SENDER.address,
-      '결제금액': g.total,
-      '주문일시': formatDateTime(g.createdAt),
+      '받는분성명': g.recipient,
+      '받는분전화번호': g.phone,
+      '받는분주소(전체)': g.address,
+      // 배송메세지1은 100Byte(한글 50자)까지만 LoIS가 받는다 — 넘치면 잘라서 보낸다
+      '배송메세지1': g.memo.replace(/[\r\n]+/g, ' ').slice(0, 50),
+      '품목명': '화장품',
+      '내품명': g.items.map((r) => `${itemName(r)} ${r.quantity}개`).join(', ').slice(0, 120),
+      '내품수량': g.items.reduce((s, r) => s + r.quantity, 0),
+      '고객주문번호': g.paymentId,
     }))
     const ws = XLSX.utils.json_to_sheet(data)
     const wb = XLSX.utils.book_new()
     XLSX.utils.book_append_sheet(wb, ws, '접수')
     const stamp = new Date().toISOString().slice(0, 10).replace(/-/g, '')
-    XLSX.writeFile(wb, `CJ접수_${stamp}_${target.length}건.xlsx`)
-    setMsg(`${target.length}건 내보냈습니다. LoIS에 업로드한 뒤 송장번호 엑셀을 가져오세요.`)
+    XLSX.writeFile(wb, `LoIS접수_뷰티그라운드몰_${stamp}_${target.length}건.xlsx`)
+    setMsg(`${target.length}건 내보냈습니다. LoIS 파일접수에서 형식명 "뷰티그라운드몰"을 고르고 업로드하세요.`)
   }
 
   // ── 송장 반영(주문 묶음 단위) ──
@@ -206,7 +207,7 @@ export default function AdminShipping() {
         <h1 className="text-[22px] font-bold text-ink flex items-center gap-2"><IconTruck className="w-6 h-6" /> 배송 / 물류</h1>
         <div className="flex items-center gap-2">
           <button onClick={exportExcel} className="inline-flex items-center gap-1.5 px-4 py-2 rounded-control bg-ink text-paper text-[13px] font-semibold hover:opacity-90">
-            <IconDownload className="w-4 h-4" /> CJ 접수 엑셀 내보내기{selected.size > 0 ? ` (${selected.size})` : ''}
+            <IconDownload className="w-4 h-4" /> LoIS 접수 엑셀 내보내기{selected.size > 0 ? ` (${selected.size})` : ''}
           </button>
           <button onClick={() => fileRef.current?.click()} className="inline-flex items-center gap-1.5 px-4 py-2 rounded-control border border-ink text-ink text-[13px] font-semibold hover:bg-quiet">
             <IconUpload className="w-4 h-4" /> 송장 엑셀 가져오기
@@ -227,7 +228,7 @@ export default function AdminShipping() {
       {msg && <p className="mb-4 text-[13px] text-signal-blue">{msg}</p>}
 
       <p className="mb-3 text-[12px] text-ink-faint">
-        흐름: 출고 대기 선택 → "CJ 접수 엑셀 내보내기" → LoIS Parcel에 업로드 → 발급된 송장번호 엑셀(주문번호·운송장번호 열)을 "송장 엑셀 가져오기" → 배송중 → 배달되면 "배송완료". 송장은 아래 칸에 직접 입력해도 됩니다.
+        흐름: 출고 대기 선택 → "LoIS 접수 엑셀 내보내기" → LoIS Parcel ▸ 예약 ▸ 기업고객파일접수에서 <b>형식명 "뷰티그라운드몰"</b> 선택 후 업로드 → 접수확정 → 운송장출력 → LoIS에서 운송장 목록 엑셀(고객주문번호·운송장번호 열) 내려받아 "송장 엑셀 가져오기" → 배송중 → 배달되면 "배송완료". 송장은 아래 칸에 직접 입력해도 됩니다.
       </p>
 
       {loading ? (
