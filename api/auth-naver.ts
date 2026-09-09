@@ -67,8 +67,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const email: string | undefined = profile.email
   const name: string | undefined = profile.name || profile.nickname
   const naverId: string = profile.id
-  // 어뷰징 방지(카카오/네이버 이중가입 차단, block_duplicate_phone_signup 트리거)용 —
-  // 네이버 앱에 휴대전화번호 제공 동의를 필수로 걸어뒀으므로 응답에 mobile이 온다(2026-08-24 확인 필요).
+  // 휴대전화번호는 더 이상 필수 동의 항목이 아니다(2026-09-09 — 로그인 단계에서 개인정보를
+  // 많이 요구하면 이탈률이 올라간다는 대표님 판단, 카카오 로그인과 동일하게 최소 정보만 받도록
+  // 네이버 개발자센터 권한 설정을 이메일만 필수로 낮췄다). profile.mobile은 이제 거의 항상 없다 —
+  // block_duplicate_phone_signup 트리거는 phone이 없으면 통과시키게 이미 돼 있어(카카오 가입과 동일
+  // 경로) 문제없다. 값이 오면 참고용으로만 저장한다.
   const phone: string | undefined = profile.mobile
 
   if (!email) {
