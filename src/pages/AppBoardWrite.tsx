@@ -1,59 +1,47 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import BackHeader from '../components/layout/BackHeader'
 import AppFrame from '../components/layout/AppFrame'
+import PostComposer, { loadDraft, saveDraft, clearDraft } from '../components/community/PostComposer'
 import { supabase } from '../lib/supabase'
 import { BOARD_CATEGORIES, createBoardPost, type BoardCategory } from '../lib/board'
 import { uploadCommunityImages } from '../lib/diaries'
 
-// 속 이야기 쓰기 — 제목 없이 본문만. (2026-09-10)
+// 속 이야기 쓰기 — 제목 없이 본문만. (2026-09-10 → 2026-09-11 공용 글쓰기 환경(PostComposer)으로 교체)
 // "뭐라고 제목을 붙이지" 하는 망설임 자체를 없앤다. 카테고리 하나만 고르고 바로 쓴다.
 // 이름은 일기와 같이 가려서 보인다(ㅇ**ㅇ). 포인트는 올린 뒤에 조용히 알린다.
 
-const MAX_IMAGES = 4
 const MIN_LEN = 10
 const MAX_LEN = 2000
+const DRAFT_KEY = 'board'
+
+interface Draft { content: string; category: BoardCategory | null }
 
 export default function AppBoardWrite() {
   const navigate = useNavigate()
-  const fileRef = useRef<HTMLInputElement>(null)
-
   const [myName, setMyName] = useState<string | null>(null)
   const [category, setCategory] = useState<BoardCategory | null>(null)
   const [content, setContent] = useState('')
   const [files, setFiles] = useState<File[]>([])
-  const [previews, setPreviews] = useState<string[]>([])
   const [saving, setSaving] = useState(false)
   const [toast, setToast] = useState('')
+  const [ready, setReady] = useState(false)
 
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 2400) }
 
   useEffect(() => {
     void supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!session) { navigate('/app/login', { replace: true }); return }
+      if (!session) { navigate('/app/login', { replace: true, state: { from: '/app/board/write' } }); return }
       const meta = session.user.user_metadata as { name?: string } | undefined
       setMyName(meta?.name || session.user.email?.split('@')[0] || null)
+      const d = loadDraft<Draft>(DRAFT_KEY)
+      if (d.content) setContent(d.content)
+      if (d.category && BOARD_CATEGORIES.some((c) => c.key === d.category)) setCategory(d.category)
+      setReady(true)
     })
   }, [navigate])
 
-  useEffect(() => () => { previews.forEach((u) => URL.revokeObjectURL(u)) }, [previews])
-
-  const pickFiles = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const picked = Array.from(e.target.files ?? [])
-    if (!picked.length) return
-    const next = [...files, ...picked].slice(0, MAX_IMAGES)
-    previews.forEach((u) => URL.revokeObjectURL(u))
-    setFiles(next)
-    setPreviews(next.map((f) => URL.createObjectURL(f)))
-    e.target.value = ''
-  }
-
-  const removeFile = (idx: number) => {
-    const next = files.filter((_, i) => i !== idx)
-    previews.forEach((u) => URL.revokeObjectURL(u))
-    setFiles(next)
-    setPreviews(next.map((f) => URL.createObjectURL(f)))
-  }
+  useEffect(() => { if (ready) saveDraft(DRAFT_KEY, { content, category }) }, [ready, content, category])
 
   const submit = async () => {
     if (!category) { showToast('어떤 이야기인지 하나만 골라주세요'); return }
@@ -66,6 +54,7 @@ export default function AppBoardWrite() {
     const res = await createBoardPost(category, content, urls, myName)
     setSaving(false)
     if (!res || !res.post_id) { showToast(res?.message || '올리지 못했어요'); return }
+    clearDraft(DRAFT_KEY)
     navigate(`/app/board/${res.post_id}`, {
       replace: true,
       state: { toast: res.awarded > 0 ? `${res.awarded}P를 받았어요` : '이야기를 꺼내놓았어요' },
@@ -78,6 +67,7 @@ export default function AppBoardWrite() {
     <AppFrame>
       <BackHeader
         title="털어놓기"
+        onBack={() => navigate('/app/board')}
         rightElement={
           <button
             type="button"
@@ -121,46 +111,14 @@ export default function AppBoardWrite() {
       <section className="px-5 pt-7 pb-28">
         <p className="text-[11.5px] text-ink-faint leading-none mb-1.5">천천히, 하고 싶은 만큼만</p>
         <h2 className="text-[15px] font-bold text-ink leading-tight mb-3">무슨 일이 있었나요</h2>
-        <div className="rounded-card border border-rule bg-paper p-4">
-          <textarea
-            value={content}
-            onChange={(e) => setContent(e.target.value.slice(0, MAX_LEN))}
-            rows={9}
-            placeholder="여기엔 잘 쓰려고 애쓰지 않아도 돼요. 떠오르는 대로 적어주세요."
-            className="w-full resize-none text-[14.5px] leading-relaxed text-ink placeholder:text-ink-faint focus:outline-none"
-          />
-
-          {previews.length > 0 && (
-            <div className="flex gap-2 mt-2 overflow-x-auto">
-              {previews.map((src, i) => (
-                <div key={`${src}-${i}`} className="relative shrink-0">
-                  <img src={src} alt="" className="w-20 h-20 rounded-lg object-cover" />
-                  <button
-                    type="button"
-                    onClick={() => removeFile(i)}
-                    className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-ink text-paper text-[11px] leading-none"
-                    aria-label="사진 빼기"
-                  >
-                    ×
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-
-          <div className="flex items-center justify-between mt-3 pt-3 border-t border-rule">
-            <button
-              type="button"
-              onClick={() => fileRef.current?.click()}
-              disabled={files.length >= MAX_IMAGES}
-              className="text-[13px] text-ink-soft disabled:opacity-40"
-            >
-              사진 {files.length}/{MAX_IMAGES}
-            </button>
-            <span className="text-[11px] text-ink-faint tabular-nums">{content.length}/{MAX_LEN}</span>
-          </div>
-          <input ref={fileRef} type="file" accept="image/*" multiple hidden onChange={pickFiles} />
-        </div>
+        <PostComposer
+          content={content}
+          onContentChange={setContent}
+          files={files}
+          onFilesChange={setFiles}
+          maxLen={MAX_LEN}
+          placeholder="여기엔 잘 쓰려고 애쓰지 않아도 돼요. 떠오르는 대로 적어주세요."
+        />
         <p className="text-[12px] text-ink-faint mt-3 leading-relaxed">
           이름은 가려서 보여요(예: 은*경). 남을 특정하거나 상처 주는 글은 운영자가 가릴 수 있어요.
         </p>

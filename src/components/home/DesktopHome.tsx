@@ -53,7 +53,7 @@ export default function DesktopHome(_: Props) {
         </div>
 
         <button
-          onClick={() => navigate('/app/diary')}
+          onClick={() => navigate('/app/diary/write')}
           className="w-full rounded-card bg-ink text-paper px-6 py-5 text-left focus:outline-none focus-visible:shadow-ring"
         >
           <span className="block text-[18px] font-bold leading-tight">오늘 어떤 하루였나요?</span>

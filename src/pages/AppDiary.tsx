@@ -1,12 +1,12 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useCallback, useEffect, useState } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
 import BackHeader from '../components/layout/BackHeader'
 import AppFrame from '../components/layout/AppFrame'
 import BottomNav from '../components/layout/BottomNav'
 import { supabase } from '../lib/supabase'
 import {
-  getDiaryFeed, getMonthlyBestDiaries, createDiary, deleteDiary,
-  uploadDiaryImages, type Diary, type BestDiary, type DiarySort,
+  getDiaryFeed, getMonthlyBestDiaries, deleteDiary,
+  type Diary, type BestDiary, type DiarySort,
 } from '../lib/diaries'
 import ReactionBar from '../components/community/ReactionBar'
 import DiaryComments from '../components/community/DiaryComments'
@@ -23,8 +23,7 @@ import StoryTabs from '../components/community/StoryTabs'
 //   · 피드 카드는 사진을 크게, 본문은 3줄까지만 — 훑을 수 있게
 //   · 재촉하는 장치(타이머·소멸 압박)는 넣지 않는다
 // 로직(불러오기·작성·좋아요·삭제)은 이전과 동일하다.
-
-const MAX_IMAGES = 4
+// 2026-09-11 — 쓰기는 전용 화면(/app/diary/write, 글·사진·걸음 수)으로 옮겼다. 여기선 입구만 둔다.
 
 function timeAgo(iso: string) {
   const diff = Date.now() - new Date(iso).getTime()
@@ -61,7 +60,7 @@ function SectionHead({ label, title, right }: { label: string; title: string; ri
 
 export default function AppDiary() {
   const navigate = useNavigate()
-  const fileRef = useRef<HTMLInputElement>(null)
+  const location = useLocation()
 
   const [loggedIn, setLoggedIn] = useState<boolean | null>(null)
   const [myName, setMyName] = useState<string | null>(null)
@@ -70,17 +69,18 @@ export default function AppDiary() {
   const [best, setBest] = useState<BestDiary[]>([])
   const [loading, setLoading] = useState(true)
 
-  const [composing, setComposing] = useState(false)
-  const [content, setContent] = useState('')
-  const [files, setFiles] = useState<File[]>([])
-  const [previews, setPreviews] = useState<string[]>([])
-  const [saving, setSaving] = useState(false)
   const [toast, setToast] = useState('')
 
   const showToast = (msg: string) => {
     setToast(msg)
     setTimeout(() => setToast(''), 2400)
   }
+
+  // 쓰기 화면에서 올리고 돌아오면 그쪽이 넘긴 한 줄을 조용히 보여준다
+  useEffect(() => {
+    const st = location.state as { toast?: string } | null
+    if (st?.toast) { showToast(st.toast); window.history.replaceState({}, '') }
+  }, [location.state])
 
   const load = useCallback(async (s: DiarySort) => {
     const { data: { session } } = await supabase.auth.getSession()
@@ -98,46 +98,6 @@ export default function AppDiary() {
 
   useEffect(() => { void load(sort) }, [load, sort])
 
-  // 미리보기 objectURL 정리 — 안 지우면 메모리에 계속 남는다.
-  useEffect(() => () => { previews.forEach((u) => URL.revokeObjectURL(u)) }, [previews])
-
-  const pickFiles = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const picked = Array.from(e.target.files ?? [])
-    if (!picked.length) return
-    const next = [...files, ...picked].slice(0, MAX_IMAGES)
-    previews.forEach((u) => URL.revokeObjectURL(u))
-    setFiles(next)
-    setPreviews(next.map((f) => URL.createObjectURL(f)))
-    e.target.value = ''
-  }
-
-  const removeFile = (idx: number) => {
-    const next = files.filter((_, i) => i !== idx)
-    previews.forEach((u) => URL.revokeObjectURL(u))
-    setFiles(next)
-    setPreviews(next.map((f) => URL.createObjectURL(f)))
-  }
-
-  const resetComposer = () => {
-    previews.forEach((u) => URL.revokeObjectURL(u))
-    setContent(''); setFiles([]); setPreviews([]); setComposing(false)
-  }
-
-  const submit = async () => {
-    if (content.trim().length < 5) { showToast('내용을 5자 이상 적어주세요'); return }
-    setSaving(true)
-    const urls = files.length > 0 ? await uploadDiaryImages(files) : []
-    if (files.length > 0 && urls.length === 0) {
-      setSaving(false); showToast('사진 업로드에 실패했어요. 잠시 후 다시 시도해 주세요'); return
-    }
-    const res = await createDiary(content, urls, myName)
-    setSaving(false)
-    if (!res || !res.diary_id) { showToast(res?.message || '등록에 실패했어요'); return }
-    resetComposer()
-    showToast(res.awarded > 0 ? `${res.awarded}P를 받았어요` : '이야기를 올렸어요')
-    void load(sort)
-  }
-
   // 좋아요(평가) 대신 공감 반응으로 바꿨다(2026-09-07) — 누르는 처리는 ReactionBar 안에 있고,
   // 여기서는 결과만 받아 목록에 반영한다(정렬·재조회 없이 그 자리에서만 바뀐다).
   const onReacted = (id: string, next: { pat: number; same: number; cheer: number; my_kind: Diary['my_kind'] }) => {
@@ -152,8 +112,8 @@ export default function AppDiary() {
   }
 
   const openComposer = () => {
-    if (!loggedIn) { navigate('/app/login'); return }
-    setComposing(true)
+    if (!loggedIn) { navigate('/app/login', { state: { from: '/app/diary/write' } }); return }
+    navigate('/app/diary/write')
   }
 
   return (
@@ -163,59 +123,13 @@ export default function AppDiary() {
 
       {/* 쓰기 — 화면에 들어오면 가장 먼저 보이는 행동 */}
       <section className="px-5 pt-4">
-        {!composing ? (
-          <button
-            onClick={openComposer}
-            className="w-full rounded-card bg-ink text-paper px-5 py-4 text-left focus:outline-none focus-visible:shadow-ring"
-          >
-            <span className="block text-[15px] font-bold leading-tight">오늘 어떤 하루였나요?</span>
-            <span className="block text-[12.5px] opacity-75 mt-1">사소한 하루도 누군가에겐 위로가 됩니다</span>
-          </button>
-        ) : (
-          <div className="rounded-card border border-rule bg-paper p-4">
-            <textarea
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              rows={5}
-              maxLength={1000}
-              placeholder="오늘의 이야기를 자유롭게 적어주세요. (5자 이상)"
-              className="w-full resize-none text-[14px] text-ink placeholder:text-ink-faint focus:outline-none"
-            />
-
-            {previews.length > 0 && (
-              <div className="flex gap-2 mt-2 overflow-x-auto">
-                {previews.map((src, i) => (
-                  <div key={src} className="relative shrink-0">
-                    <img src={src} alt="" className="w-20 h-20 rounded-lg object-cover" />
-                    <button onClick={() => removeFile(i)}
-                      className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-ink text-paper text-[11px] leading-none">
-                      ×
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            <div className="flex items-center justify-between mt-3 pt-3 border-t border-rule">
-              <div className="flex items-center gap-3">
-                <button onClick={() => fileRef.current?.click()} disabled={files.length >= MAX_IMAGES}
-                  className="text-[13px] text-ink-soft disabled:opacity-40">
-                  사진 {files.length}/{MAX_IMAGES}
-                </button>
-                <span className="text-[11px] text-ink-faint">{content.length}/1000</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <button onClick={resetComposer} disabled={saving}
-                  className="px-3 py-2 rounded-control text-[13px] text-ink-soft">취소</button>
-                <button onClick={() => void submit()} disabled={saving}
-                  className="px-4 py-2 rounded-control bg-signal-blue text-paper text-[13px] font-semibold disabled:opacity-50">
-                  {saving ? '올리는 중…' : '올리기'}
-                </button>
-              </div>
-            </div>
-            <input ref={fileRef} type="file" accept="image/*" multiple hidden onChange={pickFiles} />
-          </div>
-        )}
+        <button
+          onClick={openComposer}
+          className="w-full rounded-card bg-ink text-paper px-5 py-4 text-left focus:outline-none focus-visible:shadow-ring"
+        >
+          <span className="block text-[15px] font-bold leading-tight">오늘 어떤 하루였나요?</span>
+          <span className="block text-[12.5px] opacity-75 mt-1">사소한 하루도 누군가에겐 위로가 됩니다 · 사진과 걸음 수도 함께</span>
+        </button>
       </section>
 
       {/* 이달의 우수 사연 — 텍스트 나열 대신 가로 카드 */}
@@ -300,6 +214,9 @@ export default function AppDiary() {
                       <div className="flex items-center gap-2 min-w-0">
                         <span className="text-[12px] font-semibold text-ink truncate">{maskName(d.nickname)}</span>
                         <span className="text-[11.5px] text-ink-faint shrink-0">{timeAgo(d.created_at)}</span>
+                        {d.steps != null && d.steps > 0 && (
+                          <span className="text-[11.5px] text-ink-soft shrink-0 tabular-nums">🚶 {d.steps.toLocaleString('ko-KR')}보</span>
+                        )}
                       </div>
                       {d.is_mine && (
                         <button onClick={() => void onDelete(d)} className="text-[11.5px] text-ink-faint shrink-0">삭제</button>

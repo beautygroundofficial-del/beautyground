@@ -22,6 +22,8 @@ export interface Diary {
   cheer: number
   my_kind: 'pat' | 'same' | 'cheer' | null
   comment_count: number
+  // 오늘 걸음 수(선택) — 웹에선 직접 적고, 앱 전환 후 자동. 없으면 null (2026-09-11)
+  steps: number | null
 }
 
 export interface BestDiary {
@@ -57,10 +59,10 @@ export interface CreateDiaryResult {
 }
 
 export async function createDiary(
-  content: string, images: string[] = [], nickname?: string | null
+  content: string, images: string[] = [], nickname?: string | null, steps?: number | null,
 ): Promise<CreateDiaryResult | null> {
   const { data, error } = await supabase.rpc('create_diary', {
-    p_content: content, p_images: images, p_nickname: nickname ?? null,
+    p_content: content, p_images: images, p_nickname: nickname ?? null, p_steps: steps ?? null,
   })
   if (error) return null
   const row = Array.isArray(data) ? data[0] : data

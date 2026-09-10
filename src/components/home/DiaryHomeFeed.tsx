@@ -146,6 +146,9 @@ export default function DiaryHomeFeed() {
                         <div className="flex items-center gap-2 min-w-0">
                           <span className="text-[12px] font-semibold text-ink truncate">{maskName(d.nickname)}</span>
                           <span className="text-[11.5px] text-ink-faint shrink-0">{timeAgo(d.created_at)}</span>
+                          {d.steps != null && d.steps > 0 && (
+                            <span className="text-[11.5px] text-ink-soft shrink-0 tabular-nums">🚶 {d.steps.toLocaleString('ko-KR')}보</span>
+                          )}
                         </div>
                         {/* 홈 카드는 전체가 '이야기로 가기' 버튼이라 반응 버튼을 넣으면 버튼이 겹친다.
                             여기서는 받은 공감 수만 보여주고, 누르는 것은 이야기 화면에서 한다. */}

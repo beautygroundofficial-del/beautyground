@@ -43,6 +43,7 @@ const AppBenefits = lazy(() => import('./pages/AppBenefits'))
 const AppMissions = lazy(() => import('./pages/AppMissions'))
 const AppTodayActivity = lazy(() => import('./pages/AppTodayActivity'))
 const AppDiary = lazy(() => import('./pages/AppDiary'))
+const AppDiaryWrite = lazy(() => import('./pages/AppDiaryWrite'))
 const AppBoard = lazy(() => import('./pages/AppBoard'))
 const AppBoardWrite = lazy(() => import('./pages/AppBoardWrite'))
 const AppBoardPost = lazy(() => import('./pages/AppBoardPost'))
@@ -342,6 +343,7 @@ export default function App() {
         <Route path="/app/missions" element={<AppMissions />} />
         <Route path="/app/today" element={<AppTodayActivity />} />
         <Route path="/app/diary" element={<AppDiary />} />
+        <Route path="/app/diary/write" element={<AppDiaryWrite />} />
         <Route path="/app/board" element={<AppBoard />} />
         <Route path="/app/board/write" element={<AppBoardWrite />} />
         <Route path="/app/board/mine" element={<AppMyBoard />} />

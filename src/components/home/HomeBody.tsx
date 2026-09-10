@@ -57,7 +57,7 @@ export default function HomeBody({ marqueeItems }: HomeBodyProps) {
       {/* 오늘의 이야기 쓰기 */}
       <section className="px-5 pt-5">
         <button
-          onClick={() => navigate('/app/diary')}
+          onClick={() => navigate('/app/diary/write')}
           className="w-full rounded-card bg-ink text-paper px-5 py-4 text-left focus:outline-none focus-visible:shadow-ring"
         >
           <span className="block text-[15px] font-bold leading-tight">오늘 어떤 하루였나요?</span>
