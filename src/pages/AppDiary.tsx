@@ -14,6 +14,8 @@ import ReactionSummary from '../components/community/ReactionSummary'
 import DiaryComments, { CommentToggle } from '../components/community/DiaryComments'
 import StoryTabs from '../components/community/StoryTabs'
 import Lightbox from '../components/community/Lightbox'
+import FriendButton from '../components/community/FriendButton'
+import { getFriendDiaryFeed, getFriendStatuses, type FriendStatus } from '../lib/friends'
 
 // 살아가는 이야기 — 유저가 사진과 함께 일상을 남기는 곳.
 // 글을 올리면 create_diary RPC 안에서 diary_post 미션이 자동 적립된다(화면에서 따로 적립 호출 안 함).
@@ -27,6 +29,9 @@ import Lightbox from '../components/community/Lightbox'
 //   · 재촉하는 장치(타이머·소멸 압박)는 넣지 않는다
 // 로직(불러오기·작성·좋아요·삭제)은 이전과 동일하다.
 // 2026-09-11 — 쓰기는 전용 화면(/app/diary/write, 글·사진·걸음 수)으로 옮겼다. 여기선 입구만 둔다.
+// 2026-09-11 — 친구: 남의 닉네임 옆 작은 친구 버튼, 정렬 옆 "친구" 탭(친구 글만). 친구 닉네임은 가리지 않는다.
+
+type FeedView = DiarySort | 'friends'
 
 function timeAgo(iso: string) {
   const diff = Date.now() - new Date(iso).getTime()
@@ -67,8 +72,10 @@ export default function AppDiary() {
 
   const [loggedIn, setLoggedIn] = useState<boolean | null>(null)
   const [myName, setMyName] = useState<string | null>(null)
-  const [sort, setSort] = useState<DiarySort>('recent')
+  const [sort, setSort] = useState<FeedView>('recent')
   const [feed, setFeed] = useState<Diary[]>([])
+  // 글쓴이별 친구 관계 — 없으면 'none'
+  const [friendOf, setFriendOf] = useState<Record<string, FriendStatus>>({})
   const [best, setBest] = useState<BestDiary[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -94,7 +101,7 @@ export default function AppDiary() {
     if (st?.toast) { showToast(st.toast); window.history.replaceState({}, '') }
   }, [location.state])
 
-  const load = useCallback(async (s: DiarySort) => {
+  const load = useCallback(async (s: FeedView) => {
     const { data: { session } } = await supabase.auth.getSession()
     setLoggedIn(!!session)
     if (session) {
@@ -102,10 +109,20 @@ export default function AppDiary() {
       const meta = session.user.user_metadata as { name?: string } | undefined
       setMyName(meta?.name || session.user.email?.split('@')[0] || null)
     }
-    const [rows, bests] = await Promise.all([getDiaryFeed(s, 30), getMonthlyBestDiaries(3)])
+    const [rows, bests] = await Promise.all([
+      s === 'friends' ? getFriendDiaryFeed(30) : getDiaryFeed(s, 30),
+      getMonthlyBestDiaries(3),
+    ])
     setFeed(rows)
     setBest(bests)
     setLoading(false)
+    // 친구 버튼 상태 — 로그인했을 때만, 남의 글쓴이만
+    if (session) {
+      const others = rows.filter((r) => !r.is_mine).map((r) => r.user_id)
+      setFriendOf(await getFriendStatuses(others))
+    } else {
+      setFriendOf({})
+    }
   }, [])
 
   useEffect(() => { void load(sort) }, [load, sort])
@@ -174,8 +191,12 @@ export default function AppDiary() {
           title="사람들의 이야기"
           right={
             <div className="flex items-center gap-1 shrink-0">
-              {([['recent', '최신'], ['popular', '인기']] as const).map(([key, label]) => (
-                <button key={key} onClick={() => setSort(key)}
+              {([['recent', '최신'], ['popular', '인기'], ['friends', '친구']] as const).map(([key, label]) => (
+                <button key={key}
+                  onClick={() => {
+                    if (key === 'friends' && !loggedIn) { navigate('/app/login', { state: { from: '/app/diary' } }); return }
+                    setLoading(true); setSort(key)
+                  }}
                   className={`px-3 py-1.5 rounded-full text-[12px] font-semibold transition ${
                     sort === key ? 'bg-ink text-paper' : 'text-ink-faint'}`}>
                   {label}
@@ -187,6 +208,14 @@ export default function AppDiary() {
 
         {loading ? (
           <p className="py-12 text-center text-[13px] text-ink-faint">불러오는 중…</p>
+        ) : feed.length === 0 && sort === 'friends' ? (
+          <button
+            onClick={() => navigate('/app/friends')}
+            className="w-full rounded-card border border-dashed border-rule bg-quiet/40 px-5 py-12 text-center focus:outline-none focus-visible:shadow-ring"
+          >
+            <p className="text-[14px] font-semibold text-ink">아직 친구의 이야기가 없어요</p>
+            <p className="text-[12.5px] text-ink-faint mt-1.5">이름 옆 '친구 신청'으로 친구를 맺어보세요</p>
+          </button>
         ) : feed.length === 0 ? (
           <button
             onClick={openComposer}
@@ -232,7 +261,19 @@ export default function AppDiary() {
 
                     <div className="flex items-center justify-between mt-3.5 pt-3 border-t border-rule">
                       <div className="flex items-center gap-2 min-w-0">
-                        <span className="text-[12px] font-semibold text-ink truncate">{maskName(d.nickname)}</span>
+                        {/* 친구면 이름을 가리지 않는다 — 친구끼리는 누가 누군지 알아야 이야기가 이어진다 */}
+                        <span className="text-[12px] font-semibold text-ink truncate">
+                          {friendOf[d.user_id] === 'friends' ? (d.nickname ?? '익명') : maskName(d.nickname)}
+                        </span>
+                        {!d.is_mine && loggedIn && (
+                          <FriendButton
+                            userId={d.user_id}
+                            status={friendOf[d.user_id] ?? 'none'}
+                            loggedIn={!!loggedIn}
+                            onChange={(next) => setFriendOf((prev) => ({ ...prev, [d.user_id]: next }))}
+                            onNotice={showToast}
+                          />
+                        )}
                         <span className="text-[11.5px] text-ink-faint shrink-0">{timeAgo(d.created_at)}</span>
                         {d.steps != null && d.steps > 0 && (
                           <span className="text-[11.5px] text-ink-soft shrink-0 tabular-nums">🚶 {d.steps.toLocaleString('ko-KR')}보</span>

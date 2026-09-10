@@ -12,6 +12,7 @@ import { getMyPointsBalance, getMyValidCoupons } from '../lib/rewards'
 import { IconUser } from '../components/common/Icon'
 import { useIsStaff } from '../lib/staff'
 import { useActiveMissions } from '../hooks/useActiveMissions'
+import { getFriendRequestCount } from '../lib/friends'
 
 // 실제 로그인 사용자 프로필 (포인트/쿠폰은 supabase/signup_bonus.sql 적용 후 실제 지급값)
 interface RealUser {
@@ -24,7 +25,7 @@ interface RealUser {
 }
 
 // 이모지 대신 텍스트만 — 아이콘은 상태를 나타낼 때만 쓰고, 목록 항목 장식용으로는 쓰지 않는다.
-function buildMenuItems(user: RealUser, showMissions: boolean) {
+function buildMenuItems(user: RealUser, showMissions: boolean, friendRequests: number) {
   return [
     { label: '주문 내역', path: '/app/orders' },
     { label: '배송지 관리', path: '/app/addresses' },
@@ -40,6 +41,8 @@ function buildMenuItems(user: RealUser, showMissions: boolean) {
     // 속 이야기·새 소식은 미션과 무관하게 항상 — 글을 썼으면 찾아갈 수 있어야 한다(2026-09-10)
     { label: '내가 쓴 속 이야기', path: '/app/board/mine' },
     { label: '새 소식', path: '/app/news' },
+    // 친구 — 받은 신청이 있으면 개수만 조용히(2026-09-11)
+    { label: '친구', path: '/app/friends', ...(friendRequests > 0 ? { count: friendRequests } : {}) },
     { label: '최근 본 상품', path: '/app/recently-viewed' },
     { label: '리뷰 관리', path: '/app/my-reviews' },
   ]
@@ -66,12 +69,14 @@ export default function AppMyPage() {
 
   const [loggedIn, setLoggedIn] = useState<boolean | null>(null)
   const [toast, setToast] = useState<string | null>(null)
+  const [friendRequests, setFriendRequests] = useState(0)
 
   const loadUser = async () => {
     const { data } = await supabase.auth.getUser()
     const authUser = data.user
     setLoggedIn(!!authUser)
-    if (!authUser) { setUser(EMPTY_USER); setMembership(null); return }
+    if (!authUser) { setUser(EMPTY_USER); setMembership(null); setFriendRequests(0); return }
+    void getFriendRequestCount().then(setFriendRequests)
 
     const meta = authUser.user_metadata as { name?: string } | undefined
     const name = meta?.name || authUser.email?.split('@')[0] || '고객'
@@ -279,7 +284,7 @@ export default function AppMyPage() {
 
       {/* 메뉴 */}
       <div className="mt-2 bg-paper">
-        {buildMenuItems(user, activeMissions.length > 0).map(({ label, path, count, value }) => (
+        {buildMenuItems(user, activeMissions.length > 0, friendRequests).map(({ label, path, count, value }) => (
           <button
             key={label}
             onClick={() => path && navigate(path)}
