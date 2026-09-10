@@ -5,6 +5,7 @@ import AppFrame from '../components/layout/AppFrame'
 import ReactionBar from '../components/community/ReactionBar'
 import ReactionSummary from '../components/community/ReactionSummary'
 import BoardComments from '../components/community/BoardComments'
+import Lightbox from '../components/community/Lightbox'
 import { supabase } from '../lib/supabase'
 import { categoryLabel, deleteBoardPost, getBoardPost, reportBoardPost, type BoardPost } from '../lib/board'
 
@@ -39,6 +40,7 @@ export default function AppBoardPost() {
   const [myName, setMyName] = useState<string | null>(null)
   const [post, setPost] = useState<BoardPost | null | undefined>(undefined)
   const [toast, setToast] = useState('')
+  const [viewerIndex, setViewerIndex] = useState<number | null>(null)
 
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 2400) }
 
@@ -124,9 +126,15 @@ export default function AppBoardPost() {
             {post.images.length > 0 && (
               <div className={`grid gap-1 mt-4 rounded-card overflow-hidden ${post.images.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
                 {post.images.slice(0, 4).map((src, i) => (
-                  <div key={`${src}-${i}`} className={`bg-quiet ${post.images.length === 1 ? 'aspect-[4/3]' : 'aspect-square'}`}>
+                  <button
+                    type="button"
+                    key={`${src}-${i}`}
+                    onClick={() => setViewerIndex(i)}
+                    aria-label={`사진 ${i + 1} 크게 보기`}
+                    className={`bg-quiet focus:outline-none focus-visible:shadow-ring ${post.images.length === 1 ? 'aspect-[4/3]' : 'aspect-square'}`}
+                  >
                     <img src={src} alt="" className="w-full h-full object-cover" />
-                  </div>
+                  </button>
                 ))}
               </div>
             )}
@@ -176,6 +184,10 @@ export default function AppBoardPost() {
         <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 rounded-full bg-ink text-paper text-[13px] shadow-lg">
           {toast}
         </div>
+      )}
+
+      {post && viewerIndex !== null && (
+        <Lightbox images={post.images} index={viewerIndex} onClose={() => setViewerIndex(null)} />
       )}
     </AppFrame>
   )

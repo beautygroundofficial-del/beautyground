@@ -12,6 +12,7 @@ import ReactionBar from '../components/community/ReactionBar'
 import ReactionSummary from '../components/community/ReactionSummary'
 import DiaryComments from '../components/community/DiaryComments'
 import StoryTabs from '../components/community/StoryTabs'
+import Lightbox from '../components/community/Lightbox'
 
 // 살아가는 이야기 — 유저가 사진과 함께 일상을 남기는 곳.
 // 글을 올리면 create_diary RPC 안에서 diary_post 미션이 자동 적립된다(화면에서 따로 적립 호출 안 함).
@@ -71,6 +72,8 @@ export default function AppDiary() {
   const [loading, setLoading] = useState(true)
 
   const [toast, setToast] = useState('')
+  // 사진 크게 보기 — 어느 글의 몇 번째 사진인지
+  const [viewer, setViewer] = useState<{ images: string[]; index: number } | null>(null)
 
   const showToast = (msg: string) => {
     setToast(msg)
@@ -194,14 +197,17 @@ export default function AppDiary() {
                   {imgs.length > 0 && (
                     <div className={`grid gap-0.5 ${imgs.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
                       {imgs.slice(0, 4).map((src, i) => (
-                        <div
+                        <button
+                          type="button"
                           key={`${src}-${i}`}
-                          className={`bg-quiet overflow-hidden ${
+                          onClick={() => setViewer({ images: imgs, index: i })}
+                          aria-label={`사진 ${i + 1} 크게 보기`}
+                          className={`bg-quiet overflow-hidden focus:outline-none focus-visible:shadow-ring ${
                             imgs.length === 1 ? 'aspect-[4/3]' : 'aspect-square'
                           } ${imgs.length === 3 && i === 0 ? 'col-span-2 aspect-[2/1]' : ''}`}
                         >
                           <img src={src} alt="" loading="lazy" className="w-full h-full object-cover" />
-                        </div>
+                        </button>
                       ))}
                     </div>
                   )}
@@ -278,6 +284,8 @@ export default function AppDiary() {
           {toast}
         </div>
       )}
+
+      {viewer && <Lightbox images={viewer.images} index={viewer.index} onClose={() => setViewer(null)} />}
 
       <BottomNav />
     </AppFrame>
