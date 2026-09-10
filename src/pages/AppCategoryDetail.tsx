@@ -106,6 +106,7 @@ export default function AppCategoryDetail() {
       <ViewModeToggle mode={mode} onToggle={toggle} />
       <PromoBar />
       <BackHeader
+        promoBarAbove
         title={selected ?? '전체 상품'}
         rightElement={
           <button

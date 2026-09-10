@@ -8,7 +8,12 @@ import { supabase } from '../../lib/supabase'
 // 하단 탭 "카테고리"에 이미 있어서, 돋보기는 진짜 키워드 검색(/app/search)으로 분리(2026-08-10).
 // 온라인몰과 라이브커머스를 당분간 분리하기로 해(대표님 지시 2026-07-29) 로고 이미지와
 // "LIVE COMMERCE" 영문 표기를 뺐다 — 이 화면은 라이브 얘기를 하지 않는다.
-export default function AppHeader() {
+interface Props {
+  // PromoBar(높이 34px)가 바로 위에 스크롤 고정되어 있으면, 그만큼 아래로 내려 붙는다.
+  promoBarAbove?: boolean
+}
+
+export default function AppHeader({ promoBarAbove = false }: Props) {
   const [name, setName] = useState<string | null>(null)
 
   useEffect(() => {
@@ -26,7 +31,11 @@ export default function AppHeader() {
   }, [])
 
   return (
-    <header className="bg-paper flex items-center justify-between px-4 h-14 border-b border-rule sticky top-0 z-50">
+    <header
+      className={`bg-paper flex items-center justify-between px-4 h-14 border-b border-rule sticky z-50 ${
+        promoBarAbove ? 'top-[34px]' : 'top-0'
+      }`}
+    >
       <Link to="/app/home" className="flex items-center min-w-0">
         {name ? (
           <span className="font-sans text-[16px] font-bold text-ink tracking-[-0.01em] truncate">

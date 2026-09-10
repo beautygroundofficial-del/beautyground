@@ -70,7 +70,7 @@ export default function DesktopHome({
   return (
     <div className="bg-paper min-h-screen">
       <PromoBar />
-      <DesktopHeader />
+      <DesktopHeader promoBarAbove />
 
       {/* 히어로 배너 롤링 — 690:592 비율 타일 3칸을 10px 간격으로 이어붙인다(가로 스크롤+snap,
           좌우 화살표로도 이동 가능). 이 구획만 본문(1280px)보다 넓게(1600px) 잡아 큰 화면에서

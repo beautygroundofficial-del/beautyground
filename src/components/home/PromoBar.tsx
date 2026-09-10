@@ -59,7 +59,7 @@ export default function PromoBar() {
   return (
     <Link
       to={item.href}
-      className={`flex items-center justify-center gap-2 h-[34px] px-4 overflow-hidden transition-colors duration-300 ${item.bgClass}`}
+      className={`sticky top-0 z-50 flex items-center justify-center gap-2 h-[34px] px-4 overflow-hidden transition-colors duration-300 ${item.bgClass}`}
       aria-label={item.message}
     >
       <span key={item.key} className="flex items-center gap-2 text-[12.5px] font-bold text-white animate-fade-in">

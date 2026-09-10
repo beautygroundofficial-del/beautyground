@@ -21,6 +21,8 @@ interface HomeBodyProps {
   brands: ShopBrand[]
   brandsLoading: boolean
   onProductClick: (id: string) => void
+  // 호출부가 이 컴포넌트 바로 위에 PromoBar를 렌더링했는지 — AppHeader의 스크롤 고정 위치를 그만큼 내려 붙인다.
+  promoBarAbove?: boolean
 }
 
 // 홈 화면 본문(마퀴~상품그리드) — 실제 /app/home과 관리자 미리보기가 공유하는 프레젠테이션 컴포넌트.
@@ -38,11 +40,12 @@ export default function HomeBody({
   saleProducts,
   saleLoading,
   onProductClick,
+  promoBarAbove = false,
 }: HomeBodyProps) {
   return (
     <>
       <MarqueeBar items={marqueeItems} />
-      <AppHeader />
+      <AppHeader promoBarAbove={promoBarAbove} />
       <HeroCarousel banners={banners} loading={bannerLoading} />
       <TrustStrip />
 

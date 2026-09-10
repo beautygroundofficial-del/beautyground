@@ -18,7 +18,12 @@ const QUICK_LINKS = [
   { href: '/app/orders', label: '주문내역' },
 ]
 
-export default function DesktopHeader() {
+interface Props {
+  // PromoBar(높이 34px)가 바로 위에 스크롤 고정되어 있으면, 그만큼 아래로 내려 붙는다.
+  promoBarAbove?: boolean
+}
+
+export default function DesktopHeader({ promoBarAbove = false }: Props) {
   const [name, setName] = useState<string | null>(null)
   const [showMenu, setShowMenu] = useState(false)
   const menuBoxRef = useRef<HTMLDivElement>(null)
@@ -50,7 +55,9 @@ export default function DesktopHeader() {
   }, [showMenu])
 
   return (
-    <header className="bg-paper border-b border-rule sticky top-0 z-50">
+    <header
+      className={`bg-paper border-b border-rule sticky z-50 ${promoBarAbove ? 'top-[34px]' : 'top-0'}`}
+    >
       <div className="max-w-[1280px] mx-auto px-6 h-16 flex items-center justify-between">
         <div className="flex items-center gap-4">
           <div className="relative" ref={menuBoxRef}>
