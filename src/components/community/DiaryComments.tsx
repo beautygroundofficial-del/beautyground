@@ -69,12 +69,20 @@ export default function DiaryComments({
 
   return (
     <div className="mt-2.5">
+      {/* 글자("댓글 남기기") 대신 말풍선 하나 — 대표님 "깔끔하게" (2026-09-11). 개수는 있을 때만 옆에 */}
       <button
         type="button"
         onClick={() => void toggle()}
-        className="text-[12px] text-ink-soft focus:outline-none focus-visible:shadow-ring"
+        aria-label={count > 0 ? `댓글 ${count}개 ${open ? '접기' : '보기'}` : '댓글 남기기'}
+        aria-expanded={open}
+        className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1.5 -ml-2 text-[12px] transition-colors focus:outline-none focus-visible:shadow-ring ${
+          open ? 'bg-quiet text-ink' : 'text-ink-soft hover:bg-quiet'
+        }`}
       >
-        {count > 0 ? `댓글 ${count}` : '댓글 남기기'}
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M4 6.5A2.5 2.5 0 0 1 6.5 4h11A2.5 2.5 0 0 1 20 6.5v7a2.5 2.5 0 0 1-2.5 2.5H10l-4.5 3.5V16A2.5 2.5 0 0 1 4 13.5z" />
+        </svg>
+        {count > 0 && <span className="tabular-nums">{count}</span>}
       </button>
 
       {open && (
