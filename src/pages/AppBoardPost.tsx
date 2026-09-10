@@ -6,8 +6,9 @@ import ReactionBar from '../components/community/ReactionBar'
 import ReactionSummary from '../components/community/ReactionSummary'
 import BoardComments from '../components/community/BoardComments'
 import Lightbox from '../components/community/Lightbox'
+import LikeButton from '../components/community/LikeButton'
 import { supabase } from '../lib/supabase'
-import { categoryLabel, deleteBoardPost, getBoardPost, reportBoardPost, type BoardPost } from '../lib/board'
+import { categoryLabel, deleteBoardPost, getBoardPost, reportBoardPost, toggleBoardLike, type BoardPost } from '../lib/board'
 
 // 속 이야기 — 글 하나. (2026-09-10)
 // 공감 3종(토닥토닥·나도 그래요·응원해요)은 일기와 같은 ReactionBar. 내 글엔 띄우지 않는다.
@@ -142,6 +143,24 @@ export default function AppBoardPost() {
             {post.video_url && (
               <div className="mt-4 rounded-card overflow-hidden bg-ink">
                 <video src={post.video_url} controls playsInline preload="metadata" className="w-full max-h-[420px]" />
+              </div>
+            )}
+
+            {/* 하트 — board_likes.sql 이 실행된 뒤(like_count 가 오면)부터 보인다 */}
+            {post.like_count !== undefined && (
+              <div className="mt-4 -ml-2">
+                <LikeButton
+                  liked={!!post.liked_by_me}
+                  count={post.like_count}
+                  loggedIn={loggedIn}
+                  disabled={post.is_mine}
+                  size="md"
+                  onToggle={async () => {
+                    const res = await toggleBoardLike(post.id)
+                    if (res) setPost((prev) => (prev ? { ...prev, liked_by_me: res.liked, like_count: res.like_count } : prev))
+                    return res
+                  }}
+                />
               </div>
             )}
 

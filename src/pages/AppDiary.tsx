@@ -5,12 +5,13 @@ import AppFrame from '../components/layout/AppFrame'
 import BottomNav from '../components/layout/BottomNav'
 import { supabase } from '../lib/supabase'
 import {
-  getDiaryFeed, getMonthlyBestDiaries, deleteDiary,
+  getDiaryFeed, getMonthlyBestDiaries, deleteDiary, toggleDiaryLike,
   type Diary, type BestDiary, type DiarySort,
 } from '../lib/diaries'
+import LikeButton from '../components/community/LikeButton'
 import ReactionBar from '../components/community/ReactionBar'
 import ReactionSummary from '../components/community/ReactionSummary'
-import DiaryComments from '../components/community/DiaryComments'
+import DiaryComments, { CommentToggle } from '../components/community/DiaryComments'
 import StoryTabs from '../components/community/StoryTabs'
 import Lightbox from '../components/community/Lightbox'
 
@@ -74,6 +75,13 @@ export default function AppDiary() {
   const [toast, setToast] = useState('')
   // 사진 크게 보기 — 어느 글의 몇 번째 사진인지
   const [viewer, setViewer] = useState<{ images: string[]; index: number } | null>(null)
+  // 댓글이 펼쳐진 글들
+  const [openComments, setOpenComments] = useState<Set<string>>(new Set())
+  const toggleComments = (id: string) => setOpenComments((prev) => {
+    const next = new Set(prev)
+    if (next.has(id)) next.delete(id); else next.add(id)
+    return next
+  })
 
   const showToast = (msg: string) => {
     setToast(msg)
@@ -230,12 +238,27 @@ export default function AppDiary() {
                           <span className="text-[11.5px] text-ink-soft shrink-0 tabular-nums">🚶 {d.steps.toLocaleString('ko-KR')}보</span>
                         )}
                       </div>
-                      {d.is_mine && (
-                        <div className="flex items-center gap-3 shrink-0">
-                          <button onClick={() => navigate(`/app/diary/write?id=${d.id}`)} className="text-[11.5px] text-ink-faint">수정</button>
-                          <button onClick={() => void onDelete(d)} className="text-[11.5px] text-ink-faint">삭제</button>
-                        </div>
-                      )}
+                      {/* 하트 · 말풍선 · (내 글이면) 수정 삭제 — 한 줄에 나란히(2026-09-11 대표님 "깔끔하게") */}
+                      <div className="flex items-center gap-1 shrink-0 -mr-2">
+                        <LikeButton
+                          liked={d.liked_by_me}
+                          count={d.like_count}
+                          loggedIn={!!loggedIn}
+                          disabled={d.is_mine}
+                          onToggle={async () => {
+                            const res = await toggleDiaryLike(d.id)
+                            if (res) setFeed((prev) => prev.map((x) => (x.id === d.id ? { ...x, liked_by_me: res.liked, like_count: res.like_count } : x)))
+                            return res
+                          }}
+                        />
+                        <CommentToggle count={d.comment_count} open={openComments.has(d.id)} onClick={() => toggleComments(d.id)} />
+                        {d.is_mine && (
+                          <>
+                            <button onClick={() => navigate(`/app/diary/write?id=${d.id}`)} className="text-[11.5px] text-ink-faint px-1.5 py-1.5">수정</button>
+                            <button onClick={() => void onDelete(d)} className="text-[11.5px] text-ink-faint px-1.5 py-1.5">삭제</button>
+                          </>
+                        )}
+                      </div>
                     </div>
 
                     {/* 내 글 — 누르는 버튼 대신 받은 마음만 읽는다(2026-09-11) */}
@@ -263,6 +286,7 @@ export default function AppDiary() {
                     {/* 댓글 — 내 글에도 달린다(글쓴이가 답을 해야 대화가 된다) */}
                     <DiaryComments
                       diaryId={d.id}
+                      open={openComments.has(d.id)}
                       count={d.comment_count}
                       loggedIn={!!loggedIn}
                       myName={myName}

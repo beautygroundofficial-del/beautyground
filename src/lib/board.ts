@@ -38,6 +38,16 @@ export interface BoardPost {
   my_kind: ReactionKind | null
   comment_count: number
   video_url: string | null
+  // 하트 — board_likes.sql 실행 전엔 RPC 가 안 돌려줘서 undefined → 화면은 하트를 숨긴다 (2026-09-11)
+  like_count?: number
+  liked_by_me?: boolean
+}
+
+export async function toggleBoardLike(postId: string): Promise<{ liked: boolean; like_count: number } | null> {
+  const { data, error } = await supabase.rpc('toggle_board_like', { p_post_id: postId })
+  if (error) return null
+  const row = Array.isArray(data) ? data[0] : data
+  return (row ?? null) as { liked: boolean; like_count: number } | null
 }
 
 export async function getBoardFeed(categories: BoardCategory[] = [], limit = 30, offset = 0): Promise<BoardPost[]> {
