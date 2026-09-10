@@ -1,14 +1,14 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import BackHeader from '../components/layout/BackHeader'
 import AppFrame from '../components/layout/AppFrame'
 import PostComposer, { loadDraft, saveDraft, clearDraft } from '../components/community/PostComposer'
 import { supabase } from '../lib/supabase'
-import { createDiary, uploadDiaryImages } from '../lib/diaries'
+import { createDiary, getMyDiary, updateDiary, uploadDiaryImages, uploadCommunityVideo } from '../lib/diaries'
 
-// 오늘 남기기 — 하루 이야기 쓰기 화면. (2026-09-11)
-// 전엔 이야기 목록 위의 작은 입력칸이었다. 대표님 지시 "걷기를 통한 하루 일기 … 이미지와 텍스트를
-// 적을 수 있는 환경"에 맞춰 화면 하나를 통째로 준다 — 글·사진·오늘 걸음 수.
+// 오늘 남기기 — 하루 이야기 쓰기·고쳐 쓰기 화면. (2026-09-11)
+// 대표님 지시 "걷기를 통한 하루 일기 … 이미지와 텍스트", "삭제 옆에 수정도", "MP4 영상도".
+// 글·사진(4장)·영상(1개)·오늘 걸음 수. ?id= 가 있으면 고쳐 쓰기 — 포인트는 다시 주지 않는다.
 // 걸음 수는 지금은 직접 적는다(선택). 앱이 나오면 자동으로 채워진다. 포인트와는 무관하다.
 
 const MIN_LEN = 5
@@ -19,10 +19,16 @@ interface Draft { content: string; steps: string }
 
 export default function AppDiaryWrite() {
   const navigate = useNavigate()
+  const [sp] = useSearchParams()
+  const editId = sp.get('id')
+
   const [myName, setMyName] = useState<string | null>(null)
   const [content, setContent] = useState('')
   const [steps, setSteps] = useState('')
   const [files, setFiles] = useState<File[]>([])
+  const [video, setVideo] = useState<File | null>(null)
+  const [existingImages, setExistingImages] = useState<string[]>([])
+  const [existingVideo, setExistingVideo] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [toast, setToast] = useState('')
   const [ready, setReady] = useState(false)
@@ -30,29 +36,56 @@ export default function AppDiaryWrite() {
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 2400) }
 
   useEffect(() => {
-    void supabase.auth.getSession().then(({ data: { session } }) => {
+    void (async () => {
+      const { data: { session } } = await supabase.auth.getSession()
       if (!session) { navigate('/app/login', { replace: true, state: { from: '/app/diary/write' } }); return }
       const meta = session.user.user_metadata as { name?: string } | undefined
       setMyName(meta?.name || session.user.email?.split('@')[0] || null)
-      const d = loadDraft<Draft>(DRAFT_KEY)
-      if (d.content) setContent(d.content)
-      if (d.steps) setSteps(d.steps)
-      setReady(true)
-    })
-  }, [navigate])
 
-  useEffect(() => { if (ready) saveDraft(DRAFT_KEY, { content, steps }) }, [ready, content, steps])
+      if (editId) {
+        const row = await getMyDiary(editId)
+        if (!row) { showToast('고칠 수 있는 글이 아니에요'); navigate('/app/diary', { replace: true }); return }
+        setContent(row.content)
+        setSteps(row.steps ? String(row.steps) : '')
+        setExistingImages(row.images ?? [])
+        setExistingVideo(row.video_url ?? null)
+      } else {
+        const d = loadDraft<Draft>(DRAFT_KEY)
+        if (d.content) setContent(d.content)
+        if (d.steps) setSteps(d.steps)
+      }
+      setReady(true)
+    })()
+  }, [navigate, editId])
+
+  // 임시저장은 새 글일 때만 — 고쳐 쓰기 도중 내용이 새 글 초안으로 남으면 헷갈린다
+  useEffect(() => { if (ready && !editId) saveDraft(DRAFT_KEY, { content, steps }) }, [ready, editId, content, steps])
 
   const stepsNum = Number(steps.replace(/[^0-9]/g, '')) || 0
 
   const submit = async () => {
     if (content.trim().length < MIN_LEN) { showToast(`${MIN_LEN}자 이상 적어주세요`); return }
     setSaving(true)
-    const urls = files.length > 0 ? await uploadDiaryImages(files) : []
-    if (files.length > 0 && urls.length === 0) {
+    const newUrls = files.length > 0 ? await uploadDiaryImages(files) : []
+    if (files.length > 0 && newUrls.length === 0) {
       setSaving(false); showToast('사진 업로드에 실패했어요. 잠시 후 다시 시도해 주세요'); return
     }
-    const res = await createDiary(content, urls, myName, stepsNum > 0 ? stepsNum : null)
+    let videoUrl: string | null = existingVideo
+    if (video) {
+      videoUrl = await uploadCommunityVideo(video, 'diaries')
+      if (!videoUrl) { setSaving(false); showToast('영상 업로드에 실패했어요. 잠시 후 다시 시도해 주세요'); return }
+    }
+    const images = [...existingImages, ...newUrls]
+
+    if (editId) {
+      const ok = await updateDiary(editId, { content: content.trim(), images, steps: stepsNum > 0 ? stepsNum : null, video_url: videoUrl })
+      setSaving(false)
+      if (!ok) { showToast('고치지 못했어요. 잠시 후 다시 시도해 주세요'); return }
+      navigate('/app/diary', { replace: true, state: { toast: '고쳐 썼어요' } })
+      return
+    }
+
+    const res = await createDiary(content, images, myName, stepsNum > 0 ? stepsNum : null, videoUrl)
     setSaving(false)
     if (!res || !res.diary_id) { showToast(res?.message || '올리지 못했어요'); return }
     clearDraft(DRAFT_KEY)
@@ -62,12 +95,12 @@ export default function AppDiaryWrite() {
     })
   }
 
-  const canSubmit = content.trim().length >= MIN_LEN && !saving
+  const canSubmit = ready && content.trim().length >= MIN_LEN && !saving
 
   return (
     <AppFrame>
       <BackHeader
-        title="오늘 남기기"
+        title={editId ? '고쳐 쓰기' : '오늘 남기기'}
         onBack={() => navigate('/app/diary')}
         rightElement={
           <button
@@ -76,7 +109,7 @@ export default function AppDiaryWrite() {
             disabled={!canSubmit}
             className="px-3.5 py-1.5 rounded-control bg-ink text-paper text-[13px] font-semibold disabled:opacity-40"
           >
-            {saving ? '올리는 중…' : '올리기'}
+            {saving ? '올리는 중…' : editId ? '고치기' : '올리기'}
           </button>
         }
       />
@@ -89,9 +122,16 @@ export default function AppDiaryWrite() {
           onContentChange={setContent}
           files={files}
           onFilesChange={setFiles}
+          video={video}
+          onVideoChange={setVideo}
+          existingImages={existingImages}
+          onRemoveExistingImage={(url) => setExistingImages((prev) => prev.filter((u) => u !== url))}
+          existingVideo={existingVideo}
+          onRemoveExistingVideo={() => setExistingVideo(null)}
           maxLen={MAX_LEN}
           placeholder="오늘 있었던 일, 본 것, 먹은 것… 떠오르는 대로 적어주세요."
-          autoFocus
+          autoFocus={!editId}
+          onNotice={showToast}
         />
       </section>
 

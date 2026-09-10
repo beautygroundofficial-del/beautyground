@@ -9,6 +9,7 @@ import {
   type Diary, type BestDiary, type DiarySort,
 } from '../lib/diaries'
 import ReactionBar from '../components/community/ReactionBar'
+import ReactionSummary from '../components/community/ReactionSummary'
 import DiaryComments from '../components/community/DiaryComments'
 import StoryTabs from '../components/community/StoryTabs'
 
@@ -205,6 +206,11 @@ export default function AppDiary() {
                     </div>
                   )}
 
+                  {/* 영상 — 사진 아래, 누르면 재생(자동재생 없음) */}
+                  {d.video_url && (
+                    <video src={d.video_url} controls playsInline preload="metadata" className="w-full max-h-[420px] bg-ink" />
+                  )}
+
                   <div className="p-4">
                     <p className="text-[14px] text-ink whitespace-pre-wrap leading-relaxed line-clamp-4">
                       {d.content}
@@ -219,9 +225,19 @@ export default function AppDiary() {
                         )}
                       </div>
                       {d.is_mine && (
-                        <button onClick={() => void onDelete(d)} className="text-[11.5px] text-ink-faint shrink-0">삭제</button>
+                        <div className="flex items-center gap-3 shrink-0">
+                          <button onClick={() => navigate(`/app/diary/write?id=${d.id}`)} className="text-[11.5px] text-ink-faint">수정</button>
+                          <button onClick={() => void onDelete(d)} className="text-[11.5px] text-ink-faint">삭제</button>
+                        </div>
                       )}
                     </div>
+
+                    {/* 내 글 — 누르는 버튼 대신 받은 마음만 읽는다(2026-09-11) */}
+                    {d.is_mine && (
+                      <div className="mt-3">
+                        <ReactionSummary counts={d} />
+                      </div>
+                    )}
 
                     {/* 공감 — 내 글에는 띄우지 않는다(셀프 공감은 적립도 안 되고 의미도 없다) */}
                     {!d.is_mine && (

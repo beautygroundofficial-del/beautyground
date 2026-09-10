@@ -140,6 +140,9 @@ export default function DiaryHomeFeed() {
                         ))}
                       </div>
                     )}
+                    {d.video_url && (
+                      <video src={d.video_url} controls playsInline preload="metadata" muted className="w-full max-h-[360px] bg-ink" />
+                    )}
                     <div className="p-4">
                       <p className="text-[14px] text-ink whitespace-pre-wrap leading-relaxed line-clamp-4">{d.content}</p>
                       <div className="flex items-center justify-between mt-3.5 pt-3 border-t border-rule">

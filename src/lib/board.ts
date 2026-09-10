@@ -37,6 +37,7 @@ export interface BoardPost {
   cheer: number
   my_kind: ReactionKind | null
   comment_count: number
+  video_url: string | null
 }
 
 export async function getBoardFeed(categories: BoardCategory[] = [], limit = 30, offset = 0): Promise<BoardPost[]> {
@@ -61,14 +62,23 @@ export interface CreateBoardPostResult {
 }
 
 export async function createBoardPost(
-  category: BoardCategory, content: string, images: string[] = [], nickname?: string | null,
+  category: BoardCategory, content: string, images: string[] = [], nickname?: string | null, video?: string | null,
 ): Promise<CreateBoardPostResult | null> {
   const { data, error } = await supabase.rpc('create_board_post', {
-    p_category: category, p_content: content, p_images: images, p_nickname: nickname ?? null,
+    p_category: category, p_content: content, p_images: images, p_nickname: nickname ?? null, p_video: video ?? null,
   })
   if (error) return null
   const row = Array.isArray(data) ? data[0] : data
   return (row ?? null) as CreateBoardPostResult | null
+}
+
+// 고쳐 쓰기 — 본인 글만(RLS board_posts_own_all). 포인트는 다시 주지 않는다.
+export async function updateBoardPost(
+  id: string, patch: { category: BoardCategory; content: string; images: string[]; video_url: string | null },
+): Promise<boolean> {
+  const { error } = await supabase
+    .from('board_posts').update({ ...patch, updated_at: new Date().toISOString() }).eq('id', id)
+  return !error
 }
 
 // 내가 쓴 속 이야기 — 숨김 처리된 글도 나에게는 보인다(status 로 표시)

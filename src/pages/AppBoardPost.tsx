@@ -3,6 +3,7 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import BackHeader from '../components/layout/BackHeader'
 import AppFrame from '../components/layout/AppFrame'
 import ReactionBar from '../components/community/ReactionBar'
+import ReactionSummary from '../components/community/ReactionSummary'
 import BoardComments from '../components/community/BoardComments'
 import { supabase } from '../lib/supabase'
 import { categoryLabel, deleteBoardPost, getBoardPost, reportBoardPost, type BoardPost } from '../lib/board'
@@ -86,7 +87,10 @@ export default function AppBoardPost() {
         rightElement={
           post ? (
             post.is_mine ? (
-              <button type="button" onClick={() => void onDelete()} className="text-[12.5px] text-ink-faint">삭제</button>
+              <div className="flex items-center gap-3">
+                <button type="button" onClick={() => navigate(`/app/board/write?id=${post.id}`)} className="text-[12.5px] text-ink-faint">수정</button>
+                <button type="button" onClick={() => void onDelete()} className="text-[12.5px] text-ink-faint">삭제</button>
+              </div>
             ) : (
               <button type="button" onClick={() => void onReport()} className="text-[12.5px] text-ink-faint">신고</button>
             )
@@ -124,6 +128,18 @@ export default function AppBoardPost() {
                     <img src={src} alt="" className="w-full h-full object-cover" />
                   </div>
                 ))}
+              </div>
+            )}
+
+            {post.video_url && (
+              <div className="mt-4 rounded-card overflow-hidden bg-ink">
+                <video src={post.video_url} controls playsInline preload="metadata" className="w-full max-h-[420px]" />
+              </div>
+            )}
+
+            {post.is_mine && (
+              <div className="mt-5 pt-4 border-t border-rule">
+                <ReactionSummary counts={post} size="md" />
               </div>
             )}
 

@@ -24,6 +24,8 @@ export interface Diary {
   comment_count: number
   // 오늘 걸음 수(선택) — 웹에선 직접 적고, 앱 전환 후 자동. 없으면 null (2026-09-11)
   steps: number | null
+  // 영상 1개(선택) — Storage 공개 URL (2026-09-11)
+  video_url: string | null
 }
 
 export interface BestDiary {
@@ -59,14 +61,38 @@ export interface CreateDiaryResult {
 }
 
 export async function createDiary(
-  content: string, images: string[] = [], nickname?: string | null, steps?: number | null,
+  content: string, images: string[] = [], nickname?: string | null, steps?: number | null, video?: string | null,
 ): Promise<CreateDiaryResult | null> {
   const { data, error } = await supabase.rpc('create_diary', {
-    p_content: content, p_images: images, p_nickname: nickname ?? null, p_steps: steps ?? null,
+    p_content: content, p_images: images, p_nickname: nickname ?? null, p_steps: steps ?? null, p_video: video ?? null,
   })
   if (error) return null
   const row = Array.isArray(data) ? data[0] : data
   return (row ?? null) as CreateDiaryResult | null
+}
+
+// ── 고쳐 쓰기 — 본인 글만(RLS diaries_own_all). 포인트는 다시 주지 않는다. ─────
+export interface MyDiaryRow {
+  id: string
+  content: string
+  images: string[]
+  steps: number | null
+  video_url: string | null
+}
+
+export async function getMyDiary(id: string): Promise<MyDiaryRow | null> {
+  const { data, error } = await supabase
+    .from('diaries').select('id, content, images, steps, video_url').eq('id', id).maybeSingle()
+  if (error || !data) return null
+  return data as MyDiaryRow
+}
+
+export async function updateDiary(
+  id: string, patch: { content: string; images: string[]; steps: number | null; video_url: string | null },
+): Promise<boolean> {
+  const { error } = await supabase
+    .from('diaries').update({ ...patch, updated_at: new Date().toISOString() }).eq('id', id)
+  return !error
 }
 
 export async function toggleDiaryLike(diaryId: string): Promise<{ liked: boolean; like_count: number } | null> {
@@ -147,6 +173,20 @@ async function shrinkToWebp(file: File): Promise<Blob> {
 
 export async function uploadDiaryImages(files: File[]): Promise<string[]> {
   return uploadCommunityImages(files, 'diaries')
+}
+
+// 영상 — 줄이지 않고 그대로 올린다(브라우저에서 영상 인코딩은 현실적으로 무리).
+// 그래서 PostComposer 가 30MB·60초로 미리 거른다. 실패하면 null.
+export async function uploadCommunityVideo(file: File, folder: 'diaries' | 'board'): Promise<string | null> {
+  const { data: { session } } = await supabase.auth.getSession()
+  if (!session) return null
+  const ext = (file.name.split('.').pop() || 'mp4').toLowerCase().replace(/[^a-z0-9]/g, '') || 'mp4'
+  const path = `${folder}/${session.user.id}/${Date.now()}_video.${ext}`
+  const { error } = await supabase.storage
+    .from('product-images')
+    .upload(path, file, { upsert: true, contentType: file.type || 'video/mp4' })
+  if (error) return null
+  return supabase.storage.from('product-images').getPublicUrl(path).data.publicUrl
 }
 
 // 게시판(board/) 등 다른 커뮤니티 글도 같은 버킷·같은 축소 규칙으로 올린다.
