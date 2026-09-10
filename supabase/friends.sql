@@ -4,7 +4,8 @@
 -- 쓰기는 전부 RPC(security definer)로만, 테이블 직접 insert/update 는 막는다.
 -- 이름: "친구"(타사 표현 "응원친구"는 쓰지 않는다 — 타사 표현 사용 금지 목록).
 -- 속 이야기(익명 게시판)에는 붙이지 않는다 — 이름을 가리고 털어놓는 곳이라 친구가 익명성을 깬다.
--- ⚠️ 실행 전 대표님 승인 필요(2026-09-11 방침). 실행: Supabase 대시보드(beautyground-main) → SQL Editor
+-- ✅ 2026-09-11 대표님 승인("실행해") 후 운영 DB(beautyground-main) SQL Editor 실행 완료.
+--    두 계정으로 신청 → 마이페이지 개수 → 수락 → 이름 공개 → 친구 탭 → 끊기까지 확인.
 
 create table if not exists public.friendships (
   requester_id uuid not null references auth.users(id) on delete cascade,  -- 신청한 사람
