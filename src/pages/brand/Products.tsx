@@ -51,6 +51,10 @@ export default function BrandProducts() {
   const [draft, setDraft] = useState<Draft | null>(null)
   const [msg, setMsg] = useState('')
   const [ok, setOk] = useState('')
+  // 재고 인라인 수정 — product id별 입력 중인 값. update_my_product_stock RPC(brand_stock_update.sql)로
+  // 본인 partner_id 상품만 수정 가능하게 서버(Postgres)에서 강제한다.
+  const [stockEdits, setStockEdits] = useState<Record<string, string>>({})
+  const [stockSaving, setStockSaving] = useState<string | null>(null)
 
   const loadItems = async (partnerId: string) => {
     const { data } = await supabase
@@ -133,6 +137,24 @@ export default function BrandProducts() {
       setMsg('등록 요청에 실패했습니다. 네트워크를 확인해 주세요.')
     } finally {
       setSaving(false)
+    }
+  }
+
+  const saveStock = async (productId: string) => {
+    const raw = stockEdits[productId]
+    if (raw === undefined) return
+    const n = Number(raw)
+    if (!Number.isFinite(n) || n < 0) { setMsg('재고는 0 이상의 숫자로 입력해 주세요.'); return }
+    setStockSaving(productId); setMsg('')
+    try {
+      const { error } = await supabase.rpc('update_my_product_stock', { p_product_id: productId, p_stock: n })
+      if (error) { setMsg(error.message); return }
+      setItems((prev) => prev.map((it) => (it.id === productId ? { ...it, stock: n } : it)))
+      setStockEdits((prev) => { const n2 = { ...prev }; delete n2[productId]; return n2 })
+    } catch {
+      setMsg('재고 저장에 실패했습니다. 잠시 후 다시 시도해 주세요.')
+    } finally {
+      setStockSaving(null)
     }
   }
 
@@ -275,9 +297,26 @@ export default function BrandProducts() {
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="text-[13.5px] font-semibold text-[#111] truncate">{p.name}</p>
-                    <p className="text-[12px] text-[#9a9080] mt-0.5">
-                      {p.category ?? '-'} · 재고 {p.stock ?? 0}개
-                    </p>
+                    <div className="flex items-center gap-1.5 mt-1">
+                      <span className="text-[12px] text-[#9a9080]">{p.category ?? '-'} · 재고</span>
+                      <input
+                        value={stockEdits[p.id] ?? String(p.stock ?? 0)}
+                        onChange={(e) => setStockEdits((prev) => ({ ...prev, [p.id]: e.target.value.replace(/[^0-9]/g, '') }))}
+                        onKeyDown={(e) => { if (e.key === 'Enter') void saveStock(p.id) }}
+                        inputMode="numeric"
+                        className="w-14 bg-white border border-[#e5e0d8] rounded px-1.5 py-0.5 text-[12px] text-[#111] text-right focus:outline-none focus:border-[#b8924a]"
+                      />
+                      <span className="text-[12px] text-[#9a9080]">개</span>
+                      {stockEdits[p.id] !== undefined && stockEdits[p.id] !== String(p.stock ?? 0) && (
+                        <button
+                          onClick={() => void saveStock(p.id)}
+                          disabled={stockSaving === p.id}
+                          className="text-[11px] font-semibold text-white bg-[#b8924a] rounded px-2 py-0.5 disabled:opacity-50"
+                        >
+                          {stockSaving === p.id ? '저장 중' : '저장'}
+                        </button>
+                      )}
+                    </div>
                   </div>
                   <div className="text-right shrink-0">
                     <p className="text-[13.5px] font-bold text-[#111] tabular-nums">{shown?.toLocaleString('ko-KR')}원</p>
