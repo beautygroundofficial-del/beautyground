@@ -2,7 +2,7 @@
 -- 대표님 지시 "좋아요 하트도 만들어". 하루 이야기는 diary_likes·toggle_diary_like 가 이미 있어 그대로 쓰고,
 -- 속 이야기에만 같은 구조를 새로 만든다. 포인트 없음(어뷰징 쉬움), 정렬·등수에 안 씀.
 -- ⚠️ community_media_edit.sql 이후에 실행(조회 함수 3개를 다시 만든다 — like_count·liked_by_me 추가).
--- ⚠️ 실행 전 대표님 승인 필요(2026-09-11 방침). 실행: Supabase 대시보드(beautyground-main) → SQL Editor
+-- ✅ 2026-09-11 대표님 승인("실행해") 후 운영 DB(beautyground-main) SQL Editor 실행 완료. 두 계정으로 하트 켜기/끄기·내 글 비활성 확인.
 
 create table if not exists public.board_likes (
   post_id    uuid not null references public.board_posts(id) on delete cascade,
