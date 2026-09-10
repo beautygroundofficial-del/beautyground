@@ -46,6 +46,9 @@ const AppDiary = lazy(() => import('./pages/AppDiary'))
 const AppBoard = lazy(() => import('./pages/AppBoard'))
 const AppBoardWrite = lazy(() => import('./pages/AppBoardWrite'))
 const AppBoardPost = lazy(() => import('./pages/AppBoardPost'))
+const AppMyBoard = lazy(() => import('./pages/AppMyBoard'))
+const AppNews = lazy(() => import('./pages/AppNews'))
+const AdminBoardReports = lazy(() => import('./pages/admin/BoardReports'))
 const AppSkinTest = lazy(() => import('./pages/AppSkinTest'))
 
 // 법적 고지
@@ -230,6 +233,7 @@ export default function App() {
             <Route path="/admin/missions" element={<AdminMissions />} />
             <Route path="/admin/daily-questions" element={<AdminDailyQuestions />} />
             <Route path="/admin/monthly-picks" element={<AdminMonthlyPicks />} />
+            <Route path="/admin/board-reports" element={<AdminBoardReports />} />
             <Route path="/admin/export-inquiries" element={<AdminExportInquiries />} />
             <Route path="/admin/export-buyers" element={<AdminExportBuyers />} />
             <Route path="/admin/partner-hub-posts" element={<AdminPartnerHubPosts />} />
@@ -340,7 +344,9 @@ export default function App() {
         <Route path="/app/diary" element={<AppDiary />} />
         <Route path="/app/board" element={<AppBoard />} />
         <Route path="/app/board/write" element={<AppBoardWrite />} />
+        <Route path="/app/board/mine" element={<AppMyBoard />} />
         <Route path="/app/board/:id" element={<AppBoardPost />} />
+        <Route path="/app/news" element={<AppNews />} />
         <Route path="/app/skin-test" element={<AppSkinTest />} />
 
         {/* fallback */}

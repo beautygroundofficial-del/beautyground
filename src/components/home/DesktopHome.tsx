@@ -6,6 +6,7 @@ import MissionBanner from './MissionBanner'
 import TodayQuestion from '../community/TodayQuestion'
 import PhoneVerifyBanner from '../community/PhoneVerifyBanner'
 import DiaryHomeFeed from './DiaryHomeFeed'
+import BoardHomeFeed from './BoardHomeFeed'
 import type { HeroBanner } from '../../hooks/useHeroBanners'
 import type { ShopProduct } from '../../hooks/useShopProducts'
 
@@ -58,6 +59,9 @@ export default function DesktopHome(_: Props) {
           <span className="block text-[18px] font-bold leading-tight">오늘 어떤 하루였나요?</span>
           <span className="block text-[13.5px] opacity-75 mt-1.5">사소한 하루도 누군가에겐 위로가 됩니다</span>
         </button>
+
+        {/* 속 이야기 — 모바일(HomeBody.tsx)과 같은 컴포넌트. 한쪽만 고치지 말 것. */}
+        <BoardHomeFeed />
 
         <DiaryHomeFeed />
       </div>

@@ -20,6 +20,9 @@ interface TodayActivity {
   comment_count: number
   points_today: number
   phone_verified: boolean
+  // 속 이야기(게시판) — 2026-09-10 추가. comment_count 는 하루·속 이야기 댓글 합
+  board_count: number
+  latest_board: string | null
 }
 
 export default function AppTodayActivity() {
@@ -40,7 +43,7 @@ export default function AppTodayActivity() {
   }, [])
 
   const didNothing = data
-    && !data.answered_question && data.diary_count === 0
+    && !data.answered_question && data.diary_count === 0 && (data.board_count ?? 0) === 0
     && data.reaction_count === 0 && data.comment_count === 0
 
   return (
@@ -49,13 +52,22 @@ export default function AppTodayActivity() {
       <BackHeader
         title="오늘의 활동"
         rightElement={
-          <button
-            type="button"
-            onClick={() => navigate('/app/missions')}
-            className="text-[12.5px] text-ink-soft underline underline-offset-2 focus:outline-none focus-visible:shadow-ring"
-          >
-            활동 미션
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => navigate('/app/news')}
+              className="text-[12.5px] text-ink-soft underline underline-offset-2 focus:outline-none focus-visible:shadow-ring"
+            >
+              새 소식
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate('/app/missions')}
+              className="text-[12.5px] text-ink-soft underline underline-offset-2 focus:outline-none focus-visible:shadow-ring"
+            >
+              활동 미션
+            </button>
+          </div>
         }
       />
 
@@ -121,6 +133,21 @@ export default function AppTodayActivity() {
                     </p>
                     {data.latest_diary && (
                       <p className="text-[14px] text-ink line-clamp-2">{data.latest_diary}</p>
+                    )}
+                  </button>
+                )}
+
+                {/* 속 이야기 */}
+                {(data.board_count ?? 0) > 0 && (
+                  <button
+                    onClick={() => navigate('/app/board/mine')}
+                    className="w-full text-left rounded-card border border-rule px-4 py-4 focus:outline-none focus-visible:shadow-ring"
+                  >
+                    <p className="text-[12px] text-ink-faint mb-1">
+                      오늘 꺼내놓은 속 이야기 {data.board_count}개
+                    </p>
+                    {data.latest_board && (
+                      <p className="text-[14px] text-ink line-clamp-2">{data.latest_board}</p>
                     )}
                   </button>
                 )}

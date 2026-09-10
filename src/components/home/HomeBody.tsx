@@ -5,6 +5,7 @@ import MissionBanner from './MissionBanner'
 import TodayQuestion from '../community/TodayQuestion'
 import PhoneVerifyBanner from '../community/PhoneVerifyBanner'
 import DiaryHomeFeed from './DiaryHomeFeed'
+import BoardHomeFeed from './BoardHomeFeed'
 import type { HeroBanner } from '../../hooks/useHeroBanners'
 import type { ShopProduct } from '../../hooks/useShopProducts'
 import type { ShopBrand } from '../../hooks/useShopBrands'
@@ -63,6 +64,9 @@ export default function HomeBody({ marqueeItems }: HomeBodyProps) {
           <span className="block text-[12.5px] opacity-75 mt-1">사소한 하루도 누군가에겐 위로가 됩니다</span>
         </button>
       </section>
+
+      {/* 속 이야기 — 주제별로 속마음을 꺼내놓는 곳. 최신 3개만 얇게(2026-09-10) */}
+      <BoardHomeFeed />
 
       {/* 사람들의 이야기 — 홈의 주인공 */}
       <DiaryHomeFeed />

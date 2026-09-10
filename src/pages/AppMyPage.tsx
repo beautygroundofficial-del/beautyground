@@ -37,6 +37,9 @@ function buildMenuItems(user: RealUser, showMissions: boolean) {
       { label: '살아가는 이야기', path: '/app/diary' },
       { label: '오늘의 활동', path: '/app/today' },
     ] : []),
+    // 속 이야기·새 소식은 미션과 무관하게 항상 — 글을 썼으면 찾아갈 수 있어야 한다(2026-09-10)
+    { label: '내가 쓴 속 이야기', path: '/app/board/mine' },
+    { label: '새 소식', path: '/app/news' },
     { label: '최근 본 상품', path: '/app/recently-viewed' },
     { label: '리뷰 관리', path: '/app/my-reviews' },
   ]

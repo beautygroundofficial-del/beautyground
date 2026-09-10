@@ -71,6 +71,69 @@ export async function createBoardPost(
   return (row ?? null) as CreateBoardPostResult | null
 }
 
+// 내가 쓴 속 이야기 — 숨김 처리된 글도 나에게는 보인다(status 로 표시)
+export type MyBoardPost = BoardPost & { status: 'visible' | 'hidden' }
+
+export async function getMyBoardPosts(limit = 30, offset = 0): Promise<MyBoardPost[]> {
+  const { data, error } = await supabase.rpc('get_my_board_posts', { p_limit: limit, p_offset: offset })
+  if (error) return []
+  return (data ?? []) as MyBoardPost[]
+}
+
+// ── 새 소식 — 내 글에 달린 댓글·공감 ────────────────────────────────────
+export interface NewsItem {
+  kind: 'board_comment' | 'board_reaction' | 'diary_comment' | 'diary_reaction'
+  target_type: 'board' | 'diary'
+  target_id: string
+  actor_nickname: string | null
+  excerpt: string
+  comment_text: string | null
+  reaction_kind: ReactionKind | null
+  created_at: string
+  is_new: boolean
+}
+
+export async function getMyNews(limit = 30): Promise<NewsItem[]> {
+  const { data, error } = await supabase.rpc('get_my_news', { p_limit: limit })
+  if (error) return []
+  return (data ?? []) as NewsItem[]
+}
+
+export async function getMyNewsCount(): Promise<number> {
+  const { data, error } = await supabase.rpc('get_my_news_count')
+  if (error) return 0
+  return Number(data ?? 0)
+}
+
+export async function markNewsSeen(): Promise<void> {
+  await supabase.rpc('mark_news_seen')
+}
+
+// ── 관리자 — 신고된 글 ───────────────────────────────────────────────────
+export interface BoardReportRow {
+  post_id: string
+  category: string
+  content: string
+  nickname: string | null
+  status: 'visible' | 'hidden'
+  post_created_at: string
+  report_count: number
+  last_reported_at: string
+  reasons: string | null
+}
+
+export async function adminBoardReports(): Promise<BoardReportRow[]> {
+  const { data, error } = await supabase.rpc('admin_board_reports')
+  if (error) return []
+  return (data ?? []) as BoardReportRow[]
+}
+
+// 숨김/복구 — 관리자 RLS(board_posts_admin_all)로 직접 update
+export async function setBoardPostStatus(id: string, status: 'visible' | 'hidden'): Promise<boolean> {
+  const { error } = await supabase.from('board_posts').update({ status, updated_at: new Date().toISOString() }).eq('id', id)
+  return !error
+}
+
 export async function deleteBoardPost(id: string): Promise<boolean> {
   const { error } = await supabase.from('board_posts').delete().eq('id', id)
   return !error
