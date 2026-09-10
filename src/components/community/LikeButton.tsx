@@ -3,8 +3,8 @@ import { useNavigate } from 'react-router-dom'
 
 // 하트(좋아요) — 대표님 지시 "좋아요 하트도 만들어". (2026-09-11)
 // 공감 3종(토닥토닥·나도 그래요·응원해요)은 마음을 고르는 것, 하트는 한 번 누르는 가벼운 표시.
-// 숫자는 있을 때만 보여주고(0이면 감춤) 등수·정렬엔 쓰지 않는다. 포인트도 없다(누르기 쉬운 만큼 어뷰징도 쉽다).
-// 내 글에는 누를 수 없고 받은 개수만 보인다.
+// 하트 자체는 항상 보이고, 숫자만 있을 때 붙는다. 등수·정렬엔 쓰지 않는다. 포인트도 없다(누르기 쉬운 만큼 어뷰징도 쉽다).
+// 내 글에는 누를 수 없고(빈 하트 그대로) 받은 개수만 붙는다.
 
 interface Props {
   liked: boolean
@@ -37,8 +37,7 @@ export default function LikeButton({ liked, count, loggedIn, disabled, onToggle,
   }
 
   const iconSize = size === 'sm' ? 18 : 22
-  const empty = disabled && view.count === 0
-  if (empty) return null
+  // 하트는 항상 보인다 — 내 글이라도 빈 하트를 그대로 둔다(2026-09-11 대표님 "댓글 좋아요가 없어졌는데" 지적 → 0개 숨김 규칙 삭제)
 
   return (
     <button
