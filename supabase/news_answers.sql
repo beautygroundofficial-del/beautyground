@@ -1,7 +1,7 @@
 -- 새 소식에 오늘의 질문 답변 소식 추가 — 2026-09-11
 -- 내 답에 달린 댓글(answer_comments)·공감(reactions target 'answer')을 하루·속 이야기 소식과 같이 모은다.
 -- get_my_news 만 다시 만든다(반환 컬럼 동일 → create or replace). 하트는 기존과 같이 새 소식에 넣지 않는다(재촉 방지).
--- ⚠️ answer_social.sql 이후에 실행. 대표님이 직접 SQL Editor(beautyground-main)에 붙여 실행(2026-09-11).
+-- ✅ 2026-09-11 대표님이 직접 SQL Editor(beautyground-main)에 붙여 실행("런했어"). 두 계정으로 새 소식에 답변 댓글·공감 뜨는 것 확인.
 
 create or replace function public.get_my_news(p_limit integer default 30)
 returns table (

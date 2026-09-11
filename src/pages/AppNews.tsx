@@ -28,12 +28,19 @@ function maskName(name: string | null) {
   return n[0] + '*'.repeat(Math.min(n.length - 2, 3)) + n[n.length - 1]
 }
 
+// 받침이 있으면 "을", 없으면 "를" — "토닥토닥를"처럼 어색해지지 않게 (2026-09-11)
+function objectParticle(word: string) {
+  const last = word.charCodeAt(word.length - 1)
+  if (last < 0xac00 || last > 0xd7a3) return '를'
+  return (last - 0xac00) % 28 === 0 ? '를' : '을'
+}
+
 function headline(n: NewsItem) {
   // 공감은 닉네임이 없어 "누군가"로 — 조사가 달라져서 이름이 있을 때만 "님이"를 붙인다
   const who = n.actor_nickname ? `${maskName(n.actor_nickname)}님이` : '누군가'
   if (n.kind.endsWith('_comment')) return `${who} 댓글을 남겼어요`
   const meta = REACTION_META.find((r) => r.kind === n.reaction_kind)
-  return meta ? `${who} ${meta.emoji} ${meta.label}를 눌렀어요` : `${who} 마음을 남겼어요`
+  return meta ? `${who} ${meta.emoji} ${meta.label}${objectParticle(meta.label)} 눌렀어요` : `${who} 마음을 남겼어요`
 }
 
 export default function AppNews() {
