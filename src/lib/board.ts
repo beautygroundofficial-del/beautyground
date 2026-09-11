@@ -9,9 +9,13 @@ import type { ReactionKind } from './dailyQuestion'
 // ⚠️ 카테고리 이름은 타사 표현 금지 목록(옵시디언)의 대조표를 따른다. 화면에 원문을 쓰지 않는다.
 
 // 카테고리는 데이터(옵시디언 리서치) 근거를 확인하며 하나씩 늘려간다. (2026-09-12)
-// 'menopause' 첫 추가 — 50대 여성 최대 관심사로 확인됐는데 기존 'body'(건강·체력·운동)엔
-// 안 묻어나서 못 찾던 것으로 보임. 정확한 이름·위치는 계속 다듬을 수 있음(운영 반영 전).
-export type BoardCategory = 'kids' | 'spouse' | 'parents' | 'body' | 'menopause' | 'mind' | 'living' | 'chat'
+// 'menopause' — 50대 여성 최대 관심사로 확인됐는데 기존 'body'(건강·체력·운동)엔
+//   안 묻어나서 못 찾던 것으로 보임.
+// 'eco' — 60대 여성이 전 연령·성별 중 ESG 의식 1위(친환경+걷기+사는이야기 리서치).
+//   다만 "친환경"·"제로웨이스트" 같은 구호성 표현은 안 쓰고, 조사에서 확인된 가장
+//   익숙한 개념인 "재활용/아껴쓰기"로 이름을 잡았다(설교조 대신 생활어투).
+// 정확한 이름·위치는 계속 다듬을 수 있음(운영 반영 전).
+export type BoardCategory = 'kids' | 'spouse' | 'parents' | 'body' | 'menopause' | 'mind' | 'living' | 'eco' | 'chat'
 
 export const BOARD_CATEGORIES: { key: BoardCategory; label: string; hint: string }[] = [
   { key: 'kids',      label: '아이 키우는 이야기',   hint: '어리든 다 컸든' },
@@ -21,6 +25,7 @@ export const BOARD_CATEGORIES: { key: BoardCategory; label: string; hint: string
   { key: 'menopause', label: '갱년기 이야기',        hint: '몸도 마음도 달라지는 그 시기' },
   { key: 'mind',      label: '마음이 힘든 날',       hint: '감정, 사람 사이' },
   { key: 'living',    label: '살림하는 이야기',      hint: '돈·일·노후' },
+  { key: 'eco',       label: '아껴 쓰는 이야기',     hint: '리필·나눔·작은 실천' },
   { key: 'chat',      label: '그냥 하는 이야기',     hint: '취미·여행·잡담' },
 ]
 
