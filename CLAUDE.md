@@ -1,3 +1,16 @@
+## 세션 분리 규칙 — 커뮤니티 세션 vs 셀러센터 세션 (2026-09-11 대표님 확정)
+
+같은 저장소에서 두 세션이 동시에 일한다. 서로 덮어쓰지 않도록 아래를 지킨다.
+
+- **셀러센터(브랜드가 들어와 제품 업데이트 등) 작업**은 `feature/seller-admin`에서 가지 친 **`feature/seller-center` 브랜치**를 **`C:\Temp\bg-seller` 작업트리**에서 진행한다. `Desktop\beautyground-mall`(커뮤니티 세션 폴더)에서는 셀러센터 파일을 편집하지 않는다.
+- **커뮤니티 작업**은 `feature/seller-admin`을 `Desktop\beautyground-mall`에서 진행한다. 개발 서버는 5199(커뮤니티)·5173/5174(main 작업트리 `C:\Temp\bg-main`) — 남의 포트를 죽이지 않는다.
+- **시작 시 `hermes_worklock` 등록**(scope=beautyground-mall, branch, title, machine), 마무리 시 `status=done`.
+- **`api/*.ts` 새 파일 금지** — Vercel 서버리스 함수 12/12 한도. 기존 파일에 `action`/`mode` 분기로 얹는다(안 그러면 배포가 조용히 실패).
+- **`src/App.tsx`·`src/components/admin/AdminLayout.tsx` 수정은 작업 마지막에 한 번**(두 세션이 모두 라우트·메뉴를 추가하는 파일이라 충돌 지점).
+- **셀러 세션은 커뮤니티 테이블·함수를 건드리지 않는다** — `diaries`·`diary_*`·`board_*`·`daily_answers`·`answer_*`·`friendships`·`news_seen`·`reactions`·`get_my_news` 등. 공유 함수 `is_admin()`·`claim_mission`은 어느 세션도 다시 만들지 않는다.
+- **운영 DB SQL은 내용 보고 → 대표님 승인 → 실행** 순서(2026-09-11 확정).
+- push 전 `git pull --rebase`. 셀러센터가 끝나면 커뮤니티 세션이 `feature/seller-center`를 `feature/seller-admin`에 합친다. main 반영은 대표님 결정.
+
 ## graphify
 
 This project has a knowledge graph at graphify-out/ with god nodes, community structure, and cross-file relationships.
