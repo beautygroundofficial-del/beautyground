@@ -51,6 +51,7 @@ const AppMyBoard = lazy(() => import('./pages/AppMyBoard'))
 const AppNews = lazy(() => import('./pages/AppNews'))
 const AppFriends = lazy(() => import('./pages/AppFriends'))
 const AppPets = lazy(() => import('./pages/AppPets'))
+const AppPerson = lazy(() => import('./pages/AppPerson'))
 const AdminBoardReports = lazy(() => import('./pages/admin/BoardReports'))
 const AppSkinTest = lazy(() => import('./pages/AppSkinTest'))
 
@@ -361,6 +362,7 @@ export default function App() {
         <Route path="/app/news" element={<AppNews />} />
         <Route path="/app/friends" element={<AppFriends />} />
         <Route path="/app/pets" element={<AppPets />} />
+        <Route path="/app/people/:id" element={<AppPerson />} />
         <Route path="/app/skin-test" element={<AppSkinTest />} />
 
         {/* fallback */}

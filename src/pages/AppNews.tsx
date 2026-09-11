@@ -62,7 +62,9 @@ export default function AppNews() {
 
   const open = (n: NewsItem) => {
     // 오늘의 질문 답은 홈 카드 안에 있다(전용 화면 없음)
-    navigate(n.target_type === 'board' ? `/app/board/${n.target_id}` : n.target_type === 'answer' ? '/app/home' : '/app/diary')
+    if (n.target_type === 'board') navigate(`/app/board/${n.target_id}`)
+    else if (n.target_type === 'answer') navigate('/app/home')
+    else navigate('/app/diary', { state: { focus: n.target_id, ...(n.kind === 'diary_comment' ? { openComments: n.target_id } : {}) } })
   }
   const sourceLabel = (t: NewsItem['target_type']) =>
     t === 'board' ? '속 이야기' : t === 'answer' ? '오늘의 질문' : '하루 이야기'

@@ -85,6 +85,8 @@ export default function AppDiary() {
   const [viewer, setViewer] = useState<{ images: string[]; index: number } | null>(null)
   // 댓글이 펼쳐진 글들
   const [openComments, setOpenComments] = useState<Set<string>>(new Set())
+  // 새 소식·그 사람 페이지에서 온 글 — 목록이 뜨면 그 카드로 내려가 잠깐 강조한다(2026-09-12 A2)
+  const [focusId, setFocusId] = useState<string | null>(null)
   const toggleComments = (id: string) => setOpenComments((prev) => {
     const next = new Set(prev)
     if (next.has(id)) next.delete(id); else next.add(id)
@@ -98,11 +100,12 @@ export default function AppDiary() {
 
   // 쓰기 화면에서 올리고 돌아오면 그쪽이 넘긴 한 줄을 조용히 보여준다
   useEffect(() => {
-    const st = location.state as { toast?: string; openComments?: string } | null
+    const st = location.state as { toast?: string; openComments?: string; focus?: string } | null
     if (st?.toast) showToast(st.toast)
     // 홈 카드의 말풍선에서 들어오면 그 글의 댓글을 펼친 채로 시작한다
     if (st?.openComments) setOpenComments(new Set([st.openComments]))
-    if (st?.toast || st?.openComments) window.history.replaceState({}, '')
+    if (st?.focus || st?.openComments) setFocusId(st.focus ?? st.openComments ?? null)
+    if (st?.toast || st?.openComments || st?.focus) window.history.replaceState({}, '')
   }, [location.state])
 
   const load = useCallback(async (s: FeedView) => {
@@ -130,6 +133,15 @@ export default function AppDiary() {
   }, [])
 
   useEffect(() => { void load(sort) }, [load, sort])
+
+  useEffect(() => {
+    if (!focusId || loading) return
+    const el = document.getElementById(`diary-${focusId}`)
+    if (!el) return
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    const t = setTimeout(() => setFocusId(null), 2500)
+    return () => clearTimeout(t)
+  }, [focusId, loading, feed])
 
   // 좋아요(평가) 대신 공감 반응으로 바꿨다(2026-09-07) — 누르는 처리는 ReactionBar 안에 있고,
   // 여기서는 결과만 받아 목록에 반영한다(정렬·재조회 없이 그 자리에서만 바뀐다).
@@ -241,7 +253,7 @@ export default function AppDiary() {
             {feed.map((d) => {
               const imgs = d.images ?? []
               return (
-                <li key={d.id} className="rounded-card border border-rule bg-paper overflow-hidden">
+                <li key={d.id} id={`diary-${d.id}`} className={`rounded-card border bg-paper overflow-hidden transition-shadow ${focusId === d.id ? 'border-ink shadow-ring' : 'border-rule'}`}>
                   {/* 사진이 있으면 사진이 주인공 — 카드 맨 위에 크게 */}
                   {imgs.length > 0 && (
                     <div className={`grid gap-0.5 ${imgs.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
@@ -274,9 +286,11 @@ export default function AppDiary() {
                     <div className="flex items-center justify-between mt-3.5 pt-3 border-t border-rule">
                       <div className="flex items-center gap-2 min-w-0">
                         {/* 친구면 이름을 가리지 않는다 — 친구끼리는 누가 누군지 알아야 이야기가 이어진다 */}
-                        <span className="text-[12px] font-semibold text-ink truncate">
+                        {/* 닉네임 → 그 사람의 이야기(2026-09-12 A1) */}
+                        <button type="button" onClick={() => navigate(`/app/people/${d.user_id}`)}
+                          className="text-[12px] font-semibold text-ink truncate focus:outline-none focus-visible:shadow-ring">
                           {friendOf[d.user_id] === 'friends' ? (d.nickname ?? '익명') : maskName(d.nickname)}
-                        </span>
+                        </button>
                         <PetAvatars pets={d.pets} />
                         {!d.is_mine && loggedIn && (
                           <FriendButton

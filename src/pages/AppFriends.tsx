@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import BackHeader from '../components/layout/BackHeader'
 import AppFrame from '../components/layout/AppFrame'
 import { supabase } from '../lib/supabase'
@@ -113,7 +113,7 @@ export default function AppFriends() {
                   {received.map((r) => (
                     <li key={`r-${r.user_id}`} className={row}>
                       <div className="min-w-0">
-                        <p className={nameCls}>{r.nickname ?? '익명'}</p>
+                        <Link to={`/app/people/${r.user_id}`} className={nameCls + ' block hover:underline'}>{r.nickname ?? '익명'}</Link>
                         <p className={subCls}>{timeAgo(r.created_at)}에 친구 신청</p>
                       </div>
                       <div className="flex items-center gap-1 shrink-0">
@@ -140,7 +140,7 @@ export default function AppFriends() {
                   {friends.map((f) => (
                     <li key={f.user_id} className={row}>
                       <div className="min-w-0">
-                        <p className={nameCls}>{f.nickname ?? '익명'}</p>
+                        <Link to={`/app/people/${f.user_id}`} className={nameCls + ' block hover:underline'}>{f.nickname ?? '익명'}</Link>
                         <p className={subCls}>{timeAgo(f.since)}부터 친구</p>
                       </div>
                       <button type="button" onClick={() => void unfriend(f)} className={ghost}>끊기</button>

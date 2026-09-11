@@ -152,10 +152,10 @@ export default function AppTodayActivity() {
                   </button>
                 )}
 
-                {/* 공감·댓글 — 숫자만, 경쟁 아님 */}
+                {/* 공감·댓글 — 숫자만, 경쟁 아님. 누르면 내가 받은 마음(새 소식)으로 */}
                 {(data.reaction_count > 0 || data.comment_count > 0) && (
                   <button
-                    onClick={() => navigate('/app/diary')}
+                    onClick={() => navigate('/app/news')}
                     className="w-full text-left rounded-card border border-rule px-4 py-4 focus:outline-none focus-visible:shadow-ring"
                   >
                     <p className="text-[12px] text-ink-faint mb-1">누군가에게 남긴 마음</p>
@@ -169,6 +169,14 @@ export default function AppTodayActivity() {
                 )}
               </div>
             )}
+
+            {/* 다른 화면으로 — 페이지끼리 이어지게(2026-09-12 A3) */}
+            <div className="mt-5 flex flex-wrap gap-2">
+              {([['/app/friends', '친구'], ['/app/pets', '내 반려동물'], ['/app/board/mine', '내가 쓴 속 이야기'], ['/app/diary/write', '오늘 남기기']] as const).map(([path, label]) => (
+                <button key={path} type="button" onClick={() => navigate(path)}
+                  className="px-3.5 py-1.5 rounded-full border border-rule text-[12.5px] text-ink-soft focus:outline-none focus-visible:shadow-ring">{label}</button>
+              ))}
+            </div>
 
             {/* 포인트 — 앞세우지 않는다(로드맵 1-2 원칙). 인증 전이면 배너와 같은 안내만 조용히. */}
             <div className="mt-6 pt-5 border-t border-rule flex items-center justify-between">

@@ -162,7 +162,7 @@ export default function DiaryHomeFeed() {
                   <div className="px-4 pb-4">
                     <div className="flex items-center justify-between mt-3.5 pt-3 border-t border-rule">
                       <div className="flex items-center gap-2 min-w-0">
-                        <span className="text-[12px] font-semibold text-ink truncate">{maskName(d.nickname)}</span>
+                        <button type="button" onClick={() => navigate(`/app/people/${d.user_id}`)} className="text-[12px] font-semibold text-ink truncate focus:outline-none focus-visible:shadow-ring">{maskName(d.nickname)}</button>
                         <PetAvatars pets={d.pets} />
                         <span className="text-[11.5px] text-ink-faint shrink-0">{timeAgo(d.created_at)}</span>
                         {petWalkLabel(d.pets, d.steps) ? (
