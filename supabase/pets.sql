@@ -4,7 +4,7 @@
 --   · diaries.pet_ids — 그 글에서 같이 걸은 펫들. create_diary 에 p_pet_ids 추가(고쳐 쓰기는 RLS 로 직접 update).
 --   · get_diary_feed / get_friend_diary_feed — pets(jsonb 배열)·pet_walk(boolean) 반환 추가. 반환 컬럼이 늘어 drop 후 재생성.
 --   포인트는 아직 안 건드린다(대표님이 값 정하면 missions 에 등록).
--- ⚠️ 실행 전 대표님 승인 필요. 실행: node scripts/db_query.mjs supabase/pets.sql 또는 SQL Editor
+-- ✅ 2026-09-12 대표님 승인("실행해") 후 scripts/db_query.mjs 로 운영 DB 실행 완료. 두 계정으로 펫 등록→사진 글 태그→카드→산책 탭 확인.
 
 -- 1) 펫
 create table if not exists public.pets (
