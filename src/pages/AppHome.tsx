@@ -74,6 +74,7 @@ export default function AppHome() {
           brands={brands}
           brandsLoading={brandsLoading}
           onProductClick={(id) => navigate(`/app/product/${id}`)}
+          promoBarAbove
         />
         <AppFooter />
         <BottomNav />

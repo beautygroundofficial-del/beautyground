@@ -195,7 +195,7 @@ export default function LiveMain() {
   return (
     <AppFrame>
       <PromoBar />
-      <AppHeader />
+      <AppHeader promoBarAbove />
 
       <main className="bg-white pb-2">
         <section className="pt-4 px-4">

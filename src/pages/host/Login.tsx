@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import GNB from '../../components/layout/GNB'
 import Footer from '../../components/layout/Footer'
 import Button from '../../components/common/Button'
@@ -7,6 +7,9 @@ import { supabase } from '../../lib/supabase'
 
 export default function HostLogin() {
   const navigate = useNavigate()
+  // 링크를 받고 로그인하러 온 경우, 로그인 끝나면 원래 보려던 주소로 되돌린다(2026-09-02).
+  const location = useLocation()
+  const from = (location.state as { from?: string } | null)?.from ?? null
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [submitting, setSubmitting] = useState(false)
@@ -26,7 +29,7 @@ export default function HostLogin() {
       return
     }
 
-    navigate('/host/dashboard')
+    navigate(from ?? ('/host/dashboard'))
   }
 
   const handleKakao = async () => {

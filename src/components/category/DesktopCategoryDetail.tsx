@@ -67,7 +67,7 @@ export default function DesktopCategoryDetail({
   return (
     <div className="bg-paper min-h-screen">
       <PromoBar />
-      <DesktopHeader />
+      <DesktopHeader promoBarAbove />
 
       <div className="max-w-[1280px] mx-auto px-6 py-8">
         <h1 className="text-[22px] font-bold text-ink">{title}</h1>

@@ -23,6 +23,8 @@ interface HomeBodyProps {
   brands: ShopBrand[]
   brandsLoading: boolean
   onProductClick: (id: string) => void
+  // 호출부가 이 컴포넌트 바로 위에 PromoBar를 렌더링했는지 — AppHeader의 스크롤 고정 위치를 그만큼 내려 붙인다.
+  promoBarAbove?: boolean
 }
 
 // 홈 화면 본문.
@@ -32,13 +34,13 @@ interface HomeBodyProps {
 // 홈에는 오늘 할 일(미션)과 사람들의 이야기만 남긴다.
 //
 // props 는 호출부(AppHome·관리자 미리보기) 호환을 위해 그대로 받되 상품 관련 값은 쓰지 않는다.
-export default function HomeBody({ marqueeItems }: HomeBodyProps) {
+export default function HomeBody({ marqueeItems, promoBarAbove = false }: HomeBodyProps) {
   const navigate = useNavigate()
 
   return (
     <>
       <MarqueeBar items={marqueeItems} />
-      <AppHeader />
+      <AppHeader promoBarAbove={promoBarAbove} />
 
       {/* 오늘 할 수 있는 일 — 관리자가 미션을 켜야 나타난다 */}
       <MissionBanner />

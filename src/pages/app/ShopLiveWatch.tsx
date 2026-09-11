@@ -12,7 +12,7 @@ import { subscribeToPush } from '../../lib/pushNotifications'
 import { IconHeartFilled, IconSend2, IconUserCircle, IconBrandFacebook, IconBrandX, IconLink, IconBellPlus, IconBellFilled } from '@tabler/icons-react'
 import { couponLabel, couponRemaining, couponSoldOut } from '../../lib/coupons'
 import DesktopLiveWatch from '../../components/live/DesktopLiveWatch'
-import ViewModeToggle from '../../components/layout/ViewModeToggle'
+import ReplayPlayer from '../../components/live/ReplayPlayer'
 import { useViewMode } from '../../lib/viewMode'
 
 const statusLabel: Record<Live['status'], string> = {
@@ -55,7 +55,7 @@ const nicknameColor = (nickname: string): string => {
 export default function ShopLiveWatch() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const { mode, isDesktop, toggle } = useViewMode()
+  const { isDesktop } = useViewMode()
 
   const [live, setLive] = useState<Live | null>(null)
   const [hostName, setHostName] = useState<string | null>(null)
@@ -72,6 +72,8 @@ export default function ShopLiveWatch() {
   const [youtubePlaying, setYoutubePlaying] = useState(false)
   // 라이브 자동재생은 음소거로만 허용되므로(브라우저 정책), 시청자가 직접 켜기 전까지 false
   const [soundOn, setSoundOn] = useState(false)
+  // 송출이 중간에 끊겼다 재연결되면 녹화본이 여러 개로 쪼개진다 — 그때 어느 구간을 보고 있는지
+  const [replayPart, setReplayPart] = useState(0)
 
   // 구매 폼 상태 — 수량만 고르고 정식 주문/결제 페이지(/app/order)로 넘긴다
   const [buyProduct, setBuyProduct] = useState<Product | null>(null)
@@ -261,7 +263,10 @@ export default function ShopLiveWatch() {
     return () => { active = false }
   }, [id])
 
-  // 판매자 조작(지금판매·공지핀·방송상태)을 실시간 수신 — lives 행 UPDATE 구독
+  // 판매자 조작(지금판매·공지핀·방송상태)을 실시간 수신 — lives 행 UPDATE 구독.
+  // product_ids 자체가 바뀌면(방송 중 새 상품 추가) 상품 데이터를 다시 불러온다 — 안 그러면
+  // highlight_product_id만 실시간으로 바뀌고 정작 그 상품 정보(이름·가격·이미지)가 없어서
+  // 화면엔 계속 이전 상품이 보이는 버그가 있었다(2026-09-02 실제 방송 중 발견).
   useEffect(() => {
     if (!id) return
     const ch = supabase
@@ -270,7 +275,17 @@ export default function ShopLiveWatch() {
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'lives', filter: `id=eq.${id}` },
         (payload) => {
-          setLive((prev) => (prev ? { ...prev, ...(payload.new as Partial<Live>) } : prev))
+          const next = payload.new as Partial<Live>
+          setLive((prev) => (prev ? { ...prev, ...next } : prev))
+          if (next.product_ids && next.product_ids.length > 0) {
+            void supabase
+              .from('products')
+              .select('*')
+              .in('id', next.product_ids)
+              .then(({ data }) => setProducts((data ?? []) as Product[]))
+          } else if (next.product_ids) {
+            setProducts([])
+          }
         }
       )
       .subscribe()
@@ -322,13 +337,27 @@ export default function ShopLiveWatch() {
   // 음소거로 시작하고, 시청자가 "소리 켜기"를 누르면 muted=false 로 다시 불러온다(유튜브·틱톡 방식).
   // 종료된 방송은 라이브 입력(stream_uid)이 아니라 녹화본을 틀어야 한다.
   // 라이브 입력을 그대로 틀면 송출이 끝났으므로 "Stream has not started yet." 만 뜬다.
-  // playback_url 에는 방송 종료 시 api/live-input(markEnded)이 넣어준 Cloudflare 녹화본 iframe 주소가 들어있다.
-  const replaySrc =
-    live?.status === 'ended' && live.playback_url && /cloudflarestream\.com/.test(live.playback_url)
-      ? `${live.playback_url}${live.playback_url.includes('?') ? '&' : '?'}autoplay=true${
-          soundOn ? '' : '&muted=true'
-        }`
-      : null
+  // playback_url 에는 방송 종료 시 api/live-input(markEnded)이 넣어준 Cloudflare 녹화본 iframe 주소가
+  // 들어있다. 송출이 중간에 끊겼다 재연결된 방송은 녹화본이 여러 개라 JSON 배열 문자열로 저장되어
+  // 있다(2026-09-02) — 컬럼 스키마를 새로 안 만들고 재사용하는 방식. 단일 URL 문자열과 둘 다 처리.
+  const replayUrls = (() => {
+    if (live?.status !== 'ended' || !live.playback_url) return []
+    if (live.playback_url.startsWith('[')) {
+      try {
+        const arr = JSON.parse(live.playback_url) as unknown
+        return Array.isArray(arr) ? arr.filter((u): u is string => typeof u === 'string') : []
+      } catch {
+        return []
+      }
+    }
+    return /cloudflarestream\.com/.test(live.playback_url) ? [live.playback_url] : []
+  })()
+  const activeReplayUrl = replayUrls[Math.min(replayPart, replayUrls.length - 1)] ?? null
+  const replaySrc = activeReplayUrl
+    ? `${activeReplayUrl}${activeReplayUrl.includes('?') ? '&' : '?'}autoplay=true${
+        soundOn ? '' : '&muted=true'
+      }`
+    : null
   const streamSrc = replaySrc ?? streamIframeSrc(live?.stream_uid, { autoplay: true, muted: !soundOn })
   // 실제 송출 연결 여부 — status='live'인데 송출이 끊겨 있으면 대기 화면을 보여주고,
   // 폴링으로 연결이 감지되면 자동으로 플레이어로 전환된다. 조회 실패(unknown)면 차단하지 않는다.
@@ -348,7 +377,6 @@ export default function ShopLiveWatch() {
   if (isDesktop && live) {
     return (
       <>
-        <ViewModeToggle mode={mode} onToggle={toggle} />
         <DesktopLiveWatch
           live={live}
           hostName={hostName}
@@ -357,6 +385,9 @@ export default function ShopLiveWatch() {
           waitingForStream={waitingForStream}
           streamSrc={streamSrc}
           onSoundOn={soundOn ? undefined : () => setSoundOn(true)}
+          replayParts={replayUrls}
+          replayPart={replayPart}
+          onReplayPartChange={setReplayPart}
           youtubeEmbedSrc={youtubeEmbedSrc(live.stream_url)}
           liveCoupon={liveCoupon}
           orderedProducts={orderedProducts}
@@ -384,7 +415,6 @@ export default function ShopLiveWatch() {
 
   return (
     <div className="fixed inset-0 z-0 bg-black flex justify-center">
-      <ViewModeToggle mode={mode} onToggle={toggle} />
       <div className="relative w-full h-full max-w-[480px] overflow-hidden">
         {loading ? (
           <div className="h-full flex items-center justify-center text-white/70 text-[14px]">불러오는 중…</div>
@@ -410,7 +440,30 @@ export default function ShopLiveWatch() {
                   <p className="relative text-white text-[15px] font-bold mb-1">방송 준비 중입니다</p>
                   <p className="relative text-white/80 text-[12px]">잠시 후 자동으로 시작됩니다</p>
                 </div>
+              ) : streamSrc && activeReplayUrl ? (
+                // 다시보기 — 되감기/빨리감기가 필요하므로 커스텀 재생바가 있는 플레이어 사용
+                <>
+                  <ReplayPlayer src={streamSrc} title="다시보기 영상" />
+                  {replayUrls.length > 1 && (
+                    <div className="absolute left-1/2 -translate-x-1/2 z-20 flex items-center gap-1.5" style={{ bottom: 76 }}>
+                      {/* 재생바(52px, bottom-0) 위 12px 간격 — 채팅 입력줄과 안 겹치도록 별도 오프셋 */}
+                      {replayUrls.map((_, i) => (
+                        <button
+                          key={i}
+                          type="button"
+                          onClick={() => setReplayPart(i)}
+                          className={`rounded-full text-[11.5px] font-semibold px-3 py-1.5 backdrop-blur-sm ${
+                            i === replayPart ? 'bg-white text-black' : 'bg-black/60 text-white'
+                          }`}
+                        >
+                          {i + 1}부
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </>
               ) : streamSrc ? (
+                // 실시간 방송 — 되감기 개념이 없으므로 Cloudflare 기본 iframe 그대로
                 <>
                   <iframe
                     src={streamSrc}
@@ -605,7 +658,14 @@ export default function ShopLiveWatch() {
                 클릭을 가로채 우측 아이콘 레일을 덮어버리는 문제가 있었음. 실제 상호작용 요소에만 auto로 되살림. */}
             <div
               className="absolute inset-x-0 bottom-0 z-30 px-3 flex flex-col gap-2 pointer-events-none"
-              style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 10px)' }}
+              style={{
+                // 다시보기는 화면 최하단에 커스텀 재생바(ReplayPlayer, 52px)가 떠 있어서
+                // 채팅 입력줄이 그 위에 그대로 겹쳐 보이는 문제가 있었다(2026-09-03) — 재생바 +
+                // 파트 선택 pill(76px)까지 확실히 피하도록 이 스택 전체를 위로 띄운다.
+                paddingBottom: activeReplayUrl
+                  ? 'calc(env(safe-area-inset-bottom) + 108px)'
+                  : 'calc(env(safe-area-inset-bottom) + 10px)',
+              }}
             >
               {liveCoupon && !couponSoldOut(liveCoupon) && (
                 <div className="mr-14 bg-black/45 backdrop-blur-sm border border-gold/40 rounded-lg px-3 py-2">

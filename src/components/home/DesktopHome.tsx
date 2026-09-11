@@ -34,7 +34,7 @@ export default function DesktopHome(_: Props) {
   return (
     <div className="bg-paper min-h-screen">
       <PromoBar />
-      <DesktopHeader />
+      <DesktopHeader promoBarAbove />
 
       {/* 커뮤니티는 세로로 읽는 흐름이라, PC에서도 넓게 펼치지 않고
           읽기 좋은 폭(680px)으로 가운데 모은다. */}

@@ -76,7 +76,7 @@ export default function LiveSchedule() {
   return (
     <AppFrame>
       <PromoBar />
-      <AppHeader />
+      <AppHeader promoBarAbove />
       <main className="bg-white pb-2 px-4">
         <div className="pt-5 mb-4">
           <h1 className="text-base font-bold text-black">LIVE 예고 전체보기</h1>

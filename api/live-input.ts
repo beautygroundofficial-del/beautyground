@@ -91,6 +91,57 @@ async function sendLiveStartNotifications(
   }
 }
 
+// hostToken 경로(GoLive.tsx)와 로그인 경로(LiveSales.tsx) 양쪽에서 같은 처리가 필요해 공용화.
+async function markLiveStarted(
+  supabase: SupabaseClient,
+  live: { id: string; title: string; partner_id: string | null; host_id: string | null }
+) {
+  const { error } = await supabase
+    .from('lives')
+    .update({ status: 'live' })
+    .eq('id', live.id)
+    .neq('status', 'ended')
+  if (error) return { ok: false as const, reason: '상태 변경에 실패했습니다.' }
+  await sendLiveStartNotifications(supabase, live)
+  return { ok: true as const }
+}
+
+// 방송 종료 — 상태를 ended 로 내리고, 이 방송의 녹화본(VOD)을 찾아 다시보기 주소로 연결한다.
+// "자동 녹화"는 송출이 한 번이라도 끊겼다 재연결되면 별도 파일로 쪼개진다(2026-09-02 실제 발생 —
+// 진행자가 앱 설정을 만지다 7분 구간 연결이 한 번 끊김). 예전엔 가장 최근 파일 하나만 골라서
+// 앞부분이 통째로 다시보기에서 빠지는 버그가 있었다. 지금은 이 라이브에 딸린 녹화본을 전부 모아
+// (오래된 순) 저장한다 — 1개면 기존처럼 URL 문자열 그대로, 2개 이상이면 JSON 배열 문자열로
+// (playback_url 컬럼 스키마를 새로 안 만들고 그대로 재사용 — ShopLiveWatch.tsx가 두 형태를 다 처리).
+// 녹화본 조회가 실패해도 종료 처리 자체는 반드시 되게 한다(방송이 계속 켜져 보이는 게 더 나쁨).
+async function markLiveEnded(supabase: SupabaseClient, liveId: string, streamUid: string | null) {
+  const patch: { status: string; playback_url?: string } = { status: 'ended' }
+  if (streamUid && CF_ACCOUNT_ID && CF_API_TOKEN) {
+    try {
+      const vr = await fetch(`${CF_API}/accounts/${CF_ACCOUNT_ID}/stream?limit=50`, {
+        headers: { Authorization: `Bearer ${CF_API_TOKEN}` },
+      })
+      const vj = (await vr.json()) as {
+        result?: Array<{ uid: string; liveInput?: string; created?: string; duration?: number; status?: { state?: string } }>
+      }
+      const mine = (vj.result ?? [])
+        // duration<15초는 연결 순간의 잡음(재연결 시도 등)이라 다시보기에 노출할 내용이 아니다.
+        .filter((v) => v.liveInput === streamUid && v.status?.state !== 'error' && (v.duration ?? 0) >= 15)
+        .sort((a, b) => String(a.created ?? '').localeCompare(String(b.created ?? '')))
+        .map((v) => `https://${CF_STREAM_SUBDOMAIN}.cloudflarestream.com/${v.uid}/iframe`)
+      if (mine.length === 1) {
+        patch.playback_url = mine[0]
+      } else if (mine.length > 1) {
+        patch.playback_url = JSON.stringify(mine)
+      }
+    } catch (e) {
+      console.error('[live-input] recording lookup failed', e)
+    }
+  }
+  const { error } = await supabase.from('lives').update(patch).eq('id', liveId)
+  if (error) return { ok: false as const, reason: '종료 처리에 실패했습니다.' }
+  return { ok: true as const, playbackUrl: patch.playback_url ?? null }
+}
+
 interface CfLiveInput {
   uid: string
   rtmps?: { url?: string; streamKey?: string }
@@ -277,22 +328,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     authorized = true
 
     if (markLive) {
-      const { error: upErr } = await supabase
-        .from('lives')
-        .update({ status: 'live' })
-        .eq('id', liveId)
-        .neq('status', 'ended')
-      if (upErr) {
-        res.status(500).json({ ok: false, reason: '상태 변경에 실패했습니다.' })
-        return
-      }
-      await sendLiveStartNotifications(supabase, {
+      const r = await markLiveStarted(supabase, {
         id: liveId,
         title: String(liveRow.title ?? ''),
         partner_id: (liveRow.partner_id as string | null) ?? null,
         host_id: (liveRow.host_id as string | null) ?? null,
       })
-      res.status(200).json({ ok: true })
+      res.status(r.ok ? 200 : 500).json(r)
+      return
+    }
+
+    if (markEnded) {
+      const r = await markLiveEnded(supabase, liveId, (liveRow.stream_uid as string | null) ?? null)
+      res.status(r.ok ? 200 : 500).json(r)
       return
     }
 
@@ -372,6 +420,25 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
     if (!authorized) {
       res.status(403).json({ ok: false, reason: '본인 라이브만 관리할 수 있습니다.' })
+      return
+    }
+
+    // 로그인 경로(호스트 자신의 /host/live/:id, 관리자 방송지원 화면)에도 hostToken 경로와
+    // 동일하게 markLive/markEnded를 지원한다 — 이게 없어서 송출은 연결됐는데 사이트엔
+    // 계속 "예정"으로 남아있던 버그가 실제로 발생했다(2026-09-02).
+    if (markLive) {
+      const r = await markLiveStarted(supabase, {
+        id: live.id,
+        title: live.title,
+        partner_id: live.partner_id,
+        host_id: live.host_id,
+      })
+      res.status(r.ok ? 200 : 500).json(r)
+      return
+    }
+    if (markEnded) {
+      const r = await markLiveEnded(supabase, live.id, live.stream_uid)
+      res.status(r.ok ? 200 : 500).json(r)
       return
     }
   }

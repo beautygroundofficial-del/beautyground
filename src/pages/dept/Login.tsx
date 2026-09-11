@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 
 // 백화점 담당자 로그인 — beautyground-erp(매장관리 시스템)의 로그인 화면과 같은 톤으로 통일:
@@ -7,6 +7,9 @@ import { supabase } from '../../lib/supabase'
 // 온라인몰 헤더/푸터 없이 독립된 유틸리티 화면으로 둔다(ERP 로그인과 동일한 방식).
 export default function DeptLogin() {
   const navigate = useNavigate()
+  // 링크를 받고 로그인하러 온 경우, 로그인 끝나면 원래 보려던 주소로 되돌린다(2026-09-02).
+  const location = useLocation()
+  const from = (location.state as { from?: string } | null)?.from ?? null
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [submitting, setSubmitting] = useState(false)
@@ -26,7 +29,7 @@ export default function DeptLogin() {
       return
     }
 
-    navigate('/dept/sales')
+    navigate(from ?? ('/dept/sales'))
   }
 
   return (

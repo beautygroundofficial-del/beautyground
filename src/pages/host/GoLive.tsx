@@ -320,11 +320,19 @@ export default function HostGoLive() {
 
               <div className="bg-[#faf8f4] rounded-[10px] p-3.5 mb-4">
                 <p className="text-[12px] font-bold text-[#111] mb-2">준비 (최초 1회만)</p>
+                <p className="text-[11px] text-[#9a9080] mb-2">
+                  RTMP 송출 앱이면 어느 것이든 동작합니다. <b>Prism Live Studio</b> 또는 <b>Larix Broadcaster</b>(둘 다 무료) 중 편한 걸로 설치하세요.
+                </p>
                 <ol className="text-[12px] text-[#5a5547] leading-[1.7] list-decimal pl-4 space-y-0.5">
-                  <li>휴대폰에 <b>Larix Broadcaster</b> 앱 설치 (무료)</li>
-                  <li>앱 실행 → 오른쪽 아래 <b>톱니바퀴</b> → <b>Connections</b> → <b>New connection</b></li>
-                  <li>아래 <b>전체 주소</b>를 복사해 <b>URL</b> 칸에 붙여넣고 저장</li>
-                  <li>메인 화면으로 나와 가운데 <b>빨간 버튼</b>을 누르면 방송 시작</li>
+                  <li>
+                    <b>Prism Live Studio</b>: 방송 화면 하단 <b>RTMP(사용자 지정)</b> 또는 <b>더보기 → RTMP</b> 선택 →
+                    아래 <b>서버 주소</b>와 <b>스트림 키</b>를 각각 붙여넣기
+                  </li>
+                  <li>
+                    <b>Larix Broadcaster</b>: 오른쪽 아래 <b>톱니바퀴</b> → <b>Connections</b> → <b>New connection</b> →
+                    아래 <b>전체 주소</b>를 복사해 <b>URL</b> 칸에 붙여넣기
+                  </li>
+                  <li>저장하고 메인 화면으로 나와 방송 시작 버튼을 누르면 송출 시작</li>
                 </ol>
               </div>
 

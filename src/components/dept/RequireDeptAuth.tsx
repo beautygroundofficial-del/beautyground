@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react'
-import { Navigate, Outlet } from 'react-router-dom'
+import { Navigate, Outlet, useLocation } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 
 type AuthState = 'loading' | 'authed' | 'guest'
 
 export default function RequireDeptAuth() {
   const [state, setState] = useState<AuthState>('loading')
+  const location = useLocation()
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -22,7 +23,13 @@ export default function RequireDeptAuth() {
   }
 
   if (state === 'guest') {
-    return <Navigate to="/dept/login" replace />
+    return (
+      <Navigate
+        to="/dept/login"
+        state={{ from: `${location.pathname}${location.search}` }}
+        replace
+      />
+    )
   }
 
   return <Outlet />

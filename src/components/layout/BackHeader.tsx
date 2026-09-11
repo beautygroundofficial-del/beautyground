@@ -6,9 +6,17 @@ interface BackHeaderProps {
   rightElement?: React.ReactNode
   onBack?: () => void
   transparent?: boolean
+  // PromoBar(높이 34px)가 바로 위에 스크롤 고정되어 있으면, 그만큼 아래로 내려 붙는다.
+  promoBarAbove?: boolean
 }
 
-export default function BackHeader({ title, rightElement, onBack, transparent = false }: BackHeaderProps) {
+export default function BackHeader({
+  title,
+  rightElement,
+  onBack,
+  transparent = false,
+  promoBarAbove = false,
+}: BackHeaderProps) {
   const navigate = useNavigate()
 
   const handleBack = () => {
@@ -18,9 +26,9 @@ export default function BackHeader({ title, rightElement, onBack, transparent = 
 
   return (
     <header
-      className={`flex items-center justify-between px-4 py-3 h-14 sticky top-0 z-50 ${
-        transparent ? 'bg-transparent' : 'bg-paper border-b border-rule'
-      }`}
+      className={`flex items-center justify-between px-4 py-3 h-14 sticky z-50 ${
+        promoBarAbove ? 'top-[34px]' : 'top-0'
+      } ${transparent ? 'bg-transparent' : 'bg-paper border-b border-rule'}`}
     >
       <button
         onClick={handleBack}

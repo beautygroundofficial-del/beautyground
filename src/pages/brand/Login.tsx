@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import GNB from '../../components/layout/GNB'
 import Footer from '../../components/layout/Footer'
 import Button from '../../components/common/Button'
@@ -13,6 +13,9 @@ import { getMyBrandAccess } from '../../lib/partner'
 
 export default function BrandLogin() {
   const navigate = useNavigate()
+  // 링크를 받고 로그인하러 온 경우, 로그인 끝나면 원래 보려던 주소로 되돌린다(2026-09-02).
+  const location = useLocation()
+  const from = (location.state as { from?: string } | null)?.from ?? null
   const [step, setStep] = useState<'email' | 'code'>('email')
   const [email, setEmail] = useState('')
   const [code, setCode] = useState('')
@@ -41,7 +44,7 @@ export default function BrandLogin() {
       return
     }
     // 셀프 가입 수출 브랜드(pending)는 쇼핑몰 메뉴(대시보드 등)가 없으므로 수출 소개로 바로
-    navigate(isExportOnly || partner.status === 'pending' ? '/brand/export' : '/brand/dashboard')
+    navigate(from ?? (isExportOnly || partner.status === 'pending' ? '/brand/export' : '/brand/dashboard'))
   }
 
   const sendCode = async (e?: React.FormEvent) => {

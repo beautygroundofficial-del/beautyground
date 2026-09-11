@@ -8,8 +8,15 @@ import { supabase } from '../../lib/supabase'
 // 하단 탭 "카테고리"에 이미 있어서, 돋보기는 진짜 키워드 검색(/app/search)으로 분리(2026-08-10).
 // 온라인몰과 라이브커머스를 당분간 분리하기로 해(대표님 지시 2026-07-29) 로고 이미지와
 // "LIVE COMMERCE" 영문 표기를 뺐다 — 이 화면은 라이브 얘기를 하지 않는다.
-export default function AppHeader() {
+interface Props {
+  // PromoBar(높이 34px)가 바로 위에 스크롤 고정되어 있으면, 그만큼 아래로 내려 붙는다.
+  promoBarAbove?: boolean
+}
+
+export default function AppHeader({ promoBarAbove = false }: Props) {
   const [name, setName] = useState<string | null>(null)
+  // TODO: 테스트용 임의값 — 실제 팔로워 집계 연결 전까지 하드코딩(대표님 지시 2026-09-10)
+  const followerCount = 7321
 
   useEffect(() => {
     let active = true
@@ -26,7 +33,11 @@ export default function AppHeader() {
   }, [])
 
   return (
-    <header className="bg-paper flex items-center justify-between px-4 h-14 border-b border-rule sticky top-0 z-50">
+    <header
+      className={`bg-paper flex items-center justify-between px-4 h-14 border-b border-rule sticky z-50 ${
+        promoBarAbove ? 'top-[34px]' : 'top-0'
+      }`}
+    >
       <Link to="/app/home" className="flex items-center min-w-0">
         {name ? (
           <span className="font-sans text-[16px] font-bold text-ink tracking-[-0.01em] truncate">
@@ -36,13 +47,18 @@ export default function AppHeader() {
           <img src="/images/logo-gold.png" alt="뷰티그라운드" className="h-8 w-auto object-contain" />
         )}
       </Link>
-      <Link
-        to="/app/search"
-        aria-label="검색"
-        className="w-10 h-10 rounded-pill border border-rule flex items-center justify-center text-ink focus:outline-none focus-visible:shadow-ring"
-      >
-        <IconSearch className="w-[18px] h-[18px]" />
-      </Link>
+      <div className="flex items-center gap-3">
+        <span className="text-[12px] font-medium text-ink-soft tracking-[-0.01em] whitespace-nowrap">
+          {followerCount.toLocaleString()}명 👥
+        </span>
+        <Link
+          to="/app/search"
+          aria-label="검색"
+          className="w-10 h-10 rounded-pill border border-rule flex items-center justify-center text-ink focus:outline-none focus-visible:shadow-ring"
+        >
+          <IconSearch className="w-[18px] h-[18px]" />
+        </Link>
+      </div>
     </header>
   )
 }

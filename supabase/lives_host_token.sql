@@ -5,7 +5,10 @@
 -- 아래 SECURITY DEFINER 함수를 통해서만(토큰을 정확히 아는 사람만) 조회 가능하게 한다.
 -- 실행: Supabase 대시보드(beautyground-main) → SQL Editor 에서 Run
 
-create extension if not exists pgcrypto;
+-- with schema public 명시 필수: 생략하면 Supabase가 extensions 스키마에 설치하는데,
+-- create_my_live()가 set search_path = public 이라 gen_random_bytes()를 못 찾아
+-- "function gen_random_bytes(integer) does not exist" 로 실패한다(2026-09-02 실제 발생·확인).
+create extension if not exists pgcrypto with schema public;
 
 alter table public.lives
   add column if not exists host_token text unique default encode(gen_random_bytes(18), 'hex');

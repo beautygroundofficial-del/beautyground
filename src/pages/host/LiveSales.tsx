@@ -370,6 +370,54 @@ export default function HostLiveSales() {
   const streamState = useStreamStatus(live?.stream_uid, live?.status !== 'ended', 5000)
   const [showKey, setShowKey] = useState(false)
   const [copied, setCopied] = useState('')
+  const [ending, setEnding] = useState(false)
+  const [endMsg, setEndMsg] = useState('')
+  const markedRef = useRef(false)
+
+  // GoLive.tsx(호스트 링크 화면)와 동일한 로직 — 이 화면(로그인 진행자용)엔 없어서
+  // 송출이 실제로 연결돼도 사이트엔 계속 "예정"으로 남아있던 버그가 있었다(2026-09-02).
+  useEffect(() => {
+    if (streamState !== 'connected' || markedRef.current || !live || live.id === undefined) return
+    if (live.status === 'live') return
+    markedRef.current = true
+    void (async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      const token = session?.access_token
+      if (!token) { markedRef.current = false; return }
+      const res = await fetch('/api/live-input', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ liveId: live.id, markLive: true }),
+      })
+      if (res.ok) {
+        setLive((prev) => (prev ? { ...prev, status: 'live' } : prev))
+      } else {
+        markedRef.current = false
+      }
+    })()
+  }, [streamState, live])
+
+  const endBroadcast = async () => {
+    if (!live || ending) return
+    setEnding(true)
+    setEndMsg('')
+    const { data: { session } } = await supabase.auth.getSession()
+    const token = session?.access_token
+    if (!token) { setEnding(false); return }
+    const res = await fetch('/api/live-input', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ liveId: live.id, markEnded: true }),
+    })
+    const j = (await res.json().catch(() => ({}))) as { ok?: boolean; playbackUrl?: string | null; reason?: string }
+    setEnding(false)
+    if (!res.ok || !j.ok) {
+      setEndMsg(j.reason ?? '종료 처리에 실패했습니다.')
+      return
+    }
+    setLive((prev) => (prev ? { ...prev, status: 'ended' } : prev))
+    setEndMsg(j.playbackUrl ? '방송을 종료하고 다시보기를 저장했습니다.' : '방송을 종료했습니다.')
+  }
   const copy = async (label: string, value: string | null) => {
     if (!value) return
     try {
@@ -448,6 +496,22 @@ export default function HostLiveSales() {
         </span>
       </div>
 
+      {/* RTMPS 송출은 화면에 "종료" 시점이 없어서, 끝나도 계속 방송중으로 남는다 —
+          진행자가 이 버튼을 눌러 종료 처리 + 녹화본 자동 연결까지 한다. */}
+      {live.status === 'live' && (
+        <div className="mb-4">
+          <button
+            type="button"
+            onClick={() => void endBroadcast()}
+            disabled={ending}
+            className="text-[13px] font-semibold text-[#111] bg-[#F3F1EC] rounded-full px-4 py-2 disabled:opacity-60"
+          >
+            {ending ? '종료 처리 중…' : '방송 종료하고 다시보기 저장'}
+          </button>
+          {endMsg && <p className="text-[12px] text-[#1E7B3C] mt-1.5">{endMsg}</p>}
+        </div>
+      )}
+
       {live.status !== 'ended' && <LiveProductPicker live={live} onSaved={setLive} />}
 
       {live.status !== 'ended' && (
@@ -521,7 +585,7 @@ export default function HostLiveSales() {
                 </div>
               </div>
               <p className="text-[11px] text-[#9a9080]">
-                Larix Broadcaster·OBS 등 방송 송출 앱에 위 주소와 키를 입력하면 바로 송출을 시작할 수 있습니다.
+                Prism Live Studio·Larix Broadcaster·OBS 등 방송 송출 앱에 위 주소와 키를 입력하면 바로 송출을 시작할 수 있습니다.
               </p>
             </div>
           )}
