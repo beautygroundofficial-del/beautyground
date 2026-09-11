@@ -8,6 +8,7 @@ import CategoryTabBar from './CategoryTabBar'
 import { IconHeart, IconCart, IconMinus, IconPlus } from '../common/Icon'
 import CartCountBadge from '../common/CartCountBadge'
 import ProductInfoTable from './ProductInfoTable'
+import ProductInfoNotice from './ProductInfoNotice'
 import { useProductQuestions } from '../../hooks/useProductQuestions'
 import { SHIPPING_NOTICE } from '../../constants'
 import type { ProductOption, ReviewSummaryData, ScrapedReview } from '../../lib/types'
@@ -25,6 +26,15 @@ interface View {
   description: string | null
   soldOut: boolean
   reviews: ScrapedReview[]
+  // 상품정보고시(화장품 표시기재, supabase/product_legal_labels.sql) — 전부 null 가능
+  capacityWeight: string | null
+  ingredients: string | null
+  expiryInfo: string | null
+  usageMethod: string | null
+  manufacturer: string | null
+  responsibleSeller: string | null
+  precautions: string | null
+  qualityStandard: string | null
 }
 
 interface Props {
@@ -153,8 +163,8 @@ export default function DesktopProductDetail({
               <div>
                 <div className="px-6 py-6 text-[13px] text-ink-soft leading-relaxed">
                   <p>{view.description ?? `${view.brand} ${view.name} 상품입니다.`}</p>
-                  <p className="mt-2 text-ink-faint">전성분은 제품 포장을 참조해 주세요.</p>
                 </div>
+                <ProductInfoNotice info={view} className="max-w-[520px] mx-auto mb-6" />
                 {view.detailImages.length > 0 && (
                   <div className="pb-6">
                     <div className="max-w-[520px] mx-auto">

@@ -10,6 +10,7 @@ import {
   IconWorld,
   IconPackage,
   IconReceipt,
+  IconBuildingStore,
 } from '@tabler/icons-react'
 import { supabase } from '../../lib/supabase'
 import { getMyBrandAccess } from '../../lib/partner'
@@ -21,6 +22,7 @@ const EXPORT_NAV_ITEM = { label: '수출 소개', to: '/brand/export', icon: Ico
 
 const FULL_NAV_ITEMS = [
   { label: '대시보드', to: '/brand/dashboard', icon: IconLayoutDashboard },
+  { label: '판매자 정보', to: '/brand/company', icon: IconBuildingStore },
   { label: '상품관리', to: '/brand/products', icon: IconPackage },
   { label: '주문내역', to: '/brand/orders', icon: IconReceipt },
   { label: '판매내역', to: '/brand/sales', icon: IconVideo },

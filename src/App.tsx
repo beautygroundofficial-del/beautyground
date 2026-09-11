@@ -110,6 +110,7 @@ import RequireBrand from './components/brand/RequireBrand'
 import RequireBrandOrExportContact from './components/brand/RequireBrandOrExportContact'
 import BrandLayout from './components/brand/BrandLayout'
 const BrandDashboard = lazy(() => import('./pages/brand/Dashboard'))
+const BrandCompany = lazy(() => import('./pages/brand/Company'))
 const BrandProducts = lazy(() => import('./pages/brand/Products'))
 const BrandOrders = lazy(() => import('./pages/brand/Orders'))
 const BrandLiveSales = lazy(() => import('./pages/brand/LiveSales'))
@@ -288,6 +289,7 @@ export default function App() {
           <Route element={<BrandLayout />}>
             <Route element={<RequireBrand />}>
               <Route path="/brand/dashboard" element={<BrandDashboard />} />
+              <Route path="/brand/company" element={<BrandCompany />} />
               <Route path="/brand/products" element={<BrandProducts />} />
               <Route path="/brand/orders" element={<BrandOrders />} />
               <Route path="/brand/sales" element={<BrandLiveSales />} />

@@ -13,6 +13,7 @@ import { getMyMembership } from '../lib/membership'
 import type { Product, ProductOption, ScrapedReview, ReviewSummaryData } from '../lib/types'
 import { ALL_PRODUCTS, SHIPPING_NOTICE } from '../constants'
 import ProductInfoTable from '../components/product/ProductInfoTable'
+import ProductInfoNotice from '../components/product/ProductInfoNotice'
 import CategoryTabBar from '../components/product/CategoryTabBar'
 import ReviewSummary from '../components/product/ReviewSummary'
 import ProductQnA from '../components/product/ProductQnA'
@@ -39,6 +40,15 @@ interface ProductView {
   stock: number | null // null = 재고 무제한(목데이터)
   soldOut: boolean
   reviews: ScrapedReview[]
+  // 상품정보고시(화장품 표시기재, supabase/product_legal_labels.sql) — 전부 null 가능
+  capacityWeight: string | null
+  ingredients: string | null
+  expiryInfo: string | null
+  usageMethod: string | null
+  manufacturer: string | null
+  responsibleSeller: string | null
+  precautions: string | null
+  qualityStandard: string | null
   // 목데이터 전용(이미지 없을 때 아이콘 표시)
   thumbIcon?: string
   thumbColor?: string
@@ -68,6 +78,14 @@ function fromDbProduct(p: Product, brand: string): ProductView {
     stock: p.stock,
     soldOut: p.status === 'sold_out' || p.stock <= 0,
     reviews: p.scraped_reviews ?? [],
+    capacityWeight: p.capacity_weight,
+    ingredients: p.ingredients,
+    expiryInfo: p.expiry_info,
+    usageMethod: p.usage_method,
+    manufacturer: p.manufacturer,
+    responsibleSeller: p.responsible_seller,
+    precautions: p.precautions,
+    qualityStandard: p.quality_standard,
   }
 }
 
@@ -87,6 +105,14 @@ function fromMock(m: (typeof ALL_PRODUCTS)[number]): ProductView {
     stock: null,
     soldOut: false,
     reviews: [],
+    capacityWeight: null,
+    ingredients: null,
+    expiryInfo: null,
+    usageMethod: null,
+    manufacturer: null,
+    responsibleSeller: null,
+    precautions: null,
+    qualityStandard: null,
     thumbIcon: m.thumbIcon,
     thumbColor: m.thumbColor,
   }
@@ -542,8 +568,8 @@ export default function AppProductDetail() {
           <div>
             <div className="px-4 py-5 text-[13px] text-ink-soft leading-relaxed">
               <p>{view.description ?? `${view.brand} ${view.name} 상품입니다.`}</p>
-              <p className="mt-2 text-ink-faint">전성분은 제품 포장을 참조해 주세요.</p>
             </div>
+            <ProductInfoNotice info={view} />
             {view.detailImages.length > 0 && (
               <div>
                 {view.detailImages.map((url, i) => (

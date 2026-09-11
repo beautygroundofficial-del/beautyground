@@ -227,14 +227,42 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       gallery_images: arr(p.images),
       detail_images: arr(p.detail_images),
       source_url: typeof p.source_url === 'string' ? p.source_url : null,
+      // 상품정보고시(화장품 표시기재) — 선택 입력이지만 비어있으면 소비자 화면에 "미기재"로 뜬다.
+      // 정확한 법정 필수항목은 브랜드·법무 확인 필요(참고: 히로인스 수익모델·셀러센터 정밀분석).
+      capacity_weight: typeof p.capacity_weight === 'string' ? p.capacity_weight.slice(0, 200) : null,
+      ingredients: typeof p.ingredients === 'string' ? p.ingredients.slice(0, 4000) : null,
+      expiry_info: typeof p.expiry_info === 'string' ? p.expiry_info.slice(0, 200) : null,
+      usage_method: typeof p.usage_method === 'string' ? p.usage_method.slice(0, 1000) : null,
+      manufacturer: typeof p.manufacturer === 'string' ? p.manufacturer.slice(0, 200) : null,
+      responsible_seller: typeof p.responsible_seller === 'string' ? p.responsible_seller.slice(0, 200) : null,
+      precautions: typeof p.precautions === 'string' ? p.precautions.slice(0, 2000) : null,
+      quality_standard: typeof p.quality_standard === 'string' ? p.quality_standard.slice(0, 500) : null,
+    }
+    const productId = (body as { product_id?: string } | null)?.product_id
+
+    if (productId) {
+      // 수정 — partner_id 는 여기서도 요청값을 안 믿고 eq 조건으로 강제(남의 상품 수정 불가).
+      // stock/status는 여기서 절대 안 건드린다(재고는 별도 update_my_product_stock RPC 전용,
+      // 검수상태 전환은 관리자만 — 수정했다고 판매중 상품이 도로 검수대기로 빠지면 안 됨).
+      const { error: updErr } = await sb.from('products').update(row).eq('id', productId).eq('partner_id', partner.id)
+      if (updErr) {
+        res.status(200).json({ ok: false, error: `수정에 실패했습니다: ${updErr.message}` })
+        return
+      }
+      res.status(200).json({ ok: true, id: productId })
+      return
+    }
+
+    const insertRow = {
+      ...row,
       partner_id: partner.id,
       brand: partner.brand_name ?? null,
       stock,
       // 등록 직후 바로 노출하지 않는다 — 관리자가 /admin/products 에서 확인 후 '판매중'으로 바꾼다
       // (products.status 는 on_sale/sold_out/hidden 만 허용하므로 hidden 을 검수 대기로 쓴다)
-      status: 'hidden',
+      status: 'hidden' as const,
     }
-    const { data: inserted, error: insErr } = await sb.from('products').insert(row).select('id').single()
+    const { data: inserted, error: insErr } = await sb.from('products').insert(insertRow).select('id').single()
     if (insErr) {
       res.status(200).json({ ok: false, error: `등록에 실패했습니다: ${insErr.message}` })
       return

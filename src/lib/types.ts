@@ -32,6 +32,16 @@ export interface Product {
   export_image_urls: string[]
   export_description: string | null
   export_description_en: string | null // /api/translate로 자동번역
+  // 상품정보고시(화장품 표시기재) — supabase/product_legal_labels.sql. 전부 선택 입력이라
+  // null 가능(기존 상품은 소급 입력 전까지 전부 비어있음).
+  capacity_weight: string | null
+  ingredients: string | null
+  expiry_info: string | null
+  usage_method: string | null
+  manufacturer: string | null
+  responsible_seller: string | null
+  precautions: string | null
+  quality_standard: string | null
   created_at: string
 }
 
@@ -107,6 +117,14 @@ export interface Partner {
   export_moq_notes: string | null // 최소주문수량·샘플 정책 등
   export_logo_url: string | null // 브랜드 BI 로고 (supabase/partners_export_logo.sql)
   export_story_images: string[] // 캡션 없는 브랜드 스토리 사진, 최대 5장 (supabase/partners_export_story_images.sql)
+  // 판매자(사업자) 정보 — 브랜드가 셀러센터에서 직접 입력/수정 (supabase/brand_company_info.sql)
+  biz_no: string | null
+  ceo_name: string | null
+  biz_address: string | null
+  contact_phone: string | null
+  bank_name: string | null
+  bank_account: string | null
+  bank_holder: string | null
   created_at: string
 }
 
