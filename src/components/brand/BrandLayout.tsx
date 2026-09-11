@@ -12,6 +12,7 @@ import {
   IconReceipt,
   IconBuildingStore,
   IconChartBar,
+  IconHelpCircle,
 } from '@tabler/icons-react'
 import { supabase } from '../../lib/supabase'
 import { getMyBrandAccess } from '../../lib/partner'
@@ -30,6 +31,7 @@ const FULL_NAV_ITEMS = [
   { label: '판매내역', to: '/brand/sales', icon: IconVideo },
   { label: '정산내역', to: '/brand/settlement', icon: IconCash },
   EXPORT_NAV_ITEM,
+  { label: '이용 가이드', to: '/brand/guide', icon: IconHelpCircle },
 ]
 
 // 수출 전용 계정(export_contacts로 로그인, 2026-08-16)은 라이브 판매실적·정산금을 볼 수 없어야
