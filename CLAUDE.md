@@ -21,7 +21,8 @@
 
 - 스토어 등록용 앱 껍데기. **웹(beautyground.co.kr)을 그대로 앱에 띄운다**(`server.url`) — 웹 화면 코드는 그대로, 앱 전용 화면을 따로 만들지 않는다. 걸음 수·푸시 등 네이티브 기능만 플러그인으로.
 - `npx cap sync` 로 설정을 네이티브 프로젝트에 반영. 아이콘·스플래시는 `assets/` 원본에서 `npx capacitor-assets generate`.
-- 이 PC엔 Java·Android SDK가 없어 빌드는 아직 불가(Android Studio 설치 필요), iOS 빌드는 Mac 필요. 상세·진행: 옵시디언 `03 홈페이지/앱 스토어 등록.md`.
+- **Android 빌드(사무실 PC, 2026-09-12 설치)**: `JAVA_HOME="C:/Program Files/Microsoft/jdk-21.0.12.101-hotspot"`, `ANDROID_HOME="C:/Users/user/AppData/Local/Android/Sdk"`(cmdline-tools·platform-tools·android-36·build-tools 36.0.0), `android/local.properties`는 `sdk.dir=C:/Users/...` **슬래시 경로**(역슬래시는 `\U` 유니코드 오류). 빌드: `cd android && ./gradlew assembleDebug` → `app/build/outputs/apk/debug/app-debug.apk`. Android Studio 내장 JDK 25는 쓰지 않는다(Gradle 8.14 호환 불확실).
+- iOS 빌드는 Mac 구매·대여 없이 **GitHub Actions macOS 러너**로(Apple Developer 승인 후 설정). 상세·진행: 옵시디언 `03 홈페이지/앱 스토어 등록.md`.
 - 셀러센터·커뮤니티 세션 모두 `android/`·`ios/` 안 파일은 손대지 않는다(앱 등록 담당 세션만).
 
 ## 클라우드 세션(브라우저·대시보드 로그인 없는 곳)에서 DB·검증하는 법 (2026-09-11)
