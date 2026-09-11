@@ -11,6 +11,15 @@
 - **운영 DB SQL은 내용 보고 → 대표님 승인 → 실행** 순서(2026-09-11 확정).
 - push 전 `git pull --rebase`. 셀러센터가 끝나면 커뮤니티 세션이 `feature/seller-center`를 `feature/seller-admin`에 합친다. main 반영은 대표님 결정.
 
+## 클라우드 세션(브라우저·대시보드 로그인 없는 곳)에서 DB·검증하는 법 (2026-09-11)
+
+Playwright 브라우저나 Supabase 대시보드 로그인이 없어도 아래 두 스크립트로 같은 일을 한다. 환경변수 4개가 세션에 있어야 한다: `SUPABASE_MGMT_TOKEN`(sbp_… 스코프 토큰: beautyground-main 1개·Database Read-write만·2026-12-10 만료), `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, 그리고 테스트 계정(`test3@test.com` / `test1234` — 구매자 역할).
+
+- **운영 SQL 실행**: `node scripts/db_query.mjs supabase/xxx.sql` 또는 `--sql "select …"`. **반드시 내용 보고 → 대표님 승인 → 실행.** 승인 전엔 `select`만.
+- **화면 로직 검증(브라우저 대신)**: `node scripts/rpc_as.mjs <email> <pw> rpc <함수> '<json>'` — 테스트 계정으로 로그인해 RPC를 직접 부른다. 비로그인은 `anon`. 쓰기 RPC(글·하트·댓글)를 불렀으면 끝나고 되돌린다.
+- **화면 확인**: 브랜치를 push하면 Vercel 프리뷰 배포 주소가 생긴다 — 거기서 본다. 로컬 dev 서버는 없다.
+- 두 계정 동시 실사용 검증(관리자+구매자 브라우저)·Storage 업로드 검증은 사무실 PC 세션(커뮤니티 세션)에 넘긴다.
+
 ## graphify
 
 This project has a knowledge graph at graphify-out/ with god nodes, community structure, and cross-file relationships.
