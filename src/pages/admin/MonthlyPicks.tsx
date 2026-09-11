@@ -15,7 +15,8 @@ import { supabase } from '../../lib/supabase'
 //
 // ⚠️ 확정은 되돌릴 수 없다(포인트가 원장에 즉시 기록됨) — 확인 문구를 반드시 거친다.
 
-type Kind = 'story' | 'comforter'
+// walkmate = 이달의 산책 메이트(2026-09-12) — 펫과 같이 걸은 사진 글을 가장 꾸준히 올린 사람
+type Kind = 'story' | 'comforter' | 'walkmate'
 
 interface StoryRow {
   diary_id: string
@@ -36,6 +37,17 @@ interface ComforterRow {
   given_reactions: number
   given_comments: number
   active_days: number
+  score: number
+  already_picked: boolean
+}
+
+interface WalkmateRow {
+  user_id: string
+  nickname: string | null
+  walk_days: number
+  walk_posts: number
+  reactor_count: number
+  pet_names: string | null
   score: number
   already_picked: boolean
 }
@@ -63,6 +75,7 @@ export default function AdminMonthlyPicks() {
   const [kind, setKind] = useState<Kind>('story')
   const [stories, setStories] = useState<StoryRow[]>([])
   const [comforters, setComforters] = useState<ComforterRow[]>([])
+  const [walkmates, setWalkmates] = useState<WalkmateRow[]>([])
   const [points, setPoints] = useState(1000)
   const [loading, setLoading] = useState(true)
   const [busyId, setBusyId] = useState<string | null>(null)
@@ -71,20 +84,23 @@ export default function AdminMonthlyPicks() {
   const load = useCallback(async () => {
     setLoading(true)
     setError('')
-    const [s, c] = await Promise.all([
+    const [s, c, w] = await Promise.all([
       supabase.rpc('get_monthly_story_candidates', { p_period: period, p_limit: 20 }),
       supabase.rpc('get_monthly_comforter_candidates', { p_period: period, p_limit: 20 }),
+      supabase.rpc('get_monthly_walkmate_candidates', { p_period: period, p_limit: 20 }),
     ])
     if (s.error || c.error) setError(`불러오지 못했습니다: ${s.error?.message ?? c.error?.message}`)
     setStories((s.data ?? []) as StoryRow[])
     setComforters((c.data ?? []) as ComforterRow[])
+    // walk_mate.sql 실행 전이면 함수가 없어 오류 — 그땐 빈 목록으로 두고 화면은 살린다
+    setWalkmates((w.error ? [] : (w.data ?? [])) as WalkmateRow[])
     setLoading(false)
   }, [period])
 
   useEffect(() => { void load() }, [load])
 
   const confirm = async (target: { userId: string; diaryId?: string; label: string; rowKey: string }) => {
-    const label = kind === 'story' ? '이달의 이야기' : '이달의 토닥이'
+    const label = kind === 'story' ? '이달의 이야기' : kind === 'comforter' ? '이달의 토닥이' : '이달의 산책 메이트'
     if (!window.confirm(
       `${period.slice(0, 7)} ${label}\n\n${target.label}\n지급 포인트: ${points.toLocaleString()}P\n\n` +
       '확정하면 포인트가 즉시 지급되고 되돌릴 수 없습니다. 진행할까요?'
@@ -117,7 +133,8 @@ export default function AdminMonthlyPicks() {
           한 달에 한 번, 커뮤니티에 마음을 나눈 분을 뽑아 포인트를 드립니다.
           <br />
           <strong>이달의 이야기</strong>는 서로 다른 사람 몇 명에게 가닿았는지로,{' '}
-          <strong>이달의 토닥이</strong>는 남에게 얼마나 마음을 나눠줬는지로 셉니다.
+          <strong>이달의 토닥이</strong>는 남에게 얼마나 마음을 나눠줬는지로,{' '}
+          <strong>이달의 산책 메이트</strong>는 반려동물과 같이 걸은 사진 이야기를 얼마나 꾸준히 남겼는지(같이 걸은 날 수 × 3 + 산책 글 + 마음 남긴 사람 수)로 셉니다.
           <br />
           조회수는 지수에 넣지 않습니다 — 가장 쉽게 조작되고, 자극적인 글을 쓰게 만들기 때문입니다.
           <br />
@@ -133,7 +150,7 @@ export default function AdminMonthlyPicks() {
           </select>
 
           <div className="flex gap-2">
-            {([['story', '이달의 이야기'], ['comforter', '이달의 토닥이']] as const).map(([k, label]) => (
+            {([['story', '이달의 이야기'], ['comforter', '이달의 토닥이'], ['walkmate', '이달의 산책 메이트']] as const).map(([k, label]) => (
               <button
                 key={k}
                 onClick={() => setKind(k)}
@@ -208,6 +225,58 @@ export default function AdminMonthlyPicks() {
                             className="text-[12px] text-signal-blue hover:underline disabled:opacity-40"
                           >
                             {busyId === r.diary_id ? '처리 중…' : '선정하고 지급'}
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )
+        ) : kind === 'walkmate' ? (
+          walkmates.length === 0 ? (
+            <div className="text-center py-24 bg-paper rounded-md border border-rule">
+              <IconTrophy size={40} className="text-rule mx-auto mb-3" />
+              <p className="text-[14px] text-ink-faint">이 달에는 아직 반려동물과 같이 걸은 사진 이야기가 없습니다</p>
+            </div>
+          ) : (
+            <div className="bg-paper rounded-md border border-rule overflow-x-auto">
+              <table className="w-full text-[13px] text-left">
+                <thead>
+                  <tr className="border-b border-rule text-ink-soft">
+                    <th className="px-4 py-3 font-medium whitespace-nowrap">지수</th>
+                    <th className="px-4 py-3 font-medium whitespace-nowrap">회원</th>
+                    <th className="px-4 py-3 font-medium whitespace-nowrap">함께한 친구</th>
+                    <th className="px-4 py-3 font-medium whitespace-nowrap">같이 걸은 날</th>
+                    <th className="px-4 py-3 font-medium whitespace-nowrap">산책 글</th>
+                    <th className="px-4 py-3 font-medium whitespace-nowrap">마음 남긴 사람</th>
+                    <th className="px-4 py-3 font-medium whitespace-nowrap">선정</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {walkmates.map((r) => (
+                    <tr key={r.user_id} className="border-b border-rule last:border-b-0">
+                      <td className="px-4 py-3 font-bold text-ink tabular-nums">{r.score}</td>
+                      <td className="px-4 py-3 text-ink whitespace-nowrap">{maskName(r.nickname)}</td>
+                      <td className="px-4 py-3 text-ink-soft whitespace-nowrap">🐾 {r.pet_names ?? '-'}</td>
+                      <td className="px-4 py-3 text-ink-soft tabular-nums">{r.walk_days}</td>
+                      <td className="px-4 py-3 text-ink-soft tabular-nums">{r.walk_posts}</td>
+                      <td className="px-4 py-3 text-ink-soft tabular-nums">{r.reactor_count}</td>
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        {r.already_picked ? (
+                          <span className="text-[12px] text-ink-faint">선정됨</span>
+                        ) : (
+                          <button
+                            type="button"
+                            disabled={busyId === r.user_id}
+                            onClick={() => void confirm({
+                              userId: r.user_id, rowKey: r.user_id,
+                              label: `${maskName(r.nickname)} — ${r.pet_names ?? ''}와 ${r.walk_days}일 · 산책 글 ${r.walk_posts}`,
+                            })}
+                            className="text-[12px] text-signal-blue hover:underline disabled:opacity-40"
+                          >
+                            {busyId === r.user_id ? '처리 중…' : '선정하고 지급'}
                           </button>
                         )}
                       </td>
