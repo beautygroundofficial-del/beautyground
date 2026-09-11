@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import type { DiaryPet } from './pets'
 
 // 일기(살아가는 이야기) — 유저가 사진과 함께 일상을 남기면 diary_post 미션이 자동 적립된다.
 // 적립은 화면에서 claim_mission을 따로 부르지 않고 create_diary RPC 안에서 한 번에 처리한다(누락·중복 방지).
@@ -26,6 +27,8 @@ export interface Diary {
   steps: number | null
   // 영상 1개(선택) — Storage 공개 URL (2026-09-11)
   video_url: string | null
+  // 같이 걸은 펫들 — pets.sql 실행 전엔 안 옴 (2026-09-12)
+  pets?: DiaryPet[]
 }
 
 export interface BestDiary {
@@ -38,7 +41,8 @@ export interface BestDiary {
   created_at: string
 }
 
-export type DiarySort = 'recent' | 'popular'
+// 'walk' = 펫과 같이 걸은 글만 (2026-09-12)
+export type DiarySort = 'recent' | 'popular' | 'walk'
 
 export async function getDiaryFeed(sort: DiarySort = 'recent', limit = 20, offset = 0): Promise<Diary[]> {
   const { data, error } = await supabase.rpc('get_diary_feed', {
@@ -61,10 +65,10 @@ export interface CreateDiaryResult {
 }
 
 export async function createDiary(
-  content: string, images: string[] = [], nickname?: string | null, steps?: number | null, video?: string | null,
+  content: string, images: string[] = [], nickname?: string | null, steps?: number | null, video?: string | null, petIds: string[] = [],
 ): Promise<CreateDiaryResult | null> {
   const { data, error } = await supabase.rpc('create_diary', {
-    p_content: content, p_images: images, p_nickname: nickname ?? null, p_steps: steps ?? null, p_video: video ?? null,
+    p_content: content, p_images: images, p_nickname: nickname ?? null, p_steps: steps ?? null, p_video: video ?? null, p_pet_ids: petIds,
   })
   if (error) return null
   const row = Array.isArray(data) ? data[0] : data
@@ -78,17 +82,18 @@ export interface MyDiaryRow {
   images: string[]
   steps: number | null
   video_url: string | null
+  pet_ids: string[] | null
 }
 
 export async function getMyDiary(id: string): Promise<MyDiaryRow | null> {
   const { data, error } = await supabase
-    .from('diaries').select('id, content, images, steps, video_url').eq('id', id).maybeSingle()
+    .from('diaries').select('id, content, images, steps, video_url, pet_ids').eq('id', id).maybeSingle()
   if (error || !data) return null
   return data as MyDiaryRow
 }
 
 export async function updateDiary(
-  id: string, patch: { content: string; images: string[]; steps: number | null; video_url: string | null },
+  id: string, patch: { content: string; images: string[]; steps: number | null; video_url: string | null; pet_ids?: string[] },
 ): Promise<boolean> {
   const { error } = await supabase
     .from('diaries').update({ ...patch, updated_at: new Date().toISOString() }).eq('id', id)
@@ -177,7 +182,7 @@ export async function uploadDiaryImages(files: File[]): Promise<string[]> {
 
 // 영상 — 줄이지 않고 그대로 올린다(브라우저에서 영상 인코딩은 현실적으로 무리).
 // 그래서 PostComposer 가 30MB·60초로 미리 거른다. 실패하면 null.
-export async function uploadCommunityVideo(file: File, folder: 'diaries' | 'board' | 'answers'): Promise<string | null> {
+export async function uploadCommunityVideo(file: File, folder: 'diaries' | 'board' | 'answers' | 'pets'): Promise<string | null> {
   const { data: { session } } = await supabase.auth.getSession()
   if (!session) return null
   const ext = (file.name.split('.').pop() || 'mp4').toLowerCase().replace(/[^a-z0-9]/g, '') || 'mp4'
@@ -190,7 +195,7 @@ export async function uploadCommunityVideo(file: File, folder: 'diaries' | 'boar
 }
 
 // 게시판(board/) 등 다른 커뮤니티 글도 같은 버킷·같은 축소 규칙으로 올린다.
-export async function uploadCommunityImages(files: File[], folder: 'diaries' | 'board' | 'answers'): Promise<string[]> {
+export async function uploadCommunityImages(files: File[], folder: 'diaries' | 'board' | 'answers' | 'pets'): Promise<string[]> {
   const { data: { session } } = await supabase.auth.getSession()
   if (!session) return []
 

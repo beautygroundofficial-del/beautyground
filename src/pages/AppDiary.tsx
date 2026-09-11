@@ -15,6 +15,7 @@ import DiaryComments, { CommentToggle } from '../components/community/DiaryComme
 import StoryTabs from '../components/community/StoryTabs'
 import Lightbox from '../components/community/Lightbox'
 import FriendButton from '../components/community/FriendButton'
+import { PetAvatars, petWalkLabel } from '../components/community/PetMarks'
 import { getFriendDiaryFeed, getFriendStatuses, type FriendStatus } from '../lib/friends'
 
 // 살아가는 이야기 — 유저가 사진과 함께 일상을 남기는 곳.
@@ -194,7 +195,7 @@ export default function AppDiary() {
           title="사람들의 이야기"
           right={
             <div className="flex items-center gap-1 shrink-0">
-              {([['recent', '최신'], ['popular', '인기'], ['friends', '친구']] as const).map(([key, label]) => (
+              {([['recent', '최신'], ['popular', '인기'], ['walk', '산책'], ['friends', '친구']] as const).map(([key, label]) => (
                 <button key={key}
                   onClick={() => {
                     if (key === 'friends' && !loggedIn) { navigate('/app/login', { state: { from: '/app/diary' } }); return }
@@ -211,6 +212,14 @@ export default function AppDiary() {
 
         {loading ? (
           <p className="py-12 text-center text-[13px] text-ink-faint">불러오는 중…</p>
+        ) : feed.length === 0 && sort === 'walk' ? (
+          <button
+            onClick={openComposer}
+            className="w-full rounded-card border border-dashed border-rule bg-quiet/40 px-5 py-12 text-center focus:outline-none focus-visible:shadow-ring"
+          >
+            <p className="text-[14px] font-semibold text-ink">아직 같이 걸은 이야기가 없어요</p>
+            <p className="text-[12.5px] text-ink-faint mt-1.5">사진과 함께 '같이 걸은 친구'를 골라 남겨보세요</p>
+          </button>
         ) : feed.length === 0 && sort === 'friends' ? (
           <button
             onClick={() => navigate('/app/friends')}
@@ -268,6 +277,7 @@ export default function AppDiary() {
                         <span className="text-[12px] font-semibold text-ink truncate">
                           {friendOf[d.user_id] === 'friends' ? (d.nickname ?? '익명') : maskName(d.nickname)}
                         </span>
+                        <PetAvatars pets={d.pets} />
                         {!d.is_mine && loggedIn && (
                           <FriendButton
                             userId={d.user_id}
@@ -278,7 +288,9 @@ export default function AppDiary() {
                           />
                         )}
                         <span className="text-[11.5px] text-ink-faint shrink-0">{timeAgo(d.created_at)}</span>
-                        {d.steps != null && d.steps > 0 && (
+                        {petWalkLabel(d.pets, d.steps) ? (
+                          <span className="text-[11.5px] text-ink-soft shrink-0 tabular-nums">🐾 {petWalkLabel(d.pets, d.steps)}</span>
+                        ) : d.steps != null && d.steps > 0 && (
                           <span className="text-[11.5px] text-ink-soft shrink-0 tabular-nums">🚶 {d.steps.toLocaleString('ko-KR')}보</span>
                         )}
                       </div>

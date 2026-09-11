@@ -5,6 +5,7 @@ import AppFrame from '../components/layout/AppFrame'
 import PostComposer, { loadDraft, saveDraft, clearDraft } from '../components/community/PostComposer'
 import { supabase } from '../lib/supabase'
 import { createDiary, getMyDiary, updateDiary, uploadDiaryImages, uploadCommunityVideo } from '../lib/diaries'
+import { getMyPets, petEmoji, type Pet } from '../lib/pets'
 
 // 오늘 남기기 — 하루 이야기 쓰기·고쳐 쓰기 화면. (2026-09-11)
 // 대표님 지시 "걷기를 통한 하루 일기 … 이미지와 텍스트", "삭제 옆에 수정도", "MP4 영상도".
@@ -15,7 +16,7 @@ const MIN_LEN = 5
 const MAX_LEN = 1000
 const DRAFT_KEY = 'diary'
 
-interface Draft { content: string; steps: string }
+interface Draft { content: string; steps: string; petIds?: string[] }
 
 export default function AppDiaryWrite() {
   const navigate = useNavigate()
@@ -29,6 +30,9 @@ export default function AppDiaryWrite() {
   const [video, setVideo] = useState<File | null>(null)
   const [existingImages, setExistingImages] = useState<string[]>([])
   const [existingVideo, setExistingVideo] = useState<string | null>(null)
+  // 같이 걸은 친구 — 내 펫 목록에서 고른다. 사진이 있어야 붙는다(사진 올리기 장려, 2026-09-12)
+  const [pets, setPets] = useState<Pet[]>([])
+  const [petIds, setPetIds] = useState<string[]>([])
   const [saving, setSaving] = useState(false)
   const [toast, setToast] = useState('')
   const [ready, setReady] = useState(false)
@@ -41,6 +45,7 @@ export default function AppDiaryWrite() {
       if (!session) { navigate('/app/login', { replace: true, state: { from: '/app/diary/write' } }); return }
       const meta = session.user.user_metadata as { name?: string } | undefined
       setMyName(meta?.name || session.user.email?.split('@')[0] || null)
+      setPets(await getMyPets())
 
       if (editId) {
         const row = await getMyDiary(editId)
@@ -49,17 +54,22 @@ export default function AppDiaryWrite() {
         setSteps(row.steps ? String(row.steps) : '')
         setExistingImages(row.images ?? [])
         setExistingVideo(row.video_url ?? null)
+        setPetIds(row.pet_ids ?? [])
       } else {
         const d = loadDraft<Draft>(DRAFT_KEY)
         if (d.content) setContent(d.content)
         if (d.steps) setSteps(d.steps)
+        if (d.petIds) setPetIds(d.petIds)
       }
       setReady(true)
     })()
   }, [navigate, editId])
 
   // 임시저장은 새 글일 때만 — 고쳐 쓰기 도중 내용이 새 글 초안으로 남으면 헷갈린다
-  useEffect(() => { if (ready && !editId) saveDraft(DRAFT_KEY, { content, steps }) }, [ready, editId, content, steps])
+  useEffect(() => { if (ready && !editId) saveDraft(DRAFT_KEY, { content, steps, petIds }) }, [ready, editId, content, steps, petIds])
+
+  const hasPhoto = files.length > 0 || existingImages.length > 0
+  const togglePet = (id: string) => setPetIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]))
 
   const stepsNum = Number(steps.replace(/[^0-9]/g, '')) || 0
 
@@ -76,16 +86,17 @@ export default function AppDiaryWrite() {
       if (!videoUrl) { setSaving(false); showToast('영상 업로드에 실패했어요. 잠시 후 다시 시도해 주세요'); return }
     }
     const images = [...existingImages, ...newUrls]
+    const petsToSave = images.length > 0 ? petIds : []
 
     if (editId) {
-      const ok = await updateDiary(editId, { content: content.trim(), images, steps: stepsNum > 0 ? stepsNum : null, video_url: videoUrl })
+      const ok = await updateDiary(editId, { content: content.trim(), images, steps: stepsNum > 0 ? stepsNum : null, video_url: videoUrl, pet_ids: petsToSave })
       setSaving(false)
       if (!ok) { showToast('고치지 못했어요. 잠시 후 다시 시도해 주세요'); return }
       navigate('/app/diary', { replace: true, state: { toast: '고쳐 썼어요' } })
       return
     }
 
-    const res = await createDiary(content, images, myName, stepsNum > 0 ? stepsNum : null, videoUrl)
+    const res = await createDiary(content, images, myName, stepsNum > 0 ? stepsNum : null, videoUrl, petsToSave)
     setSaving(false)
     if (!res || !res.diary_id) { showToast(res?.message || '올리지 못했어요'); return }
     clearDraft(DRAFT_KEY)
@@ -133,6 +144,40 @@ export default function AppDiaryWrite() {
           autoFocus={!editId}
           onNotice={showToast}
         />
+      </section>
+
+      {/* 같이 걸은 친구 — 펫이 등록돼 있을 때만. 사진이 없으면 안내만(사진 올리기 장려) */}
+      <section className="px-5 pt-6">
+        <p className="text-[11.5px] text-ink-faint leading-none mb-1.5">함께한 친구</p>
+        <h2 className="text-[15px] font-bold text-ink leading-tight mb-3">오늘 같이 걸은 친구 <span className="text-[12px] font-normal text-ink-faint">(선택)</span></h2>
+        {pets.length === 0 ? (
+          <button type="button" onClick={() => navigate('/app/pets')}
+            className="w-full rounded-card border border-dashed border-rule bg-quiet/40 px-4 py-4 text-left focus:outline-none focus-visible:shadow-ring">
+            <p className="text-[13.5px] font-semibold text-ink">🐾 반려동물을 등록해 두면 여기서 고를 수 있어요</p>
+            <p className="text-[12px] text-ink-faint mt-1">마이페이지 › 내 반려동물</p>
+          </button>
+        ) : (
+          <>
+            <div className="flex gap-2 flex-wrap">
+              {pets.map((p) => {
+                const on = petIds.includes(p.id)
+                return (
+                  <button key={p.id} type="button" onClick={() => togglePet(p.id)} aria-pressed={on} disabled={!hasPhoto}
+                    className={`inline-flex items-center gap-1.5 pl-1 pr-3 py-1 rounded-full border text-[13px] transition disabled:opacity-40 focus:outline-none focus-visible:shadow-ring ${
+                      on ? 'bg-ink text-paper border-ink font-semibold' : 'bg-paper text-ink-soft border-rule'}`}>
+                    <span className="w-7 h-7 rounded-full bg-quiet overflow-hidden inline-flex items-center justify-center">
+                      {p.photo_url ? <img src={p.photo_url} alt="" className="w-full h-full object-cover" /> : <span aria-hidden="true">{petEmoji(p.kind)}</span>}
+                    </span>
+                    {p.name}
+                  </button>
+                )
+              })}
+            </div>
+            <p className="text-[12px] text-ink-faint mt-2 leading-relaxed">
+              {hasPhoto ? '고르면 카드에 "🐾 이름과 걸음 수"로 표시돼요' : '사진을 올리면 같이 걸은 친구를 고를 수 있어요'}
+            </p>
+          </>
+        )}
       </section>
 
       <section className="px-5 pt-6 pb-28">

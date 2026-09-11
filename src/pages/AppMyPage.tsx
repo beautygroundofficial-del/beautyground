@@ -45,6 +45,8 @@ function buildMenuItems(user: RealUser, showMissions: boolean, friendRequests: n
     { label: '새 소식', path: '/app/news' },
     // 친구 — 받은 신청이 있으면 개수만 조용히(2026-09-11)
     { label: '친구', path: '/app/friends', ...(friendRequests > 0 ? { count: friendRequests } : {}) },
+    // 반려동물 — 등록하면 하루 이야기에 '같이 걸은 친구'로 붙는다(2026-09-12)
+    { label: '내 반려동물', path: '/app/pets' },
     { label: '최근 본 상품', path: '/app/recently-viewed' },
     { label: '리뷰 관리', path: '/app/my-reviews' },
   ]

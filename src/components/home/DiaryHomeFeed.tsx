@@ -4,6 +4,7 @@ import { getDiaryFeed, getMonthlyBestDiaries, toggleDiaryLike, type Diary, type 
 import { supabase } from '../../lib/supabase'
 import LikeButton from '../community/LikeButton'
 import { CommentToggle } from '../community/DiaryComments'
+import { PetAvatars, petWalkLabel } from '../community/PetMarks'
 
 // 홈의 주인공 — 사람들의 이야기 (2026-09-02)
 // 대표님 지시로 홈에서 상품을 걷어내고 커뮤니티를 앞세우면서 만든 컴포넌트.
@@ -162,8 +163,11 @@ export default function DiaryHomeFeed() {
                     <div className="flex items-center justify-between mt-3.5 pt-3 border-t border-rule">
                       <div className="flex items-center gap-2 min-w-0">
                         <span className="text-[12px] font-semibold text-ink truncate">{maskName(d.nickname)}</span>
+                        <PetAvatars pets={d.pets} />
                         <span className="text-[11.5px] text-ink-faint shrink-0">{timeAgo(d.created_at)}</span>
-                        {d.steps != null && d.steps > 0 && (
+                        {petWalkLabel(d.pets, d.steps) ? (
+                          <span className="text-[11.5px] text-ink-soft shrink-0 tabular-nums">🐾 {petWalkLabel(d.pets, d.steps)}</span>
+                        ) : d.steps != null && d.steps > 0 && (
                           <span className="text-[11.5px] text-ink-soft shrink-0 tabular-nums">🚶 {d.steps.toLocaleString('ko-KR')}보</span>
                         )}
                       </div>
