@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react'
-import { IconLink, IconPhoto, IconTrash } from '@tabler/icons-react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { IconLink, IconPhoto, IconPlus, IconSearch, IconTrash, IconX } from '@tabler/icons-react'
 import { supabase } from '../../lib/supabase'
-import { getMyPartner } from '../../lib/partner'
+import { getMyPartner, uploadSellerProductImage } from '../../lib/partner'
 import type { Partner, Product } from '../../lib/types'
 
 // 브랜드 셀러센터 — 상품 등록 (2026-09-02)
@@ -9,7 +9,15 @@ import type { Partner, Product } from '../../lib/types'
 // 확인 후 저장하면 같은 API 의 저장 모드가 등록한다(partner_id 는 서버가 토큰으로 강제).
 // 등록분은 status='hidden' 으로 들어가며 뷰티그라운드 확인 후 판매중으로 전환된다.
 
+// 사진은 URL 스크랩분 말고 브랜드가 직접 올리고 바꾸고 뺄 수도 있다(2026-09-11).
+// 파일은 브라우저에서 Storage(seller/<partner_id>/…)로 바로 올라간다 — supabase/brand_product_images.sql.
+
 const CATEGORIES = ['스킨케어', '메이크업', '향수', '헤어·바디', '이너뷰티', '뷰티 디바이스', '기타']
+
+// 서버(api/scrape-product.ts)가 배열을 30장에서 자르므로 화면에서도 같은 한도를 지킨다.
+const MAX_IMAGES = 30
+const MAX_IMAGE_MB = 10
+type ImageFolder = 'thumb' | 'gallery' | 'detail'
 
 interface Draft {
   name: string
@@ -64,6 +72,80 @@ const STATUS_LABEL: Record<string, { text: string; cls: string }> = {
   sold_out: { text: '품절', cls: 'bg-[#f3f1ed] text-[#9a9080]' },
 }
 
+// 사진 여러 장 관리 — 추가·순서 바꾸기·빼기. 상품 사진과 상세 이미지가 같은 틀을 쓴다.
+// "빼기"는 이 상품의 사진 목록에서만 빼는 것이고 올라간 파일 자체는 지우지 않는다
+// (되돌리기 안전 + 다른 상품이 같은 사진을 쓰고 있을 수 있음).
+function ImageStrip({ images, onChange, onPick, uploading, hint }: {
+  images: string[]
+  onChange: (next: string[]) => void
+  onPick: (files: FileList | null) => void
+  uploading: boolean
+  hint: string
+}) {
+  const inputRef = useRef<HTMLInputElement>(null)
+  const move = (i: number, dir: -1 | 1) => {
+    const j = i + dir
+    if (j < 0 || j >= images.length) return
+    const next = [...images]
+    next[i] = images[j]
+    next[j] = images[i]
+    onChange(next)
+  }
+  const arrowCls =
+    'w-6 h-5 rounded border border-[#e5e0d8] bg-white text-[11px] leading-none text-[#6b6355] disabled:opacity-30'
+
+  return (
+    <div>
+      <div className="flex flex-wrap gap-2">
+        {images.map((src, i) => (
+          <div key={`${src}-${i}`} className="w-[84px]">
+            <div className="relative w-[84px] h-[84px] rounded-lg overflow-hidden border border-[#e5e0d8] bg-white">
+              <img src={src} alt="" className="w-full h-full object-cover" />
+              <button
+                type="button"
+                onClick={() => onChange(images.filter((_, k) => k !== i))}
+                aria-label={`${i + 1}번째 사진 빼기`}
+                className="absolute top-0.5 right-0.5 w-5 h-5 rounded-full bg-black/60 text-white flex items-center justify-center"
+              >
+                <IconX size={12} />
+              </button>
+            </div>
+            <div className="flex justify-center gap-1 mt-1">
+              <button type="button" onClick={() => move(i, -1)} disabled={i === 0}
+                aria-label={`${i + 1}번째 사진 앞으로`} className={arrowCls}>←</button>
+              <button type="button" onClick={() => move(i, 1)} disabled={i === images.length - 1}
+                aria-label={`${i + 1}번째 사진 뒤로`} className={arrowCls}>→</button>
+            </div>
+          </div>
+        ))}
+
+        {images.length < MAX_IMAGES && (
+          <button
+            type="button"
+            onClick={() => inputRef.current?.click()}
+            disabled={uploading}
+            className="w-[84px] h-[84px] rounded-lg border border-dashed border-[#d8d1c4] bg-[#fbf9f5] text-[#b3aa9a] flex flex-col items-center justify-center gap-1 disabled:opacity-50"
+          >
+            <IconPlus size={16} />
+            <span className="text-[11px] font-semibold">{uploading ? '올리는 중' : '사진 추가'}</span>
+          </button>
+        )}
+      </div>
+
+      <p className="mt-2 text-[11.5px] text-[#b3aa9a]">{hint}</p>
+
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/*"
+        multiple
+        className="hidden"
+        onChange={(e) => { onPick(e.target.files); e.target.value = '' }}
+      />
+    </div>
+  )
+}
+
 export default function BrandProducts() {
   const [partner, setPartner] = useState<Partner | null>(null)
   const [loading, setLoading] = useState(true)
@@ -80,6 +162,21 @@ export default function BrandProducts() {
   // 본인 partner_id 상품만 수정 가능하게 서버(Postgres)에서 강제한다.
   const [stockEdits, setStockEdits] = useState<Record<string, string>>({})
   const [stockSaving, setStockSaving] = useState<string | null>(null)
+  // 사진 직접 올리기 — 어느 칸을 올리는 중인지(버튼 잠금용)와 대표사진 파일 입력.
+  const [uploading, setUploading] = useState<ImageFolder | null>(null)
+  const thumbInputRef = useRef<HTMLInputElement>(null)
+  // 상품이 쌓이면 목록에서 찾기 어려워져 이름·카테고리 검색과 상태 거르기를 둔다(서버 왕복 없음).
+  const [query, setQuery] = useState('')
+  const [statusFilter, setStatusFilter] = useState<'all' | 'on_sale' | 'hidden' | 'sold_out'>('all')
+
+  const visibleItems = useMemo(() => {
+    const kw = query.trim().toLowerCase()
+    return items.filter((p) => {
+      if (statusFilter !== 'all' && p.status !== statusFilter) return false
+      if (!kw) return true
+      return p.name.toLowerCase().includes(kw) || (p.category ?? '').toLowerCase().includes(kw)
+    })
+  }, [items, query, statusFilter])
 
   const loadItems = async (partnerId: string) => {
     const { data } = await supabase
@@ -140,6 +237,50 @@ export default function BrandProducts() {
     } finally {
       setFetching(false)
     }
+  }
+
+  // 고른 파일을 순서대로 Storage 에 올려 공개 URL 배열로 돌려준다.
+  // 한 장이라도 규격에 안 맞으면 올리기 전에 막는다 — 절반만 올라가 순서가 꼬이는 걸 피한다.
+  const uploadFiles = async (folder: ImageFolder, files: FileList | null, room: number): Promise<string[]> => {
+    if (!partner || !files || files.length === 0) return []
+    const picked = Array.from(files)
+    const bad = picked.find((f) => !f.type.startsWith('image/') || f.size > MAX_IMAGE_MB * 1024 * 1024)
+    if (bad) { setMsg(`사진 파일만, 한 장당 ${MAX_IMAGE_MB}MB 이하로 올려 주세요. (${bad.name})`); return [] }
+    if (room <= 0) { setMsg(`사진은 ${MAX_IMAGES}장까지 올릴 수 있습니다.`); return [] }
+
+    setUploading(folder); setMsg(''); setOk('')
+    const urls: string[] = []
+    try {
+      for (const f of picked.slice(0, room)) {
+        urls.push(await uploadSellerProductImage(f, partner.id, folder))
+      }
+      if (picked.length > room) setMsg(`사진은 ${MAX_IMAGES}장까지라 ${room}장만 올렸습니다.`)
+    } catch {
+      setMsg(urls.length > 0
+        ? `사진 ${urls.length}장까지 올리고 실패했습니다. 나머지는 다시 올려 주세요.`
+        : '사진 올리기에 실패했습니다. 잠시 후 다시 시도해 주세요.')
+    } finally {
+      setUploading(null)
+    }
+    return urls
+  }
+
+  // 대표사진은 한 장만 — 여러 장을 골라도 첫 장만 쓴다.
+  const pickThumbnail = async (files: FileList | null) => {
+    const [url1] = await uploadFiles('thumb', files, 1)
+    if (url1) setDraft((d) => (d ? { ...d, thumbnail_url: url1 } : d))
+  }
+
+  const pickGallery = async (files: FileList | null) => {
+    const room = MAX_IMAGES - (draft?.images.length ?? 0)
+    const urls = await uploadFiles('gallery', files, room)
+    if (urls.length > 0) setDraft((d) => (d ? { ...d, images: [...d.images, ...urls] } : d))
+  }
+
+  const pickDetail = async (files: FileList | null) => {
+    const room = MAX_IMAGES - (draft?.detail_images.length ?? 0)
+    const urls = await uploadFiles('detail', files, room)
+    if (urls.length > 0) setDraft((d) => (d ? { ...d, detail_images: [...d.detail_images, ...urls] } : d))
   }
 
   const save = async () => {
@@ -241,15 +382,42 @@ export default function BrandProducts() {
 
         {draft && (
           <div className="mt-6 pt-6 border-t border-[#efeae1] grid gap-4 lg:grid-cols-[200px_1fr]">
-            {/* 이미지 미리보기 */}
+            {/* 대표사진 — 목록·검색 결과·장바구니에 뜨는 한 장 */}
             <div>
+              <label className={labelCls}>대표사진</label>
               <div className="aspect-square rounded-xl border border-[#e5e0d8] bg-[#f7f4ef] overflow-hidden flex items-center justify-center">
                 {draft.thumbnail_url
                   ? <img src={draft.thumbnail_url} alt="" className="w-full h-full object-cover" />
                   : <IconPhoto size={28} className="text-[#d8d1c4]" />}
               </div>
+              <div className="flex gap-1.5 mt-2">
+                <button
+                  type="button"
+                  onClick={() => thumbInputRef.current?.click()}
+                  disabled={uploading === 'thumb'}
+                  className="flex-1 rounded-lg border border-[#e5e0d8] bg-white text-[12px] font-semibold text-[#6b6355] py-2 disabled:opacity-50 transition"
+                >
+                  {uploading === 'thumb' ? '올리는 중…' : draft.thumbnail_url ? '사진 바꾸기' : '사진 올리기'}
+                </button>
+                {draft.thumbnail_url && (
+                  <button
+                    type="button"
+                    onClick={() => setDraft({ ...draft, thumbnail_url: null })}
+                    className="rounded-lg border border-[#e5e0d8] bg-white text-[12px] font-semibold text-[#a32118] px-3 py-2 transition"
+                  >
+                    빼기
+                  </button>
+                )}
+              </div>
+              <input
+                ref={thumbInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => { void pickThumbnail(e.target.files); e.target.value = '' }}
+              />
               <p className="mt-2 text-[11.5px] text-[#9a9080]">
-                사진 {draft.images.length}장 · 상세 {draft.detail_images.length}장
+                상품 사진 {draft.images.length}장 · 상세 {draft.detail_images.length}장
               </p>
             </div>
 
@@ -294,6 +462,40 @@ export default function BrandProducts() {
                 <label className={labelCls}>상품 설명</label>
                 <textarea value={draft.description} onChange={(e) => setDraft({ ...draft, description: e.target.value })}
                   rows={3} className={`${field} resize-none`} placeholder="상품 설명" />
+              </div>
+
+              {/* 상품 사진·상세 이미지 — URL 로 긁어온 사진도 여기서 빼거나 순서를 바꿀 수 있다. */}
+              <div className="pt-2 mt-1 border-t border-[#efeae1] grid gap-4">
+                <div>
+                  <p className="text-[13px] font-bold text-[#111] mb-1">상품 사진</p>
+                  <p className="text-[11.5px] text-[#b3aa9a] mb-2.5">
+                    상세페이지 맨 위에서 넘겨 보는 사진입니다. 왼쪽 첫 장이 가장 먼저 보입니다.
+                  </p>
+                  <ImageStrip
+                    images={draft.images}
+                    onChange={(next) => setDraft({ ...draft, images: next })}
+                    onPick={(files) => void pickGallery(files)}
+                    uploading={uploading === 'gallery'}
+                    hint={draft.images.length === 0
+                      ? '사진이 없으면 대표사진 한 장만 보입니다.'
+                      : `${draft.images.length}장 · 최대 ${MAX_IMAGES}장`}
+                  />
+                </div>
+                <div>
+                  <p className="text-[13px] font-bold text-[#111] mb-1">상세 이미지</p>
+                  <p className="text-[11.5px] text-[#b3aa9a] mb-2.5">
+                    상세페이지 아래에 위에서 아래로 길게 이어 붙는 설명 이미지입니다.
+                  </p>
+                  <ImageStrip
+                    images={draft.detail_images}
+                    onChange={(next) => setDraft({ ...draft, detail_images: next })}
+                    onPick={(files) => void pickDetail(files)}
+                    uploading={uploading === 'detail'}
+                    hint={draft.detail_images.length === 0
+                      ? '없어도 됩니다. 상품 설명 글만 보입니다.'
+                      : `${draft.detail_images.length}장 · 최대 ${MAX_IMAGES}장`}
+                  />
+                </div>
               </div>
 
               {/* 상품정보고시 — 전자상거래법상 구매 전 표시 의무. 전부 선택 입력이지만 비워두면
@@ -352,9 +554,11 @@ export default function BrandProducts() {
               </div>
 
               <div className="flex gap-2 pt-1">
-                <button onClick={() => void save()} disabled={saving}
+                <button onClick={() => void save()} disabled={saving || uploading !== null}
                   className="rounded-lg bg-[#b8924a] text-white font-semibold text-[14px] px-6 py-2.5 disabled:opacity-50 transition">
-                  {saving ? (editingId ? '수정 중…' : '등록 중…') : (editingId ? '수정하기' : '등록하기')}
+                  {uploading !== null
+                    ? '사진 올리는 중…'
+                    : saving ? (editingId ? '수정 중…' : '등록 중…') : (editingId ? '수정하기' : '등록하기')}
                 </button>
                 <button onClick={() => { setDraft(null); setEditingId(null); setMsg('') }}
                   className="rounded-lg border border-[#e5e0d8] text-[#6b6355] font-semibold text-[14px] px-5 py-2.5 transition">
@@ -368,19 +572,57 @@ export default function BrandProducts() {
 
       {/* 내 상품 */}
       <div className={`${card} p-6`}>
-        <div className="flex items-center justify-between mb-5">
+        <div className="flex items-center justify-between mb-4">
           <h2 className="text-[14px] font-bold text-[#111]">등록한 상품</h2>
-          <span className="text-[12px] text-[#9a9080]">{items.length}개</span>
+          <span className="text-[12px] text-[#9a9080]">
+            {visibleItems.length === items.length
+              ? `${items.length}개`
+              : `${visibleItems.length}개 / 전체 ${items.length}개`}
+          </span>
         </div>
+
+        {items.length > 0 && (
+          <div className="flex flex-col sm:flex-row gap-2 mb-5">
+            <div className="relative flex-1">
+              <IconSearch size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#c3bcae]" />
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="상품명·카테고리로 찾기"
+                className={`${field} pl-9 py-2`}
+              />
+            </div>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}
+              className={`${field} py-2 sm:w-[140px]`}
+            >
+              <option value="all">전체 상태</option>
+              <option value="on_sale">판매중</option>
+              <option value="hidden">확인 대기</option>
+              <option value="sold_out">품절</option>
+            </select>
+          </div>
+        )}
 
         {items.length === 0 ? (
           <div className="text-center py-10">
             <IconTrash size={30} className="text-[#e5e0d8] mx-auto mb-2" />
             <p className="text-[13px] text-[#9a9080]">아직 등록한 상품이 없습니다.</p>
           </div>
+        ) : visibleItems.length === 0 ? (
+          <div className="text-center py-10">
+            <p className="text-[13px] text-[#9a9080]">찾는 조건에 맞는 상품이 없습니다.</p>
+            <button
+              onClick={() => { setQuery(''); setStatusFilter('all') }}
+              className="mt-2 text-[12px] font-semibold text-[#6b6355] underline underline-offset-2"
+            >
+              조건 지우기
+            </button>
+          </div>
         ) : (
           <div className="space-y-2.5">
-            {items.map((p) => {
+            {visibleItems.map((p) => {
               const badge = STATUS_LABEL[p.status] ?? { text: p.status, cls: 'bg-[#f3f1ed] text-[#9a9080]' }
               const shown = p.sale_price ?? p.price
               return (
@@ -423,7 +665,10 @@ export default function BrandProducts() {
                     <p className="text-[13.5px] font-bold text-[#111] tabular-nums">{shown?.toLocaleString('ko-KR')}원</p>
                     <span className={`inline-block mt-1 text-[11px] px-2 py-0.5 rounded-full ${badge.cls}`}>{badge.text}</span>
                     <button
-                      onClick={() => { setEditingId(p.id); setDraft(draftFromProduct(p)); setMsg(''); setOk('') }}
+                      onClick={() => {
+                        setEditingId(p.id); setDraft(draftFromProduct(p)); setMsg(''); setOk('')
+                        window.scrollTo({ top: 0, behavior: 'smooth' })
+                      }}
                       className="block mt-1.5 text-[11px] font-semibold text-[#6b6355] underline underline-offset-2"
                     >
                       수정
@@ -438,7 +683,7 @@ export default function BrandProducts() {
         <p className="mt-5 pt-4 border-t border-[#efeae1] text-[12px] text-[#9a9080] leading-relaxed">
           새로 등록한 상품은 <strong className="text-[#6b6355]">확인 대기</strong> 상태로 들어오며,
           뷰티그라운드에서 내용을 확인한 뒤 판매가 시작됩니다. 이미 판매중인 상품을 고친 내용은
-          별도 확인 없이 바로 반영됩니다.
+          — 사진을 바꾸거나 뺀 것도 — 별도 확인 없이 바로 반영됩니다.
         </p>
       </div>
     </>
