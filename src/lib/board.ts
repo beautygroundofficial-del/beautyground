@@ -102,8 +102,9 @@ export async function getMyBoardPosts(limit = 30, offset = 0): Promise<MyBoardPo
 
 // ── 새 소식 — 내 글에 달린 댓글·공감 ────────────────────────────────────
 export interface NewsItem {
-  kind: 'board_comment' | 'board_reaction' | 'diary_comment' | 'diary_reaction'
-  target_type: 'board' | 'diary'
+  // answer_* 는 news_answers.sql 실행 후부터 온다(오늘의 질문 답변, 2026-09-11)
+  kind: 'board_comment' | 'board_reaction' | 'diary_comment' | 'diary_reaction' | 'answer_comment' | 'answer_reaction'
+  target_type: 'board' | 'diary' | 'answer'
   target_id: string
   actor_nickname: string | null
   excerpt: string
