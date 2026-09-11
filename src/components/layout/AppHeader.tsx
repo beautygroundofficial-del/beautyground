@@ -34,11 +34,11 @@ export default function AppHeader({ promoBarAbove = false }: Props) {
 
   return (
     <header
-      className={`bg-paper flex items-center justify-between px-4 py-2 min-h-14 border-b border-rule sticky z-50 ${
+      className={`bg-paper flex items-center justify-between px-4 h-14 border-b border-rule sticky z-50 ${
         promoBarAbove ? 'top-[34px]' : 'top-0'
       }`}
     >
-      <Link to="/app/home" className="flex flex-col justify-center min-w-0 gap-0.5">
+      <Link to="/app/home" className="flex items-center min-w-0">
         {name ? (
           <span className="font-sans text-[16px] font-bold text-ink tracking-[-0.01em] truncate">
             환영합니다, {name}님
@@ -46,17 +46,19 @@ export default function AppHeader({ promoBarAbove = false }: Props) {
         ) : (
           <img src="/images/logo-gold.png" alt="뷰티그라운드" className="h-8 w-auto object-contain" />
         )}
-        <span className="text-[11px] font-medium text-ink-soft tracking-[-0.01em]">
+      </Link>
+      <div className="flex items-center gap-3">
+        <span className="text-[12px] font-medium text-ink-soft tracking-[-0.01em] whitespace-nowrap">
           {followerCount.toLocaleString()}명 👥
         </span>
-      </Link>
-      <Link
-        to="/app/search"
-        aria-label="검색"
-        className="w-10 h-10 rounded-pill border border-rule flex items-center justify-center text-ink focus:outline-none focus-visible:shadow-ring"
-      >
-        <IconSearch className="w-[18px] h-[18px]" />
-      </Link>
+        <Link
+          to="/app/search"
+          aria-label="검색"
+          className="w-10 h-10 rounded-pill border border-rule flex items-center justify-center text-ink focus:outline-none focus-visible:shadow-ring"
+        >
+          <IconSearch className="w-[18px] h-[18px]" />
+        </Link>
+      </div>
     </header>
   )
 }
