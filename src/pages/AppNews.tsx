@@ -35,12 +35,14 @@ function objectParticle(word: string) {
   return (last - 0xac00) % 28 === 0 ? '를' : '을'
 }
 
-function headline(n: NewsItem) {
-  // 공감은 닉네임이 없어 "누군가"로 — 조사가 달라져서 이름이 있을 때만 "님이"를 붙인다
+// 공감은 닉네임이 없어 "누군가"로 — 조사가 달라져서 이름이 있을 때만 "님이"를 붙인다.
+// 이름 부분만 따로 돌려줘서 화면에서 그 사람 페이지로 이어지게 한다(2026-09-12).
+function headline(n: NewsItem): { who: string; rest: string; linkable: boolean } {
   const who = n.actor_nickname ? `${maskName(n.actor_nickname)}님이` : '누군가'
-  if (n.kind.endsWith('_comment')) return `${who} 댓글을 남겼어요`
+  const linkable = !!n.actor_nickname && !!n.actor_user_id
+  if (n.kind.endsWith('_comment')) return { who, rest: ' 댓글을 남겼어요', linkable }
   const meta = REACTION_META.find((r) => r.kind === n.reaction_kind)
-  return meta ? `${who} ${meta.emoji} ${meta.label}${objectParticle(meta.label)} 눌렀어요` : `${who} 마음을 남겼어요`
+  return { who, rest: meta ? ` ${meta.emoji} ${meta.label}${objectParticle(meta.label)} 눌렀어요` : ' 마음을 남겼어요', linkable }
 }
 
 export default function AppNews() {
@@ -104,7 +106,15 @@ export default function AppNews() {
                 >
                   <div className="flex items-center gap-2">
                     {n.is_new && <span className="w-1.5 h-1.5 rounded-full bg-brand-pink shrink-0" aria-label="새 소식" />}
-                    <p className="text-[13.5px] font-semibold text-ink truncate">{headline(n)}</p>
+                    <p className="text-[13.5px] font-semibold text-ink truncate">
+                      {(() => { const h = headline(n); return h.linkable ? (
+                        <>
+                          <span role="link" tabIndex={0} className="underline underline-offset-2 decoration-rule"
+                            onClick={(e) => { e.stopPropagation(); navigate(`/app/people/${n.actor_user_id}`) }}
+                            onKeyDown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); navigate(`/app/people/${n.actor_user_id}`) } }}>{h.who}</span>{h.rest}
+                        </>
+                      ) : h.who + h.rest })()}
+                    </p>
                     <span className="ml-auto shrink-0 text-[11px] text-ink-faint">{timeAgo(n.created_at)}</span>
                   </div>
                   {n.comment_text && (

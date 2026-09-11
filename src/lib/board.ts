@@ -107,6 +107,8 @@ export interface NewsItem {
   target_type: 'board' | 'diary' | 'answer'
   target_id: string
   actor_nickname: string | null
+  // 댓글 단 사람(news_actor.sql 이후) — 공감은 익명이라 null (2026-09-12)
+  actor_user_id?: string | null
   excerpt: string
   comment_text: string | null
   reaction_kind: ReactionKind | null
