@@ -7,7 +7,8 @@
 --   · answer_comments(+awards) + get/create_answer_comment — 댓글(남의 답에 5자 이상 첫 댓글만 comment_give 적립, 글당 평생 1회)
 --   · answer_today_question(+p_images) / get_today_question(+my_images) / get_question_answers(+images·like_count·liked_by_me·comment_count)
 -- ⚠️ 반환 컬럼이 늘어나는 함수 3개는 drop 후 재생성. 기존 데이터는 건드리지 않는다.
--- ⚠️ 실행 전 대표님 승인 필요(2026-09-11 방침). 실행: Supabase 대시보드(beautyground-main) → SQL Editor
+-- ✅ 2026-09-11 대표님 승인("실행해") 후 운영 DB(beautyground-main) SQL Editor 실행 완료.
+--    두 계정으로 사진 답 → 하트 → 댓글 → 상대 화면 ♡1·💬1 확인, 테스트 답·댓글·하트 되돌림.
 
 -- 1) 사진
 alter table public.daily_answers add column if not exists images text[] not null default '{}';
