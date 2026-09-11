@@ -1,7 +1,7 @@
 -- 새 소식에 댓글 단 사람의 user_id 추가 — 이름을 누르면 그 사람 페이지로 (2026-09-12, 커뮤니티 4-10 A 마무리)
 -- 공감(reaction)은 원래 익명("누군가")이라 actor_user_id 를 null 로 둔다.
 -- get_my_news 반환 컬럼이 늘어 drop 후 재생성 — get_my_news_count 는 이 함수를 부르므로 같이 다시 만든다.
--- ✅ 읽기 함수만, 데이터 변경 없음.
+-- ✅ 읽기 함수만, 데이터 변경 없음. 2026-09-12 db_query.mjs 로 운영 실행·검증(test3 댓글 → 관리자 새 소식 이름 링크 → 사람 페이지).
 
 drop function if exists public.get_my_news_count();
 drop function if exists public.get_my_news(integer);
