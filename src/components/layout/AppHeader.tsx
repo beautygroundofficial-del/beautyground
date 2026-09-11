@@ -15,6 +15,8 @@ interface Props {
 
 export default function AppHeader({ promoBarAbove = false }: Props) {
   const [name, setName] = useState<string | null>(null)
+  // TODO: 테스트용 임의값 — 실제 팔로워 집계 연결 전까지 하드코딩(대표님 지시 2026-09-10)
+  const followerCount = 7321
 
   useEffect(() => {
     let active = true
@@ -32,11 +34,11 @@ export default function AppHeader({ promoBarAbove = false }: Props) {
 
   return (
     <header
-      className={`bg-paper flex items-center justify-between px-4 h-14 border-b border-rule sticky z-50 ${
+      className={`bg-paper flex items-center justify-between px-4 py-2 min-h-14 border-b border-rule sticky z-50 ${
         promoBarAbove ? 'top-[34px]' : 'top-0'
       }`}
     >
-      <Link to="/app/home" className="flex items-center min-w-0">
+      <Link to="/app/home" className="flex flex-col justify-center min-w-0 gap-0.5">
         {name ? (
           <span className="font-sans text-[16px] font-bold text-ink tracking-[-0.01em] truncate">
             환영합니다, {name}님
@@ -44,6 +46,9 @@ export default function AppHeader({ promoBarAbove = false }: Props) {
         ) : (
           <img src="/images/logo-gold.png" alt="뷰티그라운드" className="h-8 w-auto object-contain" />
         )}
+        <span className="text-[11px] font-medium text-ink-soft tracking-[-0.01em]">
+          팔로워 {followerCount.toLocaleString()}명
+        </span>
       </Link>
       <Link
         to="/app/search"
