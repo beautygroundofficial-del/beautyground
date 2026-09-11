@@ -113,6 +113,8 @@ const BrandDashboard = lazy(() => import('./pages/brand/Dashboard'))
 const BrandCompany = lazy(() => import('./pages/brand/Company'))
 const BrandProducts = lazy(() => import('./pages/brand/Products'))
 const BrandOrders = lazy(() => import('./pages/brand/Orders'))
+const BrandReport = lazy(() => import('./pages/brand/Report'))
+const BrandGuide = lazy(() => import('./pages/brand/Guide'))
 const BrandLiveSales = lazy(() => import('./pages/brand/LiveSales'))
 const BrandSettlement = lazy(() => import('./pages/brand/Settlement'))
 const BrandExport = lazy(() => import('./pages/brand/Export'))
@@ -292,6 +294,8 @@ export default function App() {
               <Route path="/brand/company" element={<BrandCompany />} />
               <Route path="/brand/products" element={<BrandProducts />} />
               <Route path="/brand/orders" element={<BrandOrders />} />
+              <Route path="/brand/report" element={<BrandReport />} />
+              <Route path="/brand/guide" element={<BrandGuide />} />
               <Route path="/brand/sales" element={<BrandLiveSales />} />
               <Route path="/brand/settlement" element={<BrandSettlement />} />
             </Route>

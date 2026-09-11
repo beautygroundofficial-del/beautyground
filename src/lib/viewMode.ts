@@ -32,10 +32,18 @@ function computeMode(): ViewMode {
 // PC 화면 너비(1024px 이상)로 들어오면 모바일 배너가 늘어나 보이는 대신 PC버전이 바로 뜬다.
 // 단, 화면이 MOBILE_FORCE_MAX_WIDTH보다 좁으면 위 모든 값을 무시하고 항상 모바일 — 폰에서
 // "PC버전"에 갇혀 화면이 깨지는 사고를 원천적으로 막는다.
+// ─────────────────────────────────────────────────────────────────────────
+// 2026-09-12 대표님 확정: "PC 버전은 마스터 관리자 페이지나 브랜드 입점사에서만. 앞으로 모든 유저 페이지는
+// 모바일 버전으로만." → 유저 화면(/app/*)은 화면 폭·저장값·?view= 와 무관하게 항상 모바일 레이아웃.
+// PC용 컴포넌트(Desktop*.tsx)는 지우지 않고 이 스위치로만 끈다 — 되돌릴 일이 있으면 false 로.
+// 다음 단계(로드맵): 앱 등록·애플/안드로이드 연결 뒤에는 유저는 PC 웹 자체를 못 쓰게 하고 앱 다운로드 필수.
+export const USER_PAGES_MOBILE_ONLY = true
+
 export function useViewMode() {
-  const [mode, setMode] = useState<ViewMode>(computeMode)
+  const [mode, setMode] = useState<ViewMode>(() => (USER_PAGES_MOBILE_ONLY ? 'mobile' : computeMode()))
 
   useEffect(() => {
+    if (USER_PAGES_MOBILE_ONLY) return
     window.localStorage.setItem(KEY, mode)
   }, [mode])
 
@@ -52,6 +60,7 @@ export function useViewMode() {
     isDesktop: mode === 'desktop',
     toggle: () =>
       setMode((m) => {
+        if (USER_PAGES_MOBILE_ONLY) return 'mobile'
         const next = m === 'desktop' ? 'mobile' : 'desktop'
         // 폰 화면에서는 "PC버전" 전환 자체를 막는다(눌러도 무반응) — 찌그러진 화면 방지.
         if (next === 'desktop' && typeof window !== 'undefined' && window.innerWidth < MOBILE_FORCE_MAX_WIDTH) {

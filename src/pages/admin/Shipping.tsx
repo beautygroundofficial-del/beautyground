@@ -39,6 +39,9 @@ interface Group {
 
 const CJ_TRACK = (no: string) => `https://trace.cjlogistics.com/next/tracking.html?wblNo=${encodeURIComponent(no.replace(/-/g, ''))}`
 
+// 보내는 사람(송장 라벨용) — main 병합 때 빠졌던 상수 복원(2026-09-12). LoIS 접수 엑셀은 이 값을 안 쓰고 LoIS 기본값을 쓴다.
+const SENDER = { name: '뷰티그라운드 광명점', phone: '02-897-8287', address: '경기도 광명시 양지로 17 AK PLAZA 1층 뷰티그라운드' }
+
 // 배송지: 정식 컬럼 우선, 없으면 옛 주문(delivery_memo "배송지: ...")에서 파싱
 function resolveAddress(r: Row): { address: string; memo: string } {
   if (r.ship_address) return { address: r.ship_address, memo: (r.delivery_memo ?? '').replace(/^배송지:[^\n]*\n?/, '').trim() }

@@ -11,6 +11,20 @@
 - **운영 DB SQL은 내용 보고 → 대표님 승인 → 실행** 순서(2026-09-11 확정).
 - push 전 `git pull --rebase`. 셀러센터가 끝나면 커뮤니티 세션이 `feature/seller-center`를 `feature/seller-admin`에 합친다. main 반영은 대표님 결정.
 
+## 유저 화면은 모바일 전용, PC 레이아웃은 관리자·브랜드 입점사만 (2026-09-12 대표님 확정)
+
+- 손님이 보는 모든 화면(`/app/*`, 커뮤니티·쇼핑·마이페이지·로그인)은 **PC에서도 항상 모바일 레이아웃(480px 프레임)** — `src/lib/viewMode.ts`의 `USER_PAGES_MOBILE_ONLY = true`. 새 유저 화면에 `Desktop*.tsx` 짝을 만들지 않는다(기존 Desktop* 파일은 지우지 말고 그대로 둔다 — 삭제는 보고 후).
+- PC 레이아웃을 쓰는 곳은 **관리자(`/admin`)·브랜드 입점사(`/brand`, 셀러센터)·호스트·백화점 포털**뿐.
+- 예정(로드맵): 앱 등록·애플/안드로이드 연결이 끝나면 유저는 **PC 웹 접근을 막고 앱 다운로드로만** 쓰게 한다. 그 전까지 웹 모바일 화면 유지.
+
+## 앱(Capacitor) 프로젝트 — `android/`·`ios/`·`capacitor.config.ts` (2026-09-12)
+
+- 스토어 등록용 앱 껍데기. **웹(beautyground.co.kr)을 그대로 앱에 띄운다**(`server.url`) — 웹 화면 코드는 그대로, 앱 전용 화면을 따로 만들지 않는다. 걸음 수·푸시 등 네이티브 기능만 플러그인으로.
+- `npx cap sync` 로 설정을 네이티브 프로젝트에 반영. 아이콘·스플래시는 `assets/` 원본에서 `npx capacitor-assets generate`.
+- **Android 빌드(사무실 PC, 2026-09-12 설치)**: `JAVA_HOME="C:/Program Files/Microsoft/jdk-21.0.12.101-hotspot"`, `ANDROID_HOME="C:/Users/user/AppData/Local/Android/Sdk"`(cmdline-tools·platform-tools·android-36·build-tools 36.0.0), `android/local.properties`는 `sdk.dir=C:/Users/...` **슬래시 경로**(역슬래시는 `\U` 유니코드 오류). 빌드: `cd android && ./gradlew assembleDebug` → `app/build/outputs/apk/debug/app-debug.apk`. Android Studio 내장 JDK 25는 쓰지 않는다(Gradle 8.14 호환 불확실).
+- iOS 빌드는 Mac 구매·대여 없이 **GitHub Actions macOS 러너**로(Apple Developer 승인 후 설정). 상세·진행: 옵시디언 `03 홈페이지/앱 스토어 등록.md`.
+- 셀러센터·커뮤니티 세션 모두 `android/`·`ios/` 안 파일은 손대지 않는다(앱 등록 담당 세션만).
+
 ## 클라우드 세션(브라우저·대시보드 로그인 없는 곳)에서 DB·검증하는 법 (2026-09-11)
 
 Playwright 브라우저나 Supabase 대시보드 로그인이 없어도 아래 두 스크립트로 같은 일을 한다. 환경변수 4개가 세션에 있어야 한다: `SUPABASE_MGMT_TOKEN`(sbp_… 스코프 토큰: beautyground-main 1개·Database Read-write만·2026-12-10 만료), `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, 그리고 테스트 계정(`test3@test.com` / `test1234` — 구매자 역할).
