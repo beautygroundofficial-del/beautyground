@@ -1,5 +1,5 @@
 import { IconDesktop, IconMobile } from '../common/Icon'
-import type { ViewMode } from '../../lib/viewMode'
+import { USER_PAGES_MOBILE_ONLY, type ViewMode } from '../../lib/viewMode'
 import { useIsAdmin } from '../../lib/useIsAdmin'
 
 interface Props {
@@ -12,6 +12,8 @@ interface Props {
 // 자동 판별(폰=모바일, PC=PC버전)되므로 이 버튼이 없어도 항상 맞는 버전을 본다.
 export default function ViewModeToggle({ mode, onToggle }: Props) {
   const { isAdmin } = useIsAdmin()
+  // 2026-09-12 유저 화면은 모바일 전용으로 확정 — 전환 버튼 자체를 감춘다(관리자에게도). 스위치는 lib/viewMode.ts
+  if (USER_PAGES_MOBILE_ONLY) return null
   if (!isAdmin) return null
 
   const isDesktop = mode === 'desktop'
