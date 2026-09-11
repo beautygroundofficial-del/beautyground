@@ -11,6 +11,7 @@ import {
   IconPackage,
   IconReceipt,
   IconBuildingStore,
+  IconChartBar,
 } from '@tabler/icons-react'
 import { supabase } from '../../lib/supabase'
 import { getMyBrandAccess } from '../../lib/partner'
@@ -25,6 +26,7 @@ const FULL_NAV_ITEMS = [
   { label: '판매자 정보', to: '/brand/company', icon: IconBuildingStore },
   { label: '상품관리', to: '/brand/products', icon: IconPackage },
   { label: '주문내역', to: '/brand/orders', icon: IconReceipt },
+  { label: '성과 리포트', to: '/brand/report', icon: IconChartBar },
   { label: '판매내역', to: '/brand/sales', icon: IconVideo },
   { label: '정산내역', to: '/brand/settlement', icon: IconCash },
   EXPORT_NAV_ITEM,
