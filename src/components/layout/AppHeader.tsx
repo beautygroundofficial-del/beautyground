@@ -47,7 +47,7 @@ export default function AppHeader({ promoBarAbove = false }: Props) {
           <img src="/images/logo-gold.png" alt="뷰티그라운드" className="h-8 w-auto object-contain" />
         )}
         <span className="text-[11px] font-medium text-ink-soft tracking-[-0.01em]">
-          팔로워 {followerCount.toLocaleString()}명
+          {followerCount.toLocaleString()}명 👥
         </span>
       </Link>
       <Link
