@@ -25,7 +25,9 @@ interface RealUser {
 }
 
 // 이모지 대신 텍스트만 — 아이콘은 상태를 나타낼 때만 쓰고, 목록 항목 장식용으로는 쓰지 않는다.
-function buildMenuItems(user: RealUser, showMissions: boolean, friendRequests: number) {
+interface MenuItem { label: string; path: string; count?: number; value?: string }
+
+function buildMenuItems(user: RealUser, showMissions: boolean, friendRequests: number): MenuItem[] {
   return [
     { label: '주문 내역', path: '/app/orders' },
     { label: '배송지 관리', path: '/app/addresses' },
