@@ -13,6 +13,15 @@ import type { Partner, Product } from '../../lib/types'
 // 파일은 브라우저에서 Storage(seller/<partner_id>/…)로 바로 올라간다 — supabase/brand_product_images.sql.
 
 const CATEGORIES = ['스킨케어', '메이크업', '향수', '헤어·바디', '이너뷰티', '뷰티 디바이스', '기타']
+const BULK_MAX = 20
+
+type BulkRow = {
+  url: string
+  state: 'wait' | 'run' | 'done' | 'need' | 'fail'
+  name?: string
+  note?: string
+  draft?: Draft
+}
 
 // 서버(api/scrape-product.ts)가 배열을 30장에서 자르므로 화면에서도 같은 한도를 지킨다.
 const MAX_IMAGES = 30
@@ -153,6 +162,13 @@ export default function BrandProducts() {
 
   const [url, setUrl] = useState('')
   const [fetching, setFetching] = useState(false)
+  // 여러 상품 한 번에 등록 — 주소를 줄마다 하나씩 붙여넣으면 순서대로 자동 추출해 "확인 대기"로 넣는다.
+  // 가격을 못 읽은 상품(회원전용가 등)은 등록하지 않고 "직접 확인"으로 남겨 편집기에서 채우게 한다.
+  // 브랜드 담당자가 사진을 찾아 올리지 않아도 되게 하는 게 목적(2026-09-12 대표님 방향).
+  const [bulkText, setBulkText] = useState('')
+  const [bulkCategory, setBulkCategory] = useState('')
+  const [bulkRunning, setBulkRunning] = useState(false)
+  const [bulkRows, setBulkRows] = useState<BulkRow[]>([])
   const [saving, setSaving] = useState(false)
   const [draft, setDraft] = useState<Draft | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null) // null=신규등록, 있으면 그 상품 수정
@@ -198,6 +214,80 @@ export default function BrandProducts() {
     })()
     return () => { active = false }
   }, [])
+
+  // 여러 주소 한 번에: 추출 → 가격 있으면 바로 등록(확인 대기), 없으면 편집기로 넘길 초안만 보관
+  const runBulk = async () => {
+    if (bulkRunning) return
+    const urls = Array.from(new Set(
+      bulkText.split(/\r?\n/).map((l) => l.trim()).filter((l) => /^https?:\/\//i.test(l)),
+    )).slice(0, BULK_MAX)
+    if (urls.length === 0) { setMsg('상품 페이지 주소를 한 줄에 하나씩 붙여넣어 주세요.'); return }
+    if (!bulkCategory) { setMsg('한 번에 등록할 상품의 카테고리를 골라 주세요. 등록 후 상품별로 바꿀 수 있습니다.'); return }
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) { setMsg('로그인이 만료되었습니다. 다시 로그인해 주세요.'); return }
+    setBulkRunning(true); setMsg(''); setOk('')
+    const rows: BulkRow[] = urls.map((u) => ({ url: u, state: 'wait' }))
+    setBulkRows([...rows])
+    let registered = 0
+    for (let i = 0; i < rows.length; i++) {
+      rows[i] = { ...rows[i], state: 'run' }; setBulkRows([...rows])
+      try {
+        const r = await fetch('/api/scrape-product', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url: rows[i].url }),
+        })
+        const json = await r.json()
+        if (!json?.ok) {
+          rows[i] = { ...rows[i], state: 'fail', note: json?.error || '상품 정보를 읽지 못했습니다.' }
+          setBulkRows([...rows]); continue
+        }
+        const d = json.data as Partial<Draft> & { images?: string[]; detail_images?: string[] }
+        const draft: Draft = {
+          ...emptyDraft,
+          name: d.name ?? '',
+          price: typeof d.price === 'number' ? d.price : (typeof d.sale_price === 'number' ? d.sale_price : ''),
+          sale_price: typeof d.price === 'number' && typeof d.sale_price === 'number' ? d.sale_price : '',
+          category: bulkCategory,
+          description: d.description ?? '',
+          thumbnail_url: d.thumbnail_url ?? null,
+          images: d.images ?? [],
+          detail_images: d.detail_images ?? [],
+          source_url: rows[i].url,
+          stock: 10,
+        }
+        if (!draft.name.trim() || !draft.price || Number(draft.price) <= 0) {
+          rows[i] = { ...rows[i], state: 'need', name: draft.name, draft, note: !draft.name.trim() ? '상품명을 읽지 못함' : '가격을 읽지 못함(회원전용가 등)' }
+          setBulkRows([...rows]); continue
+        }
+        const sr = await fetch('/api/scrape-product', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+          body: JSON.stringify({ mode: 'save', product: draft }),
+        })
+        const sj = await sr.json()
+        if (!sj?.ok) {
+          rows[i] = { ...rows[i], state: 'fail', name: draft.name, draft, note: sj?.error || '등록에 실패했습니다.' }
+        } else {
+          registered += 1
+          rows[i] = { ...rows[i], state: 'done', name: draft.name }
+        }
+      } catch {
+        rows[i] = { ...rows[i], state: 'fail', note: '네트워크 오류' }
+      }
+      setBulkRows([...rows])
+    }
+    setBulkRunning(false)
+    if (partner) await loadItems(partner.id)
+    const need = rows.filter((r) => r.state === 'need').length
+    const fail = rows.filter((r) => r.state === 'fail').length
+    setOk(`${registered}개 등록되었습니다(뷰티그라운드 확인 후 판매 시작).${need ? ` ${need}개는 직접 확인이 필요합니다.` : ''}${fail ? ` ${fail}개는 실패했습니다.` : ''}`)
+  }
+
+  // 한 번에 등록에서 "직접 확인"으로 남은 상품을 편집기로 불러온다
+  const openBulkDraft = (row: BulkRow) => {
+    if (!row.draft) return
+    setEditingId(null); setDraft(row.draft); setMsg(''); setOk('')
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
 
   // URL → 상품 정보 가져오기
   const fetchFromUrl = async () => {
@@ -346,8 +436,60 @@ export default function BrandProducts() {
       <div className={`${card} p-6 mb-6`}>
         <h2 className="text-[15px] font-bold text-[#111] mb-1">{editingId ? '상품 수정' : '상품 등록'}</h2>
 
+        {!editingId && !draft && (
+          <div className="mb-6 pb-6 border-b border-[#efeae1]">
+            <p className="text-[13px] font-bold text-[#111] mb-1">여러 상품 한 번에 등록</p>
+            <p className="text-[12.5px] text-[#9a9080] mb-3 leading-relaxed">
+              자사몰 상품 페이지 주소를 한 줄에 하나씩 붙여넣으면(최대 {BULK_MAX}개) 상품명·가격·사진을 자동으로 읽어
+              "확인 대기"로 등록됩니다. 사진을 따로 찾아 올릴 필요가 없고, 뷰티그라운드가 확인한 뒤 판매가 시작됩니다.
+            </p>
+            <textarea
+              value={bulkText}
+              onChange={(e) => setBulkText(e.target.value)}
+              rows={4}
+              disabled={bulkRunning}
+              placeholder={'https://브랜드몰.com/product/1\nhttps://브랜드몰.com/product/2\nhttps://브랜드몰.com/product/3'}
+              className={`${field} resize-y font-mono text-[12.5px]`}
+            />
+            <div className="flex flex-col sm:flex-row gap-2 mt-2">
+              <select value={bulkCategory} onChange={(e) => setBulkCategory(e.target.value)} disabled={bulkRunning} className={`${field} sm:w-[200px]`}>
+                <option value="">카테고리(전체 적용)</option>
+                {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+              </select>
+              <button
+                onClick={() => void runBulk()}
+                disabled={bulkRunning}
+                className="shrink-0 rounded-lg bg-[#b8924a] text-white font-semibold text-[14px] px-6 py-2.5 disabled:opacity-50 transition"
+              >
+                {bulkRunning ? `등록 중… (${bulkRows.filter((r) => r.state !== 'wait' && r.state !== 'run').length}/${bulkRows.length})` : '한 번에 등록'}
+              </button>
+            </div>
+            {bulkRows.length > 0 && (
+              <ul className="mt-3 grid gap-1.5">
+                {bulkRows.map((r) => (
+                  <li key={r.url} className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[12.5px] rounded-lg bg-[#f7f4ef] px-3 py-2">
+                    <span className={`shrink-0 font-semibold ${
+                      r.state === 'done' ? 'text-[#2f7d5b]' : r.state === 'need' ? 'text-[#8a5b0e]' : r.state === 'fail' ? 'text-[#a32118]' : 'text-[#9a9080]'
+                    }`}>
+                      {r.state === 'wait' ? '대기' : r.state === 'run' ? '읽는 중…' : r.state === 'done' ? '등록됨' : r.state === 'need' ? '직접 확인' : '실패'}
+                    </span>
+                    <span className="text-[#111] truncate max-w-[280px]">{r.name || r.url}</span>
+                    {r.note && <span className="text-[#9a9080]">· {r.note}</span>}
+                    {(r.state === 'need' || (r.state === 'fail' && r.draft)) && (
+                      <button type="button" onClick={() => openBulkDraft(r)} className="ml-auto text-[#b8924a] underline font-semibold">
+                        편집기에서 채우기
+                      </button>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
+
         {!editingId && (
           <>
+            <p className="text-[13px] font-bold text-[#111] mb-1">한 개씩 확인하며 등록</p>
             <p className="text-[12.5px] text-[#9a9080] mb-4 leading-relaxed">
               자사몰 상품 페이지 주소를 붙여넣으면 상품명·가격·사진을 자동으로 가져옵니다.
               가져온 내용을 확인하고 수정한 뒤 등록해 주세요.

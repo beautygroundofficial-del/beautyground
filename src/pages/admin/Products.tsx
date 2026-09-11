@@ -6,11 +6,16 @@ import { won } from '../../lib/format'
 import { SEASONS } from '../../lib/season'
 import Button from '../../components/common/Button'
 
-type Filter = Product['status'] | 'all'
+type Filter = Product['status'] | 'all' | 'review'
 type ProductRow = Product & { partners: { brand_name: string } | null }
+
+// 브랜드가 셀러센터에서 URL로 등록한 상품은 status='hidden'(확인 대기)으로 들어온다(api/scrape-product mode:'save').
+// 관리자가 직접 숨긴 상품과 구분하기 위해 "브랜드 소유 + 원본 URL 있음 + hidden"을 심사 대기로 본다.
+const isReviewPending = (p: Product) => p.status === 'hidden' && !!p.partner_id && !!p.source_url
 
 const FILTERS: { value: Filter; label: string }[] = [
   { value: 'all', label: '전체' },
+  { value: 'review', label: '심사 대기' },
   { value: 'on_sale', label: '판매중' },
   { value: 'sold_out', label: '품절' },
   { value: 'hidden', label: '숨김' },
@@ -22,6 +27,7 @@ const STATUS_BADGE: Record<Product['status'], { label: string; className: string
   sold_out: { label: '품절', className: 'bg-quiet text-ink-soft' },
   hidden: { label: '숨김', className: 'bg-quiet text-ink-faint' },
 }
+const REVIEW_BADGE = { label: '심사 대기', className: 'bg-[#fff4e0] text-[#b8924a]' }
 
 export default function AdminProducts() {
   const [loading, setLoading] = useState(true)
@@ -33,6 +39,9 @@ export default function AdminProducts() {
   const [error, setError] = useState('')
   const [reviewTarget, setReviewTarget] = useState<ProductRow | null>(null)
   const [seasonTarget, setSeasonTarget] = useState<ProductRow | null>(null)
+  // 심사 대기 상품을 여러 개 골라 한 번에 판매중으로 — 브랜드가 URL로 한꺼번에 올린 걸 한꺼번에 검토·노출
+  const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [bulkBusy, setBulkBusy] = useState(false)
 
   const load = async () => {
     setLoading(true)
@@ -66,6 +75,25 @@ export default function AdminProducts() {
     setProducts((prev) => prev.filter((p) => p.id !== product.id))
   }
 
+  const toggleSelect = (id: string) => {
+    setSelected((prev) => { const next = new Set(prev); if (next.has(id)) next.delete(id); else next.add(id); return next })
+  }
+
+  const publishSelected = async () => {
+    const ids = [...selected]
+    if (ids.length === 0) return
+    if (!window.confirm(`선택한 ${ids.length}개 상품을 판매중으로 바꿀까요? 소비자 화면에 바로 노출됩니다.`)) return
+    setBulkBusy(true)
+    setError('')
+    const { error: err } = await supabase.from('products').update({ status: 'on_sale' }).in('id', ids)
+    setBulkBusy(false)
+    if (err) { setError(`일괄 노출 실패: ${err.message}`); return }
+    setProducts((prev) => prev.map((p) => (ids.includes(p.id) ? { ...p, status: 'on_sale' } : p)))
+    setSelected(new Set())
+  }
+
+  const reviewPendingCount = useMemo(() => products.filter(isReviewPending).length, [products])
+
   const brandOptions = useMemo(() => {
     const names = new Set(products.map((p) => p.partners?.brand_name).filter((n): n is string => !!n))
     return [...names].sort((a, b) => a.localeCompare(b, 'ko'))
@@ -75,7 +103,7 @@ export default function AdminProducts() {
     const q = search.trim().toLowerCase()
     return products.filter((p) => {
       const matchSearch = !q || p.name.toLowerCase().includes(q) || (p.partners?.brand_name ?? '').toLowerCase().includes(q)
-      const matchFilter = filter === 'all' || p.status === filter
+      const matchFilter = filter === 'all' || (filter === 'review' ? isReviewPending(p) : p.status === filter)
       const matchBrand = brandFilter === 'all' || p.partners?.brand_name === brandFilter
       return matchSearch && matchFilter && matchBrand
     })
@@ -120,11 +148,19 @@ export default function AdminProducts() {
                   filter === value ? 'bg-ink text-paper border-ink' : 'bg-paper text-ink-soft border-rule hover:border-ink-faint'
                 }`}
               >
-                {label}
+                {value === 'review' && reviewPendingCount > 0 ? `${label} ${reviewPendingCount}` : label}
               </button>
             ))}
           </div>
         </div>
+
+        {selected.size > 0 && (
+          <div className="flex items-center gap-3 mb-4 rounded-md border border-rule bg-paper px-4 py-2.5 text-[13px]">
+            <span className="text-ink">{selected.size}개 선택</span>
+            <Button variant="ink" size="sm" label={bulkBusy ? '처리 중…' : '선택 상품 판매중으로'} disabled={bulkBusy} onClick={() => void publishSelected()} />
+            <button type="button" onClick={() => setSelected(new Set())} className="text-ink-soft underline">선택 해제</button>
+          </div>
+        )}
 
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-600 text-[13px] rounded-md px-4 py-3 mb-5">{error}</div>
@@ -139,6 +175,18 @@ export default function AdminProducts() {
             <table className="w-full text-[13px] text-left">
               <thead>
                 <tr className="border-b border-rule text-ink-soft">
+                  <th className="px-3 py-3 w-8">
+                    <input
+                      type="checkbox"
+                      aria-label="보이는 심사 대기 상품 전체 선택"
+                      checked={visible.some(isReviewPending) && visible.filter(isReviewPending).every((p) => selected.has(p.id))}
+                      onChange={(e) => {
+                        const ids = visible.filter(isReviewPending).map((p) => p.id)
+                        const on = e.target.checked
+                        setSelected((prev) => { const next = new Set(prev); ids.forEach((id) => { if (on) next.add(id); else next.delete(id) }); return next })
+                      }}
+                    />
+                  </th>
                   <th className="px-4 py-3 font-medium whitespace-nowrap">브랜드</th>
                   <th className="px-4 py-3 font-medium whitespace-nowrap">상품명</th>
                   <th className="px-4 py-3 font-medium whitespace-nowrap">가격</th>
@@ -151,12 +199,25 @@ export default function AdminProducts() {
               </thead>
               <tbody>
                 {visible.map((p) => {
-                  const badge = STATUS_BADGE[p.status]
+                  const pending = isReviewPending(p)
+                  const badge = pending ? REVIEW_BADGE : STATUS_BADGE[p.status]
                   const reviewCount = p.scraped_reviews?.length ?? 0
                   return (
                     <tr key={p.id} className="border-b border-rule last:border-b-0">
+                      <td className="px-3 py-3">
+                        {pending && (
+                          <input type="checkbox" aria-label="선택" checked={selected.has(p.id)} onChange={() => toggleSelect(p.id)} />
+                        )}
+                      </td>
                       <td className="px-4 py-3 text-ink-soft whitespace-nowrap">{p.partners?.brand_name ?? '-'}</td>
-                      <td className="px-4 py-3 text-ink max-w-[220px] truncate">{p.name}</td>
+                      <td className="px-4 py-3 text-ink max-w-[220px]">
+                        <p className="truncate">{p.name}</p>
+                        {pending && p.source_url && (
+                          <a href={p.source_url} target="_blank" rel="noreferrer" className="block text-[11px] text-ink-faint underline truncate">
+                            원본 페이지 보기
+                          </a>
+                        )}
+                      </td>
                       <td className="px-4 py-3 text-ink-soft whitespace-nowrap">{won(p.sale_price ?? p.price)}</td>
                       <td className="px-4 py-3 text-ink-soft whitespace-nowrap">{p.stock}</td>
                       <td className="px-4 py-3 whitespace-nowrap">
