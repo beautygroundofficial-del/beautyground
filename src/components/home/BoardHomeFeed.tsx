@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { categoryLabel, getBoardFeed, type BoardPost } from '../../lib/board'
+import { MetaMarks } from '../community/marks'
 
 // 홈 ↔ 속 이야기 연결 (2026-09-10, 커뮤니티 로드맵 4-4 ①)
 // 홈에 최신 속 이야기 3개를 얇게 보여주고 누르면 글로 들어간다. 사진 없이 글만 — 하루 이야기(사진 카드)와
@@ -63,32 +64,23 @@ export default function BoardHomeFeed() {
         </button>
       ) : (
         <ul className="space-y-2">
-          {feed.map((p) => {
-            const reactions = p.pat + p.same + p.cheer
-            return (
-              <li key={p.id}>
-                <Link
-                  to={`/app/board/${p.id}`}
-                  className="block rounded-card border border-rule bg-paper px-4 py-3.5 focus:outline-none focus-visible:shadow-ring"
-                >
-                  <div className="flex items-center gap-2 mb-1.5">
-                    <span className="text-[11px] font-semibold text-ink-soft bg-quiet rounded-full px-2 py-0.5">
-                      {categoryLabel(p.category)}
-                    </span>
-                    <span className="text-[11px] text-ink-faint">{timeAgo(p.created_at)}</span>
-                    {(reactions > 0 || p.comment_count > 0) && (
-                      <span className="ml-auto text-[11px] text-ink-faint tabular-nums">
-                        {reactions > 0 && `🤍 ${reactions}`}
-                        {reactions > 0 && p.comment_count > 0 && ' · '}
-                        {p.comment_count > 0 && `댓글 ${p.comment_count}`}
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-[13.5px] text-ink leading-relaxed line-clamp-2 whitespace-pre-wrap">{p.content}</p>
-                </Link>
-              </li>
-            )
-          })}
+          {feed.map((p) => (
+            <li key={p.id}>
+              <Link
+                to={`/app/board/${p.id}`}
+                className="block rounded-card border border-rule bg-paper px-4 py-3.5 focus:outline-none focus-visible:shadow-ring"
+              >
+                <div className="flex items-center gap-2 mb-1.5">
+                  <span className="text-[11px] font-semibold text-ink-soft bg-quiet rounded-full px-2 py-0.5">
+                    {categoryLabel(p.category)}
+                  </span>
+                  <span className="text-[11px] text-ink-faint">{timeAgo(p.created_at)}</span>
+                  <span className="ml-auto"><MetaMarks likes={p.like_count ?? 0} comments={p.comment_count} size={15} /></span>
+                </div>
+                <p className="text-[13.5px] text-ink leading-relaxed line-clamp-2 whitespace-pre-wrap">{p.content}</p>
+              </Link>
+            </li>
+          ))}
         </ul>
       )}
     </section>

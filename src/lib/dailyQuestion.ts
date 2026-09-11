@@ -53,6 +53,9 @@ export interface TodayQuestion {
   hint: string | null
   answer_count: number
   my_answer: string | null
+  // 내 답의 id·사진 — 고쳐 쓸 때 올려둔 사진을 보여주려고 (2026-09-11, answer_social.sql)
+  my_answer_id: string | null
+  my_images: string[] | null
 }
 
 // 오늘 걸린 질문이 없으면 null — 화면에서 카드 자체를 감춘다.
@@ -70,6 +73,52 @@ export interface QuestionAnswer extends ReactionCounts {
   content: string
   created_at: string
   is_mine: boolean
+  // 사진·하트·댓글 (2026-09-11, answer_social.sql — 실행 전엔 RPC 가 안 돌려줘 undefined 일 수 있다)
+  images?: string[]
+  like_count?: number
+  liked_by_me?: boolean
+  comment_count?: number
+}
+
+export const MAX_ANSWER_IMAGES = 2
+
+export async function toggleAnswerLike(answerId: string): Promise<{ liked: boolean; like_count: number } | null> {
+  const { data, error } = await supabase.rpc('toggle_answer_like', { p_answer_id: answerId })
+  if (error) return null
+  const row = Array.isArray(data) ? data[0] : data
+  return (row ?? null) as { liked: boolean; like_count: number } | null
+}
+
+// ── 답변 댓글 — 하루·속 이야기 댓글과 같은 규칙(남의 답에 5자 이상 첫 댓글만 적립) ──
+export interface AnswerComment {
+  id: string
+  nickname: string | null
+  content: string
+  created_at: string
+  is_mine: boolean
+}
+
+export async function getAnswerComments(answerId: string, limit = 50): Promise<AnswerComment[]> {
+  const { data, error } = await supabase.rpc('get_answer_comments', { p_answer_id: answerId, p_limit: limit, p_offset: 0 })
+  if (error) return []
+  return (data ?? []) as AnswerComment[]
+}
+
+export async function createAnswerComment(
+  answerId: string, content: string, nickname?: string | null,
+): Promise<{ comment_id: string | null; awarded: number; message: string }> {
+  const fail = { comment_id: null, awarded: 0, message: '잠시 후 다시 시도해 주세요' }
+  const { data, error } = await supabase.rpc('create_answer_comment', {
+    p_answer_id: answerId, p_content: content, p_nickname: nickname ?? null,
+  })
+  if (error) return fail
+  const row = Array.isArray(data) ? data[0] : data
+  return (row ?? fail) as { comment_id: string | null; awarded: number; message: string }
+}
+
+export async function deleteAnswerComment(commentId: string): Promise<boolean> {
+  const { error } = await supabase.from('answer_comments').delete().eq('id', commentId)
+  return !error
 }
 
 export async function getQuestionAnswers(
@@ -90,11 +139,11 @@ export interface AnswerResult {
 
 // 이미 답한 사람이 다시 부르면 고쳐 쓰기가 된다(질문당 1인 1답).
 export async function answerTodayQuestion(
-  questionId: string, content: string, nickname?: string | null,
+  questionId: string, content: string, nickname?: string | null, images: string[] = [],
 ): Promise<AnswerResult> {
   const fail: AnswerResult = { answer_id: null, awarded: 0, message: '잠시 후 다시 시도해 주세요' }
   const { data, error } = await supabase.rpc('answer_today_question', {
-    p_question_id: questionId, p_content: content, p_nickname: nickname ?? null,
+    p_question_id: questionId, p_content: content, p_nickname: nickname ?? null, p_images: images,
   })
   if (error) return fail
   const row = Array.isArray(data) ? data[0] : data

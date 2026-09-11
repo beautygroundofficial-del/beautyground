@@ -97,8 +97,11 @@ export default function AppDiary() {
 
   // 쓰기 화면에서 올리고 돌아오면 그쪽이 넘긴 한 줄을 조용히 보여준다
   useEffect(() => {
-    const st = location.state as { toast?: string } | null
-    if (st?.toast) { showToast(st.toast); window.history.replaceState({}, '') }
+    const st = location.state as { toast?: string; openComments?: string } | null
+    if (st?.toast) showToast(st.toast)
+    // 홈 카드의 말풍선에서 들어오면 그 글의 댓글을 펼친 채로 시작한다
+    if (st?.openComments) setOpenComments(new Set([st.openComments]))
+    if (st?.toast || st?.openComments) window.history.replaceState({}, '')
   }, [location.state])
 
   const load = useCallback(async (s: FeedView) => {

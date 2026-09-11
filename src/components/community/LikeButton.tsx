@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { HeartIcon } from './marks'
 
 // 하트(좋아요) — 대표님 지시 "좋아요 하트도 만들어". (2026-09-11)
 // 공감 3종(토닥토닥·나도 그래요·응원해요)은 마음을 고르는 것, 하트는 한 번 누르는 가벼운 표시.
@@ -36,9 +37,6 @@ export default function LikeButton({ liked, count, loggedIn, disabled, onToggle,
     else setView(before)
   }
 
-  const iconSize = size === 'sm' ? 18 : 22
-  // 하트는 항상 보인다 — 내 글이라도 빈 하트를 그대로 둔다(2026-09-11 대표님 "댓글 좋아요가 없어졌는데" 지적 → 0개 숨김 규칙 삭제)
-
   return (
     <button
       type="button"
@@ -50,13 +48,7 @@ export default function LikeButton({ liked, count, loggedIn, disabled, onToggle,
         view.liked ? 'text-brand-pink' : 'text-ink-soft'
       } ${disabled ? 'cursor-default' : 'hover:bg-quiet'}`}
     >
-      <svg
-        viewBox="0 0 24 24" width={iconSize} height={iconSize}
-        fill={view.liked ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.7"
-        strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"
-      >
-        <path d="M12 20.5s-7.5-4.6-9.3-9.2C1.5 8.2 3.5 5 6.8 5c1.9 0 3.4 1 4.2 2.5C11.8 6 13.3 5 15.2 5c3.3 0 5.3 3.2 4.1 6.3C17.5 15.9 12 20.5 12 20.5z" />
-      </svg>
+      <HeartIcon size={size === 'sm' ? 18 : 22} filled={view.liked} />
       {view.count > 0 && <span className="tabular-nums">{view.count}</span>}
     </button>
   )

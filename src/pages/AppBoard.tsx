@@ -5,6 +5,7 @@ import AppFrame from '../components/layout/AppFrame'
 import StoryTabs from '../components/community/StoryTabs'
 import { supabase } from '../lib/supabase'
 import { BOARD_CATEGORIES, categoryLabel, getBoardFeed, type BoardCategory, type BoardPost } from '../lib/board'
+import { MetaMarks } from '../components/community/marks'
 
 // 속 이야기 — 주제별로 속마음을 꺼내놓는 곳. (2026-09-10)
 //
@@ -112,37 +113,29 @@ export default function AppBoard() {
           </button>
         ) : (
           <ul className="space-y-3">
-            {feed.map((p) => {
-              const reactions = p.pat + p.same + p.cheer
-              return (
-                <li key={p.id}>
-                  <Link
-                    to={`/app/board/${p.id}`}
-                    className="block rounded-card border border-rule bg-paper p-4 focus:outline-none focus-visible:shadow-ring"
-                  >
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="text-[11px] font-semibold text-ink-soft bg-quiet rounded-full px-2 py-0.5">
-                        {categoryLabel(p.category)}
-                      </span>
-                      <span className="text-[11px] text-ink-faint">{timeAgo(p.created_at)}</span>
-                    </div>
-                    <p className="text-[14px] text-ink leading-relaxed whitespace-pre-wrap line-clamp-2">
-                      {p.content}
-                    </p>
-                    <div className="flex items-center justify-between mt-3">
-                      <span className="text-[11.5px] text-ink-faint">{p.is_mine ? '나' : maskName(p.nickname)}</span>
-                      {(reactions > 0 || p.comment_count > 0) && (
-                        <span className="text-[11.5px] text-ink-faint tabular-nums">
-                          {reactions > 0 && `🤍 ${reactions}`}
-                          {reactions > 0 && p.comment_count > 0 && ' · '}
-                          {p.comment_count > 0 && `댓글 ${p.comment_count}`}
-                        </span>
-                      )}
-                    </div>
-                  </Link>
-                </li>
-              )
-            })}
+            {feed.map((p) => (
+              <li key={p.id}>
+                <Link
+                  to={`/app/board/${p.id}`}
+                  className="block rounded-card border border-rule bg-paper p-4 focus:outline-none focus-visible:shadow-ring"
+                >
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-[11px] font-semibold text-ink-soft bg-quiet rounded-full px-2 py-0.5">
+                      {categoryLabel(p.category)}
+                    </span>
+                    <span className="text-[11px] text-ink-faint">{timeAgo(p.created_at)}</span>
+                  </div>
+                  <p className="text-[14px] text-ink leading-relaxed whitespace-pre-wrap line-clamp-2">
+                    {p.content}
+                  </p>
+                  {/* 하루 이야기와 같은 하트·말풍선 — 목록에선 개수만, 누르는 건 글 안에서 */}
+                  <div className="flex items-center justify-between mt-3">
+                    <span className="text-[11.5px] text-ink-faint">{p.is_mine ? '나' : maskName(p.nickname)}</span>
+                    <MetaMarks likes={p.like_count ?? 0} comments={p.comment_count} />
+                  </div>
+                </Link>
+              </li>
+            ))}
           </ul>
         )}
       </section>

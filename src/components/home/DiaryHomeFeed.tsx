@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { getDiaryFeed, getMonthlyBestDiaries, type Diary, type BestDiary } from '../../lib/diaries'
+import { getDiaryFeed, getMonthlyBestDiaries, toggleDiaryLike, type Diary, type BestDiary } from '../../lib/diaries'
+import { supabase } from '../../lib/supabase'
+import LikeButton from '../community/LikeButton'
+import { CommentToggle } from '../community/DiaryComments'
 
 // 홈의 주인공 — 사람들의 이야기 (2026-09-02)
 // 대표님 지시로 홈에서 상품을 걷어내고 커뮤니티를 앞세우면서 만든 컴포넌트.
@@ -48,19 +51,25 @@ export default function DiaryHomeFeed() {
   const navigate = useNavigate()
   const [feed, setFeed] = useState<Diary[] | null>(null)
   const [best, setBest] = useState<BestDiary[]>([])
+  const [loggedIn, setLoggedIn] = useState(false)
 
   useEffect(() => {
     let active = true
     void (async () => {
-      const [rows, bests] = await Promise.all([getDiaryFeed('recent', 8), getMonthlyBestDiaries(3)])
+      const [rows, bests, { data: { session } }] = await Promise.all([
+        getDiaryFeed('recent', 8), getMonthlyBestDiaries(3), supabase.auth.getSession(),
+      ])
       if (!active) return
       setFeed(rows)
       setBest(bests)
+      setLoggedIn(!!session)
     })()
     return () => { active = false }
   }, [])
 
   const go = () => navigate('/app/diary')
+  // 말풍선 — 홈에서는 펼치지 않고 이야기 화면으로 가서 그 글의 댓글을 연다
+  const goComments = (id: string) => navigate('/app/diary', { state: { openComments: id } })
 
   return (
     <>
@@ -121,10 +130,11 @@ export default function DiaryHomeFeed() {
             {feed.map((d) => {
               const imgs = d.images ?? []
               return (
-                <li key={d.id}>
+                <li key={d.id} className="rounded-card border border-rule bg-paper overflow-hidden">
+                  {/* 사진·글은 누르면 이야기 화면으로. 아래 줄(하트·말풍선)은 버튼이라 따로 둔다 — 버튼 안에 버튼을 넣을 수 없다 */}
                   <button
                     onClick={go}
-                    className="w-full text-left rounded-card border border-rule bg-paper overflow-hidden focus:outline-none focus-visible:shadow-ring"
+                    className="w-full text-left focus:outline-none focus-visible:shadow-ring"
                   >
                     {imgs.length > 0 && (
                       <div className={`grid gap-0.5 ${imgs.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
@@ -143,25 +153,36 @@ export default function DiaryHomeFeed() {
                     {d.video_url && (
                       <video src={d.video_url} controls playsInline preload="metadata" muted className="w-full max-h-[360px] bg-ink" />
                     )}
-                    <div className="p-4">
+                    <div className="px-4 pt-4">
                       <p className="text-[14px] text-ink whitespace-pre-wrap leading-relaxed line-clamp-4">{d.content}</p>
-                      <div className="flex items-center justify-between mt-3.5 pt-3 border-t border-rule">
-                        <div className="flex items-center gap-2 min-w-0">
-                          <span className="text-[12px] font-semibold text-ink truncate">{maskName(d.nickname)}</span>
-                          <span className="text-[11.5px] text-ink-faint shrink-0">{timeAgo(d.created_at)}</span>
-                          {d.steps != null && d.steps > 0 && (
-                            <span className="text-[11.5px] text-ink-soft shrink-0 tabular-nums">🚶 {d.steps.toLocaleString('ko-KR')}보</span>
-                          )}
-                        </div>
-                        {/* 홈 카드는 전체가 '이야기로 가기' 버튼이라 반응 버튼을 넣으면 버튼이 겹친다.
-                            여기서는 받은 공감 수만 보여주고, 누르는 것은 이야기 화면에서 한다. */}
-                        <span className="flex items-center gap-2 text-[12.5px] text-ink-soft shrink-0">
-                          {d.pat + d.same + d.cheer > 0 && <span>🤍 {d.pat + d.same + d.cheer}</span>}
-                          {d.comment_count > 0 && <span>💬 {d.comment_count}</span>}
-                        </span>
-                      </div>
                     </div>
                   </button>
+                  {/* 이야기 화면과 같은 줄 — [이름 · 시간] ····· [♡][💬] (2026-09-11 대표님 "게시판 모두 하트·말풍선") */}
+                  <div className="px-4 pb-4">
+                    <div className="flex items-center justify-between mt-3.5 pt-3 border-t border-rule">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="text-[12px] font-semibold text-ink truncate">{maskName(d.nickname)}</span>
+                        <span className="text-[11.5px] text-ink-faint shrink-0">{timeAgo(d.created_at)}</span>
+                        {d.steps != null && d.steps > 0 && (
+                          <span className="text-[11.5px] text-ink-soft shrink-0 tabular-nums">🚶 {d.steps.toLocaleString('ko-KR')}보</span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-1 shrink-0 -mr-2">
+                        <LikeButton
+                          liked={d.liked_by_me}
+                          count={d.like_count}
+                          loggedIn={loggedIn}
+                          disabled={d.is_mine}
+                          onToggle={async () => {
+                            const res = await toggleDiaryLike(d.id)
+                            if (res) setFeed((prev) => (prev ?? []).map((x) => (x.id === d.id ? { ...x, liked_by_me: res.liked, like_count: res.like_count } : x)))
+                            return res
+                          }}
+                        />
+                        <CommentToggle count={d.comment_count} open={false} onClick={() => goComments(d.id)} />
+                      </div>
+                    </div>
+                  </div>
                 </li>
               )
             })}

@@ -177,7 +177,7 @@ export async function uploadDiaryImages(files: File[]): Promise<string[]> {
 
 // 영상 — 줄이지 않고 그대로 올린다(브라우저에서 영상 인코딩은 현실적으로 무리).
 // 그래서 PostComposer 가 30MB·60초로 미리 거른다. 실패하면 null.
-export async function uploadCommunityVideo(file: File, folder: 'diaries' | 'board'): Promise<string | null> {
+export async function uploadCommunityVideo(file: File, folder: 'diaries' | 'board' | 'answers'): Promise<string | null> {
   const { data: { session } } = await supabase.auth.getSession()
   if (!session) return null
   const ext = (file.name.split('.').pop() || 'mp4').toLowerCase().replace(/[^a-z0-9]/g, '') || 'mp4'
@@ -190,7 +190,7 @@ export async function uploadCommunityVideo(file: File, folder: 'diaries' | 'boar
 }
 
 // 게시판(board/) 등 다른 커뮤니티 글도 같은 버킷·같은 축소 규칙으로 올린다.
-export async function uploadCommunityImages(files: File[], folder: 'diaries' | 'board'): Promise<string[]> {
+export async function uploadCommunityImages(files: File[], folder: 'diaries' | 'board' | 'answers'): Promise<string[]> {
   const { data: { session } } = await supabase.auth.getSession()
   if (!session) return []
 

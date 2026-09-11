@@ -4,6 +4,7 @@ import BackHeader from '../components/layout/BackHeader'
 import AppFrame from '../components/layout/AppFrame'
 import { supabase } from '../lib/supabase'
 import { categoryLabel, getMyBoardPosts, type MyBoardPost } from '../lib/board'
+import { MetaMarks } from '../components/community/marks'
 
 // 내가 쓴 속 이야기 — 마이페이지에서 들어온다. (2026-09-10, 커뮤니티 로드맵 4-4 ②)
 // 운영자가 가린 글도 나에게는 보인다(왜 안 보이는지 알 수 있게).
@@ -60,35 +61,26 @@ export default function AppMyBoard() {
           </button>
         ) : (
           <ul className="space-y-3">
-            {posts.map((p) => {
-              const reactions = p.pat + p.same + p.cheer
-              return (
-                <li key={p.id}>
-                  <Link
-                    to={`/app/board/${p.id}`}
-                    className="block rounded-card border border-rule bg-paper p-4 focus:outline-none focus-visible:shadow-ring"
-                  >
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="text-[11px] font-semibold text-ink-soft bg-quiet rounded-full px-2 py-0.5">
-                        {categoryLabel(p.category)}
-                      </span>
-                      <span className="text-[11px] text-ink-faint">{timeAgo(p.created_at)}</span>
-                      {p.status === 'hidden' && (
-                        <span className="text-[11px] text-ink-faint">· 운영자가 가린 글</span>
-                      )}
-                    </div>
-                    <p className="text-[14px] text-ink leading-relaxed whitespace-pre-wrap line-clamp-2">{p.content}</p>
-                    {(reactions > 0 || p.comment_count > 0) && (
-                      <p className="text-[11.5px] text-ink-faint tabular-nums mt-3">
-                        {reactions > 0 && `🤍 ${reactions}`}
-                        {reactions > 0 && p.comment_count > 0 && ' · '}
-                        {p.comment_count > 0 && `댓글 ${p.comment_count}`}
-                      </p>
+            {posts.map((p) => (
+              <li key={p.id}>
+                <Link
+                  to={`/app/board/${p.id}`}
+                  className="block rounded-card border border-rule bg-paper p-4 focus:outline-none focus-visible:shadow-ring"
+                >
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-[11px] font-semibold text-ink-soft bg-quiet rounded-full px-2 py-0.5">
+                      {categoryLabel(p.category)}
+                    </span>
+                    <span className="text-[11px] text-ink-faint">{timeAgo(p.created_at)}</span>
+                    {p.status === 'hidden' && (
+                      <span className="text-[11px] text-ink-faint">· 운영자가 가린 글</span>
                     )}
-                  </Link>
-                </li>
-              )
-            })}
+                    <span className="ml-auto"><MetaMarks likes={p.like_count ?? 0} comments={p.comment_count} size={15} /></span>
+                  </div>
+                  <p className="text-[14px] text-ink leading-relaxed whitespace-pre-wrap line-clamp-2">{p.content}</p>
+                </Link>
+              </li>
+            ))}
           </ul>
         )}
       </section>

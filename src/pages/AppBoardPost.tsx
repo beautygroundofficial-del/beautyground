@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import BackHeader from '../components/layout/BackHeader'
 import AppFrame from '../components/layout/AppFrame'
@@ -7,6 +7,7 @@ import ReactionSummary from '../components/community/ReactionSummary'
 import BoardComments from '../components/community/BoardComments'
 import Lightbox from '../components/community/Lightbox'
 import LikeButton from '../components/community/LikeButton'
+import { CommentToggle } from '../components/community/DiaryComments'
 import { supabase } from '../lib/supabase'
 import { categoryLabel, deleteBoardPost, getBoardPost, reportBoardPost, toggleBoardLike, type BoardPost } from '../lib/board'
 
@@ -42,6 +43,7 @@ export default function AppBoardPost() {
   const [post, setPost] = useState<BoardPost | null | undefined>(undefined)
   const [toast, setToast] = useState('')
   const [viewerIndex, setViewerIndex] = useState<number | null>(null)
+  const commentsRef = useRef<HTMLDivElement>(null)
 
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 2400) }
 
@@ -146,23 +148,26 @@ export default function AppBoardPost() {
               </div>
             )}
 
-            {/* 하트 — board_likes.sql 이 실행된 뒤(like_count 가 오면)부터 보인다 */}
-            {post.like_count !== undefined && (
-              <div className="mt-4 -ml-2">
-                <LikeButton
-                  liked={!!post.liked_by_me}
-                  count={post.like_count}
-                  loggedIn={loggedIn}
-                  disabled={post.is_mine}
-                  size="md"
-                  onToggle={async () => {
-                    const res = await toggleBoardLike(post.id)
-                    if (res) setPost((prev) => (prev ? { ...prev, liked_by_me: res.liked, like_count: res.like_count } : prev))
-                    return res
-                  }}
-                />
-              </div>
-            )}
+            {/* 하트 · 말풍선 — 하루 이야기 카드와 같은 그림. 말풍선은 아래 댓글 칸으로 내려간다 */}
+            <div className="mt-4 -ml-2 flex items-center gap-1">
+              <LikeButton
+                liked={!!post.liked_by_me}
+                count={post.like_count ?? 0}
+                loggedIn={loggedIn}
+                disabled={post.is_mine}
+                size="md"
+                onToggle={async () => {
+                  const res = await toggleBoardLike(post.id)
+                  if (res) setPost((prev) => (prev ? { ...prev, liked_by_me: res.liked, like_count: res.like_count } : prev))
+                  return res
+                }}
+              />
+              <CommentToggle
+                count={post.comment_count}
+                open={false}
+                onClick={() => commentsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+              />
+            </div>
 
             {post.is_mine && (
               <div className="mt-5 pt-4 border-t border-rule">
@@ -185,7 +190,7 @@ export default function AppBoardPost() {
             )}
           </article>
 
-          <div className="pb-28">
+          <div className="pb-28" ref={commentsRef}>
             <BoardComments
               postId={post.id}
               count={post.comment_count}
