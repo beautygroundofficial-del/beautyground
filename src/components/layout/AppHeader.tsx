@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { IconSearch } from '../common/Icon'
+import { IconSearch, IconUser } from '../common/Icon'
 import { supabase } from '../../lib/supabase'
 
 // 소비자 앱 공통 상단바: 로그인 시 "환영합니다, {이름}님" 인사말, 비로그인 시 워드마크(뷰티그라운드).
@@ -48,8 +48,10 @@ export default function AppHeader({ promoBarAbove = false }: Props) {
         )}
       </Link>
       <div className="flex items-center gap-3">
-        <span className="text-[12px] font-medium text-ink-soft tracking-[-0.01em] whitespace-nowrap">
-          {followerCount.toLocaleString()}명 👥
+        {/* 팔로워 수 — 색 이모지 대신 사람 하나 외곽선 아이콘(2026-09-11 대표님 "색상 말고 사람 하나만 외곽선으로") */}
+        <span className="inline-flex items-center gap-1 text-[12px] font-medium text-ink-soft tracking-[-0.01em] whitespace-nowrap">
+          {followerCount.toLocaleString()}명
+          <IconUser className="w-[15px] h-[15px]" />
         </span>
         <Link
           to="/app/search"
