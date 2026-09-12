@@ -170,10 +170,10 @@ export default function AppDiary() {
       <section className="px-5 pt-4">
         <button
           onClick={openComposer}
-          className="w-full rounded-card bg-ink text-paper px-5 py-4 text-left focus:outline-none focus-visible:shadow-ring"
+          className="w-full rounded-card bg-ink text-paper px-5 py-3 text-left focus:outline-none focus-visible:shadow-ring"
         >
           <span className="block text-[15px] font-bold leading-tight">오늘 어떤 하루였나요?</span>
-          <span className="block text-[12.5px] opacity-75 mt-1">사소한 하루도 누군가에겐 위로가 됩니다 · 사진과 걸음 수도 함께</span>
+          <span className="block text-[12.5px] opacity-75 mt-0.5">사소한 하루도 누군가에겐 위로가 됩니다 · 사진과 걸음 수도 함께</span>
         </button>
       </section>
 
@@ -185,14 +185,14 @@ export default function AppDiary() {
             {best.map((b, i) => (
               <div
                 key={b.id}
-                className="shrink-0 w-[190px] snap-start rounded-card border border-rule bg-paper p-4"
+                className="shrink-0 w-[190px] snap-start rounded-card border border-rule bg-paper p-3"
               >
-                <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-ink text-paper text-[11px] font-bold mb-2.5">
+                <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-ink text-paper text-[11px] font-bold mb-1.5">
                   {i + 1}
                 </span>
-                <p className="text-[13px] text-ink leading-snug line-clamp-3 min-h-[3.6em]">{b.content}</p>
+                <p className="text-[13px] text-ink leading-snug line-clamp-2 min-h-[2.4em]">{b.content}</p>
                 {b.reaction_count > 0 && (
-                  <p className="text-[11.5px] text-ink-faint mt-2.5">🤍 {b.reaction_count}</p>
+                  <p className="text-[11.5px] text-ink-faint mt-1.5">🤍 {b.reaction_count}</p>
                 )}
               </div>
             ))}
@@ -278,12 +278,12 @@ export default function AppDiary() {
                     <video src={d.video_url} controls playsInline preload="metadata" className="w-full max-h-[420px] bg-ink" />
                   )}
 
-                  <div className="p-4">
+                  <div className="p-3.5">
                     <p className="text-[14px] text-ink whitespace-pre-wrap leading-relaxed line-clamp-4">
                       {d.content}
                     </p>
 
-                    <div className="flex items-center justify-between mt-3.5 pt-3 border-t border-rule">
+                    <div className="flex items-center justify-between mt-2.5 pt-2.5 border-t border-rule">
                       <div className="flex items-center gap-2 min-w-0">
                         {/* 친구면 이름을 가리지 않는다 — 친구끼리는 누가 누군지 알아야 이야기가 이어진다 */}
                         {/* 닉네임 → 그 사람의 이야기(2026-09-12 A1) */}
@@ -333,14 +333,14 @@ export default function AppDiary() {
 
                     {/* 내 글 — 누르는 버튼 대신 받은 마음만 읽는다(2026-09-11) */}
                     {d.is_mine && (
-                      <div className="mt-3">
+                      <div className="mt-2">
                         <ReactionSummary counts={d} />
                       </div>
                     )}
 
                     {/* 공감 — 내 글에는 띄우지 않는다(셀프 공감은 적립도 안 되고 의미도 없다) */}
                     {!d.is_mine && (
-                      <div className="mt-3">
+                      <div className="mt-2">
                         <ReactionBar
                           target="diary"
                           targetId={d.id}
