@@ -184,15 +184,16 @@ export default function TodayQuestion() {
         {/* 내 답 — 아직 안 했으면 입력칸, 했으면 내가 쓴 것 */}
         <div className="px-5 pb-4">
           {showComposer ? (
-            <div className="rounded-control border border-rule bg-quiet/40 p-3">
+            <div className="rounded-control border border-rule bg-quiet/40 p-2.5">
               <textarea
                 value={draft}
                 onChange={(e) => setDraft(e.target.value)}
                 onFocus={() => { if (!loggedIn) navigate('/app/login') }}
-                rows={2}
+                rows={1}
                 maxLength={MAX_LEN}
                 // 관리자가 곁들이는 한 줄(hint)을 넣으면 같은 문구가 위아래로 두 번 보인다.
                 // hint 가 있을 때는 입력칸 안내를 다른 말로 바꾼다.
+                // 2026-09-13 대표님 지시로 세로 슬림하게: rows 2→1, 상하 padding 축소.
                 placeholder={question.hint ? '여기에 남겨주세요' : '한 줄이면 충분해요'}
                 className="w-full resize-none bg-transparent text-[14px] text-ink placeholder:text-ink-faint focus:outline-none"
               />
@@ -217,7 +218,7 @@ export default function TodayQuestion() {
                 </div>
               )}
 
-              <div className="flex items-center justify-between pt-2 mt-2 border-t border-rule">
+              <div className="flex items-center justify-between pt-1.5 mt-1.5 border-t border-rule">
                 <div className="flex items-center gap-2">
                   <button type="button" onClick={() => { if (!loggedIn) { navigate('/app/login'); return } albumRef.current?.click() }}
                     disabled={composerImages >= MAX_ANSWER_IMAGES} className={btn}>

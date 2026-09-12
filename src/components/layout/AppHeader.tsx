@@ -15,8 +15,10 @@ interface Props {
 
 export default function AppHeader({ promoBarAbove = false }: Props) {
   const [name, setName] = useState<string | null>(null)
-  // TODO: 테스트용 임의값 — 실제 팔로워 집계 연결 전까지 하드코딩(대표님 지시 2026-09-10)
-  const followerCount = 7321
+  // 2026-09-10 임시 하드코딩(7321) → 2026-09-13 대표님 지시 "7,321명을 기준으로 앞으로
+  // 회원가입이 되면 카운트 늘려나가라"로 전환. get_member_count() RPC = 7321 + (2026-09-13 이후 실제 가입자 수).
+  // 기준값을 초기 state로 둬서, RPC 응답 전에도 깜빡임 없이 바로 보인다.
+  const [followerCount, setFollowerCount] = useState(7321)
 
   useEffect(() => {
     let active = true
@@ -26,6 +28,9 @@ export default function AppHeader({ promoBarAbove = false }: Props) {
       if (!authUser) return
       const meta = authUser.user_metadata as { name?: string } | undefined
       setName(meta?.name || authUser.email?.split('@')[0] || null)
+    })
+    supabase.rpc('get_member_count').then(({ data, error }) => {
+      if (active && !error && typeof data === 'number') setFollowerCount(data)
     })
     return () => {
       active = false
