@@ -11,10 +11,23 @@ import { getMyPets, petEmoji, type Pet } from '../lib/pets'
 // 대표님 지시 "걷기를 통한 하루 일기 … 이미지와 텍스트", "삭제 옆에 수정도", "MP4 영상도".
 // 글·사진(4장)·영상(1개)·오늘 걸음 수. ?id= 가 있으면 고쳐 쓰기 — 포인트는 다시 주지 않는다.
 // 걸음 수는 지금은 직접 적는다(선택). 앱이 나오면 자동으로 채워진다. 포인트와는 무관하다.
+// 2026-09-13 대표님 지시 — "이야기는 계속 쌓여야 한다. 주제를 미리 만들어 놓거나, 자유 글은
+// 키워드를 눌러서 쓰거나 그냥 수동으로 쓰게 하자." 빈 텍스트박스가 매번 백지라 글쓰기 진입장벽이
+// 있었던 걸 낮추려고, 누르면 시작 문장이 채워지는 주제 칩을 텍스트박스 위에 둔다.
+// 이미 쓰던 글이 있으면 덮어쓰지 않는다 — 어디까지나 "도와주는" 역할, 강제 아님.
 
 const MIN_LEN = 5
 const MAX_LEN = 1000
 const DRAFT_KEY = 'diary'
+
+const TOPIC_STARTERS: { label: string; starter: string }[] = [
+  { label: '오늘 산책', starter: '오늘은 여기를 걸었어요 — ' },
+  { label: '우리 아이 자랑', starter: '우리 아이 자랑 좀 할게요 — ' },
+  { label: '오늘 뭐 드셨어요', starter: '오늘 이런 걸 먹었어요 — ' },
+  { label: '요즘 고민', starter: '요즘 이런 게 고민이에요 — ' },
+  { label: '감사한 하루', starter: '오늘 이런 게 참 고마웠어요 — ' },
+  { label: '동네 이야기', starter: '우리 동네에 이런 일이 있었어요 — ' },
+]
 
 interface Draft { content: string; steps: string; petIds?: string[] }
 
@@ -128,6 +141,22 @@ export default function AppDiaryWrite() {
       <section className="px-5 pt-5">
         <p className="text-[11.5px] text-ink-faint leading-none mb-1.5">오늘 어떤 하루였나요</p>
         <h2 className="text-[15px] font-bold text-ink leading-tight mb-3">사소한 하루도 누군가에겐 위로가 됩니다</h2>
+
+        {!editId && (
+          <div className="flex gap-1.5 overflow-x-auto scrollbar-hide -mx-1 px-1 pb-3 mb-1">
+            {TOPIC_STARTERS.map((t) => (
+              <button
+                key={t.label}
+                type="button"
+                onClick={() => { if (!content.trim()) setContent(t.starter) }}
+                className="shrink-0 px-3 py-1.5 rounded-full border border-rule text-[12.5px] text-ink-soft whitespace-nowrap focus:outline-none focus-visible:shadow-ring"
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+        )}
+
         <PostComposer
           content={content}
           onContentChange={setContent}

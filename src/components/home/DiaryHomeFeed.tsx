@@ -16,6 +16,10 @@ import { PetAvatars, petWalkLabel } from '../community/PetMarks'
 // 2026-09-13 대표님 지시("홈과 이야기 내용이 겹친다") — 로드맵(축약본 원칙) 재확인 후 정리:
 //   · "이달의 이야기"(상위 3개) 캐러셀은 이야기 탭 것과 완전히 같은 내용이라 홈에서 뺐다(이야기 탭에만 남김)
 //   · 최근 글 미리보기는 8개 → 3개로 줄였다(속 이야기 미리보기 BoardHomeFeed와 같은 "3개만 얇게" 원칙 통일)
+// 2026-09-13 (같은 날, 재지시) — "앱 처음 열었을 때 홈이 비어 보이면 안 된다. 이야기 내용이 홈에 오는 게 맞다"고
+// 정정: 겹치는 것보다 첫 화면이 비어 보이는 게 더 나쁘다고 판단해 미리보기를 3개 → 6개로 다시 늘림.
+// (이달의 이야기 랭킹 캐러셀까지 되살리진 않음 — 그건 최신 글과 별개로 계속 똑같은 상위 3개만 보여주는
+// 완전 중복이라 뺀 채로 둔다. "최근 글이 계속 올라온다"는 흐름 자체를 넉넉히 보여주는 쪽으로만 조정.)
 
 function timeAgo(iso: string) {
   const diff = Date.now() - new Date(iso).getTime()
@@ -61,7 +65,7 @@ export default function DiaryHomeFeed() {
     let active = true
     void (async () => {
       const [rows, { data: { session } }] = await Promise.all([
-        getDiaryFeed('recent', 3), supabase.auth.getSession(),
+        getDiaryFeed('recent', 6), supabase.auth.getSession(),
       ])
       if (!active) return
       setFeed(rows)
