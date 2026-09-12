@@ -42,9 +42,9 @@ function maskName(name: string | null) {
 
 function SectionHead({ label, title, onMore }: { label: string; title: string; onMore?: () => void }) {
   return (
-    <div className="flex items-end justify-between gap-3 mb-3">
+    <div className="flex items-end justify-between gap-3 mb-2.5">
       <div className="min-w-0">
-        <p className="text-[11.5px] text-ink-faint leading-none mb-1.5">{label}</p>
+        <p className="text-[11.5px] text-ink-faint leading-none mb-1">{label}</p>
         <h2 className="text-[17px] font-bold text-ink leading-tight">{title}</h2>
       </div>
       {onMore && (
@@ -81,7 +81,7 @@ export default function DiaryHomeFeed() {
   return (
     <>
       {/* 최근 이야기 */}
-      <section className="px-5 pt-8 pb-6">
+      <section className="px-5 pt-6 pb-4">
         <SectionHead
           label="오늘도 각자의 하루를 살아갑니다"
           title="사람들의 이야기"
@@ -136,13 +136,13 @@ export default function DiaryHomeFeed() {
                     {d.video_url && (
                       <video src={d.video_url} controls playsInline preload="metadata" muted className="w-full max-h-[360px] bg-ink" />
                     )}
-                    <div className="px-4 pt-4">
+                    <div className="px-4 pt-3.5">
                       <p className="text-[14px] text-ink whitespace-pre-wrap leading-relaxed line-clamp-4">{d.content}</p>
                     </div>
                   </button>
                   {/* 이야기 화면과 같은 줄 — [이름 · 시간] ····· [♡][💬] (2026-09-11 대표님 "게시판 모두 하트·말풍선") */}
-                  <div className="px-4 pb-4">
-                    <div className="flex items-center justify-between mt-3.5 pt-3 border-t border-rule">
+                  <div className="px-4 pb-3.5">
+                    <div className="flex items-center justify-between mt-2.5 pt-2.5 border-t border-rule">
                       <div className="flex items-center gap-2 min-w-0">
                         <button type="button" onClick={() => navigate(`/app/people/${d.user_id}`)} className="text-[12px] font-semibold text-ink truncate focus:outline-none focus-visible:shadow-ring">{maskName(d.nickname)}</button>
                         <PetAvatars pets={d.pets} />

@@ -29,8 +29,8 @@ export default function BoardHomeFeed() {
   }, [])
 
   return (
-    <section className="px-5 pt-8">
-      <div className="flex items-end justify-between gap-3 mb-3">
+    <section className="px-5 pt-6">
+      <div className="flex items-end justify-between gap-3 mb-2.5">
         <div className="min-w-0">
           <p className="text-[11.5px] text-ink-faint leading-none mb-1.5">속마음을 꺼내놓는 곳</p>
           <h2 className="text-[17px] font-bold text-ink leading-tight">속 이야기</h2>
@@ -68,9 +68,9 @@ export default function BoardHomeFeed() {
             <li key={p.id}>
               <Link
                 to={`/app/board/${p.id}`}
-                className="block rounded-card border border-rule bg-paper px-4 py-3.5 focus:outline-none focus-visible:shadow-ring"
+                className="block rounded-card border border-rule bg-paper px-4 py-3 focus:outline-none focus-visible:shadow-ring"
               >
-                <div className="flex items-center gap-2 mb-1.5">
+                <div className="flex items-center gap-2 mb-1">
                   <span className="text-[11px] font-semibold text-ink-soft bg-quiet rounded-full px-2 py-0.5">
                     {categoryLabel(p.category)}
                   </span>

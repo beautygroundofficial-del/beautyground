@@ -170,30 +170,29 @@ export default function TodayQuestion() {
   const btn = 'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-rule text-[12px] text-ink-soft disabled:opacity-40 focus:outline-none focus-visible:shadow-ring'
 
   return (
-    <section className="pt-5">
+    <section className="pt-4">
       <div className="rounded-card border border-rule bg-paper overflow-hidden">
         {/* 질문 */}
-        <div className="px-5 pt-5 pb-4">
-          <p className="text-[11.5px] text-ink-faint leading-none mb-2">오늘의 질문</p>
+        <div className="px-5 pt-4 pb-3">
+          <p className="text-[11.5px] text-ink-faint leading-none mb-1.5">오늘의 질문</p>
           <h2 className="text-[17px] font-bold text-ink leading-snug">{question.question}</h2>
           {question.hint && (
-            <p className="text-[12.5px] text-ink-soft mt-1.5 leading-relaxed">{question.hint}</p>
+            <p className="text-[12.5px] text-ink-soft mt-1 leading-relaxed">{question.hint}</p>
           )}
         </div>
 
-        {/* 내 답 — 아직 안 했으면 입력칸, 했으면 내가 쓴 것 */}
-        <div className="px-5 pb-4">
+        {/* 내 답 — 아직 안 했으면 입력칸, 했으면 내가 쓴 것.
+            2026-09-13 대표님 지시("우리 앱이 너무 뚱뚱하다") — 이 안에 또 테두리 박스를 두는
+            겹박스 구조를 없앴다. 바깥 카드 하나로 충분하고, 입력칸 아래 얇은 구분선 하나면 된다. */}
+        <div className="px-5 pb-3">
           {showComposer ? (
-            <div className="rounded-control border border-rule bg-quiet/40 p-2.5">
+            <div>
               <textarea
                 value={draft}
                 onChange={(e) => setDraft(e.target.value)}
                 onFocus={() => { if (!loggedIn) navigate('/app/login') }}
                 rows={1}
                 maxLength={MAX_LEN}
-                // 관리자가 곁들이는 한 줄(hint)을 넣으면 같은 문구가 위아래로 두 번 보인다.
-                // hint 가 있을 때는 입력칸 안내를 다른 말로 바꾼다.
-                // 2026-09-13 대표님 지시로 세로 슬림하게: rows 2→1, 상하 padding 축소.
                 placeholder={question.hint ? '여기에 남겨주세요' : '한 줄이면 충분해요'}
                 className="w-full resize-none bg-transparent text-[14px] text-ink placeholder:text-ink-faint focus:outline-none"
               />
@@ -218,7 +217,7 @@ export default function TodayQuestion() {
                 </div>
               )}
 
-              <div className="flex items-center justify-between pt-1.5 mt-1.5 border-t border-rule">
+              <div className="flex items-center justify-between pt-1 mt-1 border-t border-rule">
                 <div className="flex items-center gap-2">
                   <button type="button" onClick={() => { if (!loggedIn) { navigate('/app/login'); return } albumRef.current?.click() }}
                     disabled={composerImages >= MAX_ANSWER_IMAGES} className={btn}>
@@ -245,7 +244,7 @@ export default function TodayQuestion() {
               <input ref={albumRef} type="file" accept="image/*" multiple hidden onChange={pickFiles} />
             </div>
           ) : (
-            <div className="rounded-control border border-ink/15 bg-quiet/40 p-3">
+            <div className="rounded-control bg-quiet/40 p-3">
               <p className="text-[11.5px] text-ink-faint mb-1">내가 남긴 답</p>
               {(question.my_images?.length ?? 0) > 0 && (
                 <AnswerImages images={question.my_images ?? []} onOpen={(i) => setViewer({ images: question.my_images ?? [], index: i })} />
@@ -262,11 +261,11 @@ export default function TodayQuestion() {
 
         {/* 다른 사람들의 답 — 답하지 않아도 보인다 */}
         {answers.length > 0 && (
-          <div className="border-t border-rule bg-quiet/20 px-5 py-4">
-            <p className="text-[11.5px] text-ink-faint mb-3">
+          <div className="border-t border-rule bg-quiet/20 px-5 py-3.5">
+            <p className="text-[11.5px] text-ink-faint mb-2.5">
               {question.answer_count}명이 오늘을 이렇게 지나고 있어요
             </p>
-            <ul className="space-y-4">
+            <ul className="space-y-3">
               {answers.map((a) => {
                 const imgs = a.images ?? []
                 return (

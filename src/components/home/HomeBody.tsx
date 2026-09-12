@@ -57,13 +57,13 @@ export default function HomeBody({ marqueeItems, promoBarAbove = false }: HomeBo
       </div>
 
       {/* 오늘의 이야기 쓰기 */}
-      <section className="px-5 pt-5">
+      <section className="px-5 pt-4">
         <button
           onClick={() => navigate('/app/diary/write')}
-          className="w-full rounded-card bg-ink text-paper px-5 py-4 text-left focus:outline-none focus-visible:shadow-ring"
+          className="w-full rounded-card bg-ink text-paper px-5 py-3 text-left focus:outline-none focus-visible:shadow-ring"
         >
           <span className="block text-[15px] font-bold leading-tight">오늘 어떤 하루였나요?</span>
-          <span className="block text-[12.5px] opacity-75 mt-1">사소한 하루도 누군가에겐 위로가 됩니다</span>
+          <span className="block text-[12.5px] opacity-75 mt-0.5">사소한 하루도 누군가에겐 위로가 됩니다</span>
         </button>
       </section>
 

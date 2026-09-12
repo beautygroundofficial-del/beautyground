@@ -155,7 +155,7 @@ export default function AppMyPage() {
       <AppHeader />
 
       {/* 프로필 카드 */}
-      <div className="bg-paper px-5 pt-5 pb-6">
+      <div className="bg-paper px-5 pt-4 pb-4">
         <div className="flex items-center gap-4">
           {/* 원형은 프로필 이미지에만 허용 */}
           <div className="w-16 h-16 rounded-full bg-quiet flex items-center justify-center flex-shrink-0 text-ink-soft" aria-hidden="true">
@@ -200,8 +200,10 @@ export default function AppMyPage() {
           </div>
         </div>
 
-        {/* 통계 */}
-        <div className="mt-5 grid grid-cols-3 gap-0 border border-rule">
+        {/* 통계 — 2026-09-13 대표님 지시("앱이 너무 뚱뚱하다", 레퍼런스 마이 화면 참고)로
+            테두리 박스 4개(통계·등급·포인트·미션)를 겹겹이 쌓던 구조를 없애고, 옅은 배경 톤 하나로
+            가볍게 묶었다. 테두리선을 최소화하고 세로 간격도 좁혔다. */}
+        <div className="mt-4 grid grid-cols-3 gap-0 rounded-card bg-quiet/50">
           {[
             { label: '주문', value: user.orders },
             { label: '찜', value: user.wishlist },
@@ -209,22 +211,22 @@ export default function AppMyPage() {
           ].map(({ label, value }, i) => (
             <div
               key={label}
-              className={`py-4 text-center ${i < 2 ? 'border-r border-rule' : ''}`}
+              className={`py-3 text-center ${i < 2 ? 'border-r border-paper' : ''}`}
             >
-              <p className="text-[20px] font-bold tabular-nums text-ink">{value}</p>
-              <p className="text-[12px] text-ink-soft mt-0.5">{label}</p>
+              <p className="text-[18px] font-bold tabular-nums text-ink">{value}</p>
+              <p className="text-[11.5px] text-ink-soft mt-0.5">{label}</p>
             </div>
           ))}
         </div>
 
         {/* 회원 등급 — 누적 구매금액 기반, 배지 클릭으로 등급표 열람 */}
         {loggedIn && membership && (
-          <div className="mt-3 border border-rule px-4 py-3.5">
+          <div className="mt-2 rounded-card bg-quiet/50 px-4 py-3">
             <div className="flex items-center justify-between">
               <span className="text-[13px] text-ink-soft">누적 구매금액</span>
               <span className="text-[14px] font-bold tabular-nums text-ink">{membership.totalSpent.toLocaleString('ko-KR')}원</span>
             </div>
-            <div className="flex items-center justify-between mt-1.5">
+            <div className="flex items-center justify-between mt-1">
               <span className="text-[12px] text-ink-faint">
                 현재 <b style={{ color: membership.tier.color === '#FFFFFF' ? '#17181C' : membership.tier.color }}>{membership.tier.label}</b> · 구매 시 {membership.tier.rewardRate}% 적립 예정
               </span>
@@ -235,7 +237,7 @@ export default function AppMyPage() {
               )}
             </div>
             {membership.next && (
-              <div className="mt-2 h-1.5 bg-quiet overflow-hidden" aria-hidden="true">
+              <div className="mt-2 h-1.5 bg-paper overflow-hidden" aria-hidden="true">
                 <div
                   className="h-full bg-ink"
                   style={{
@@ -245,7 +247,7 @@ export default function AppMyPage() {
               </div>
             )}
             {showTierGuide && (
-              <div className="mt-3 pt-3 border-t border-rule">
+              <div className="mt-2.5 pt-2.5 border-t border-paper">
                 <p className="text-[12px] font-bold text-ink mb-2">회원 등급 안내 (누적 구매금액 기준)</p>
                 <div className="space-y-1.5">
                   {tiers.map((t) => (
@@ -270,7 +272,7 @@ export default function AppMyPage() {
         )}
 
         {/* 포인트 — 조건부 혜택 성격이라 신호색(노랑) 작은 칩으로 */}
-        <div className="mt-3 border border-rule px-4 py-3.5 flex items-center justify-between">
+        <div className="mt-2 rounded-card bg-quiet/50 px-4 py-3 flex items-center justify-between">
           <span className="text-[14px] font-bold text-ink">보유 포인트</span>
           <span className="text-[13px] font-bold tabular-nums text-ink bg-signal-yellow px-2 py-0.5">
             {user.points.toLocaleString()}P
@@ -282,7 +284,7 @@ export default function AppMyPage() {
         {activeMissions.length > 0 && (
         <button
           onClick={() => navigate('/app/missions')}
-          className="mt-3 w-full border border-rule px-4 py-3.5 flex items-center justify-between text-left focus:outline-none focus-visible:shadow-ring"
+          className="mt-2 w-full rounded-card bg-quiet/50 px-4 py-3 flex items-center justify-between text-left focus:outline-none focus-visible:shadow-ring"
         >
           <span>
             <span className="text-[14px] font-bold text-ink">활동 미션</span>
@@ -301,7 +303,7 @@ export default function AppMyPage() {
           <button
             key={label}
             onClick={() => path && navigate(path)}
-            className="w-full flex items-center justify-between px-5 py-4 border-b border-rule last:border-0 focus:outline-none focus-visible:shadow-ring"
+            className="w-full flex items-center justify-between px-5 py-3.5 border-b border-rule last:border-0 focus:outline-none focus-visible:shadow-ring"
           >
             <span className="text-[14px] text-ink">{label}</span>
             <div className="flex items-center gap-2">
@@ -324,7 +326,7 @@ export default function AppMyPage() {
           <button
             key={label}
             onClick={() => path && navigate(path)}
-            className="w-full flex items-center justify-between px-5 py-4 border-b border-rule last:border-0 focus:outline-none focus-visible:shadow-ring"
+            className="w-full flex items-center justify-between px-5 py-3.5 border-b border-rule last:border-0 focus:outline-none focus-visible:shadow-ring"
           >
             <span className="text-[14px] text-ink">{label}</span>
             <span className="text-ink-faint" aria-hidden="true">›</span>
@@ -337,7 +339,7 @@ export default function AppMyPage() {
         <div className="mt-2 bg-paper">
           <button
             onClick={() => navigate('/app/staff-buy')}
-            className="w-full flex items-center justify-between px-5 py-4 border-b border-rule last:border-0 focus:outline-none focus-visible:shadow-ring"
+            className="w-full flex items-center justify-between px-5 py-3.5 border-b border-rule last:border-0 focus:outline-none focus-visible:shadow-ring"
           >
             <span className="text-[14px] text-ink font-bold">🏷️ 직원 전용 구매</span>
             <span className="text-ink-faint" aria-hidden="true">›</span>

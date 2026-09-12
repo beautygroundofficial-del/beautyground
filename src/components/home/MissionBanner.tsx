@@ -12,10 +12,10 @@ export default function MissionBanner() {
   if (missions.length === 0) return null
 
   return (
-    <section className="px-5 py-4">
+    <section className="px-5 py-3">
       <button
         onClick={() => navigate('/app/missions')}
-        className="w-full rounded-card border border-rule bg-quiet px-4 py-3.5 flex items-center justify-between text-left focus:outline-none focus-visible:shadow-ring"
+        className="w-full rounded-card border border-rule bg-quiet px-4 py-3 flex items-center justify-between text-left focus:outline-none focus-visible:shadow-ring"
       >
         <span className="min-w-0">
           <span className="block text-[14px] font-bold text-ink">
