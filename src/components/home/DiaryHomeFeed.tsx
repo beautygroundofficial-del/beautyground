@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { getDiaryFeed, getMonthlyBestDiaries, toggleDiaryLike, type Diary, type BestDiary } from '../../lib/diaries'
+import { getDiaryFeed, toggleDiaryLike, type Diary } from '../../lib/diaries'
 import { supabase } from '../../lib/supabase'
 import LikeButton from '../community/LikeButton'
 import { CommentToggle } from '../community/DiaryComments'
@@ -12,6 +12,10 @@ import { PetAvatars, petWalkLabel } from '../community/PetMarks'
 //
 // 문구는 기능 설명이 아니라 사람 말투로 쓴다 —
 // "포인트를 드려요"를 앞세우면 거래 게시판이 되고, 그러면 아무도 마음을 안 쓴다.
+//
+// 2026-09-13 대표님 지시("홈과 이야기 내용이 겹친다") — 로드맵(축약본 원칙) 재확인 후 정리:
+//   · "이달의 이야기"(상위 3개) 캐러셀은 이야기 탭 것과 완전히 같은 내용이라 홈에서 뺐다(이야기 탭에만 남김)
+//   · 최근 글 미리보기는 8개 → 3개로 줄였다(속 이야기 미리보기 BoardHomeFeed와 같은 "3개만 얇게" 원칙 통일)
 
 function timeAgo(iso: string) {
   const diff = Date.now() - new Date(iso).getTime()
@@ -51,18 +55,16 @@ function SectionHead({ label, title, onMore }: { label: string; title: string; o
 export default function DiaryHomeFeed() {
   const navigate = useNavigate()
   const [feed, setFeed] = useState<Diary[] | null>(null)
-  const [best, setBest] = useState<BestDiary[]>([])
   const [loggedIn, setLoggedIn] = useState(false)
 
   useEffect(() => {
     let active = true
     void (async () => {
-      const [rows, bests, { data: { session } }] = await Promise.all([
-        getDiaryFeed('recent', 8), getMonthlyBestDiaries(3), supabase.auth.getSession(),
+      const [rows, { data: { session } }] = await Promise.all([
+        getDiaryFeed('recent', 3), supabase.auth.getSession(),
       ])
       if (!active) return
       setFeed(rows)
-      setBest(bests)
       setLoggedIn(!!session)
     })()
     return () => { active = false }
@@ -74,30 +76,6 @@ export default function DiaryHomeFeed() {
 
   return (
     <>
-      {/* 많은 분이 마음을 눌러준 이야기 */}
-      {best.length > 0 && (
-        <section className="px-5 pt-8">
-          <SectionHead label="이번 달, 많은 분이 마음을 눌러준" title="이달의 이야기" />
-          <div className="flex gap-2.5 overflow-x-auto scrollbar-hide -mx-1 px-1 snap-x">
-            {best.map((b, i) => (
-              <button
-                key={b.id}
-                onClick={go}
-                className="shrink-0 w-[190px] snap-start text-left rounded-card border border-rule bg-paper p-4 focus:outline-none focus-visible:shadow-ring"
-              >
-                <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-ink text-paper text-[11px] font-bold mb-2.5">
-                  {i + 1}
-                </span>
-                <p className="text-[13px] text-ink leading-snug line-clamp-3 min-h-[3.6em]">{b.content}</p>
-                {b.reaction_count > 0 && (
-                  <p className="text-[11.5px] text-ink-faint mt-2.5">🤍 {b.reaction_count}</p>
-                )}
-              </button>
-            ))}
-          </div>
-        </section>
-      )}
-
       {/* 최근 이야기 */}
       <section className="px-5 pt-8 pb-6">
         <SectionHead
