@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import BackHeader from '../components/layout/BackHeader'
 import AppFrame from '../components/layout/AppFrame'
 import StoryTabs from '../components/community/StoryTabs'
@@ -36,8 +36,11 @@ function maskName(name: string | null) {
 
 export default function AppBoard() {
   const navigate = useNavigate()
+  const location = useLocation()
+  // 홈의 카테고리 그리드에서 들어오면 그 카테고리로 미리 골라둔다(2026-09-13)
+  const initialCategory = (location.state as { category?: BoardCategory } | null)?.category
   const [loggedIn, setLoggedIn] = useState<boolean | null>(null)
-  const [selected, setSelected] = useState<BoardCategory[]>([])
+  const [selected, setSelected] = useState<BoardCategory[]>(initialCategory ? [initialCategory] : [])
   const [feed, setFeed] = useState<BoardPost[]>([])
   const [loading, setLoading] = useState(true)
 

@@ -6,6 +6,7 @@ import TodayQuestion from '../community/TodayQuestion'
 import PhoneVerifyBanner from '../community/PhoneVerifyBanner'
 import DiaryHomeFeed from './DiaryHomeFeed'
 import BoardHomeFeed from './BoardHomeFeed'
+import BoardCategoryGrid from './BoardCategoryGrid'
 import type { HeroBanner } from '../../hooks/useHeroBanners'
 import type { ShopProduct } from '../../hooks/useShopProducts'
 import type { ShopBrand } from '../../hooks/useShopBrands'
@@ -66,6 +67,9 @@ export default function HomeBody({ marqueeItems, promoBarAbove = false }: HomeBo
           <span className="block text-[12.5px] opacity-75 mt-0.5">사소한 하루도 누군가에겐 위로가 됩니다</span>
         </button>
       </section>
+
+      {/* 카테고리 그리드 — 레퍼런스(소모임류 앱) UI 크기·구조 참고, 우리 카테고리로 대입(2026-09-13) */}
+      <BoardCategoryGrid />
 
       {/* 속 이야기 — 주제별로 속마음을 꺼내놓는 곳. 최신 3개만 얇게(2026-09-10) */}
       <BoardHomeFeed />
