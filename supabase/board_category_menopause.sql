@@ -2,7 +2,8 @@
 -- 대표님 지시: "카테고리가 많지 않으니 하나씩 늘려보자, 정확한 위치는 연구하면서"
 -- 근거(옵시디언 03 홈페이지/4050~60대 여성 관심사 리서치): 50대 여성 최대 관심사가
 -- 갱년기·노후불안인데, 기존 'body'(건강·체력·운동)엔 안 묻어나 못 찾던 것으로 보임.
--- ⚠️ 미실행 — 내용 보고 후 승인받아야 운영 DB(beautyground-main)에 실행한다.
+-- ✅ 2026-09-12 대표님 승인("승인하니 진행해") 후 운영 DB(beautyground-main) 실행 완료.
+--    테스트 계정으로 create_board_post 실제 호출 검증(테스트 글은 삭제해 되돌림).
 
 -- 1) 테이블 체크 제약 갱신
 alter table public.board_posts drop constraint if exists board_posts_category_check;

@@ -3,8 +3,8 @@
 -- 근거(옵시디언 03 홈페이지/친환경 + 걷기 + 사는이야기 리서치): 60대 여성이 전 연령·
 -- 성별 중 ESG(친환경) 의식 1위(2.63점). "친환경"이라는 구호성 표현 대신, 조사에서
 -- 확인된 가장 익숙한 개념인 "재활용(42%, 1위 키워드)"에 맞춰 "아껴 쓰는 이야기"로 명명.
--- ⚠️ 미실행 — 내용 보고 후 승인받아야 운영 DB(beautyground-main)에 실행한다.
--- board_category_menopause.sql 이후 순서로 실행할 것(같은 create_board_post 함수를 또 갱신함).
+-- ✅ 2026-09-12 대표님 승인("승인하니 진행해") 후 운영 DB(beautyground-main) 실행 완료.
+--    테스트 계정으로 create_board_post 실제 호출 검증(테스트 글은 삭제해 되돌림).
 
 -- 1) 테이블 체크 제약 갱신
 alter table public.board_posts drop constraint if exists board_posts_category_check;

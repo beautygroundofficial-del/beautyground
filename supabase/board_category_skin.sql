@@ -3,9 +3,8 @@
 -- 근거: 대학내일20대연구소 세대별 피부 고민 조사 — X세대(46~61세, 우리 타겟과 겹침)
 -- 1위 고민은 주름. 정식 "후기"(제품 리뷰)와 달리 부담 없이 피부 얘기를 나눌 공간이
 -- 기존 9개 카테고리 어디에도 없었음 — 뷰티 커머스 커뮤니티인데 정작 빈 자리였음.
--- ⚠️ 미실행 — 내용 보고 후 승인받아야 운영 DB(beautyground-main)에 실행한다.
--- board_category_menopause.sql → board_category_eco.sql 다음 3번째 순서로 실행할 것
--- (같은 create_board_post 함수를 또 갱신함).
+-- ✅ 2026-09-12 대표님 승인("승인하니 진행해") 후 운영 DB(beautyground-main) 실행 완료.
+--    테스트 계정으로 create_board_post 실제 호출 검증(테스트 글은 삭제해 되돌림).
 
 -- 1) 테이블 체크 제약 갱신
 alter table public.board_posts drop constraint if exists board_posts_category_check;
