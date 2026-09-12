@@ -14,8 +14,11 @@ import type { ReactionKind } from './dailyQuestion'
 // 'eco' — 60대 여성이 전 연령·성별 중 ESG 의식 1위(친환경+걷기+사는이야기 리서치).
 //   다만 "친환경"·"제로웨이스트" 같은 구호성 표현은 안 쓰고, 조사에서 확인된 가장
 //   익숙한 개념인 "재활용/아껴쓰기"로 이름을 잡았다(설교조 대신 생활어투).
+// 'skin' — 대학내일20대연구소 세대별 피부 고민 조사에서 X세대(46~61세, 우리 타겟과 겹침)
+//   1위 고민이 주름으로 확인. 정식 "후기"(제품 리뷰)와 달리 부담 없는 피부 잡담 공간이
+//   9개 중 어디에도 없어서 추가 — 뷰티 커머스 커뮤니티인데 정작 이 자리가 비어 있었음.
 // 정확한 이름·위치는 계속 다듬을 수 있음(운영 반영 전).
-export type BoardCategory = 'kids' | 'spouse' | 'parents' | 'body' | 'menopause' | 'mind' | 'living' | 'eco' | 'chat'
+export type BoardCategory = 'kids' | 'spouse' | 'parents' | 'body' | 'menopause' | 'skin' | 'mind' | 'living' | 'eco' | 'chat'
 
 export const BOARD_CATEGORIES: { key: BoardCategory; label: string; hint: string }[] = [
   { key: 'kids',      label: '아이 키우는 이야기',   hint: '어리든 다 컸든' },
@@ -23,6 +26,7 @@ export const BOARD_CATEGORIES: { key: BoardCategory; label: string; hint: string
   { key: 'parents',   label: '부모님 생각나는 날',   hint: '돌봄, 그리움' },
   { key: 'body',      label: '몸이 달라지는 이야기', hint: '건강·체력·운동' },
   { key: 'menopause', label: '갱년기 이야기',        hint: '몸도 마음도 달라지는 그 시기' },
+  { key: 'skin',      label: '피부 이야기',          hint: '오늘 컨디션, 달라진 것들' },
   { key: 'mind',      label: '마음이 힘든 날',       hint: '감정, 사람 사이' },
   { key: 'living',    label: '살림하는 이야기',      hint: '돈·일·노후' },
   { key: 'eco',       label: '아껴 쓰는 이야기',     hint: '리필·나눔·작은 실천' },
