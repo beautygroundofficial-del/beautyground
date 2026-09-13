@@ -200,6 +200,19 @@ export default function AppMyPage() {
           </div>
         </div>
 
+        {/* 나의 활동 — 이야기 출석 캘린더 + 포인트로 살 수 있는 상품 추천 진입 버튼(2026-09-13) */}
+        <button
+          type="button"
+          onClick={() => navigate('/app/my-activity')}
+          className="mt-4 w-full rounded-card bg-ink text-paper px-4 py-3 flex items-center justify-between text-left focus:outline-none focus-visible:shadow-ring"
+        >
+          <span>
+            <span className="block text-[14px] font-bold">나의 활동</span>
+            <span className="block text-[12px] opacity-75 mt-0.5">이야기 출석 캘린더 · 포인트로 살 수 있는 상품</span>
+          </span>
+          <span aria-hidden="true">›</span>
+        </button>
+
         {/* 통계 — 2026-09-13 대표님 지시("앱이 너무 뚱뚱하다", 레퍼런스 마이 화면 참고)로
             테두리 박스 4개(통계·등급·포인트·미션)를 겹겹이 쌓던 구조를 없애고, 옅은 배경 톤 하나로
             가볍게 묶었다. 테두리선을 최소화하고 세로 간격도 좁혔다. */}

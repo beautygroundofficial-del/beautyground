@@ -39,6 +39,7 @@ const AppAddresses = lazy(() => import('./pages/AppAddresses'))
 const AppWishlist = lazy(() => import('./pages/AppWishlist'))
 const AppRecentlyViewed = lazy(() => import('./pages/AppRecentlyViewed'))
 const AppMyReviews = lazy(() => import('./pages/AppMyReviews'))
+const AppMyActivity = lazy(() => import('./pages/AppMyActivity'))
 const AppBenefits = lazy(() => import('./pages/AppBenefits'))
 const AppMissions = lazy(() => import('./pages/AppMissions'))
 const AppTodayActivity = lazy(() => import('./pages/AppTodayActivity'))
@@ -350,6 +351,7 @@ export default function App() {
         <Route path="/app/wishlist" element={<AppWishlist />} />
         <Route path="/app/recently-viewed" element={<AppRecentlyViewed />} />
         <Route path="/app/my-reviews" element={<AppMyReviews />} />
+        <Route path="/app/my-activity" element={<AppMyActivity />} />
         <Route path="/app/benefits" element={<AppBenefits />} />
         <Route path="/app/missions" element={<AppMissions />} />
         <Route path="/app/today" element={<AppTodayActivity />} />
