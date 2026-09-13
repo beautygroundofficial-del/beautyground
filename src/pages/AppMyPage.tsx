@@ -27,14 +27,22 @@ interface RealUser {
 // 이모지 대신 텍스트만 — 아이콘은 상태를 나타낼 때만 쓰고, 목록 항목 장식용으로는 쓰지 않는다.
 interface MenuItem { label: string; path: string; count?: number; value?: string }
 
-function buildMenuItems(user: RealUser, showMissions: boolean, friendRequests: number): MenuItem[] {
+// 2026-09-13 대표님 지시("한눈에 보기 힘들다, 겹치는 카테고리를 묶어라") — 13개 일자
+// 목록으로 쭉 나열되던 것을 "쇼핑/커뮤니티/설정" 3묶음으로 나눴다. 특히 혜택·쿠폰함·포인트
+// 세 줄이 전부 같은 화면(/app/benefits)으로 가는 완전 중복이었어서 한 줄로 합쳤다.
+function buildShoppingItems(user: RealUser): MenuItem[] {
   return [
     { label: '주문 내역', path: '/app/orders' },
     { label: '배송지 관리', path: '/app/addresses' },
     { label: '찜 목록', path: '/app/wishlist' },
-    { label: '혜택', path: '/app/benefits' },
-    { label: '쿠폰함', count: user.coupons, path: '/app/benefits' },
-    { label: '포인트', value: `${user.points.toLocaleString()}P`, path: '/app/benefits' },
+    { label: '최근 본 상품', path: '/app/recently-viewed' },
+    { label: '리뷰 관리', path: '/app/my-reviews' },
+    { label: '혜택', value: `쿠폰 ${user.coupons}장 · ${user.points.toLocaleString()}P`, path: '/app/benefits' },
+  ]
+}
+
+function buildCommunityItems(showMissions: boolean, friendRequests: number): MenuItem[] {
+  return [
     // 참여형 기능은 관리자가 활동 미션을 켰을 때만 노출한다(=붙이는 스위치).
     ...(showMissions ? [
       { label: '살아가는 이야기', path: '/app/diary' },
@@ -47,9 +55,35 @@ function buildMenuItems(user: RealUser, showMissions: boolean, friendRequests: n
     { label: '친구', path: '/app/friends', ...(friendRequests > 0 ? { count: friendRequests } : {}) },
     // 반려동물 — 등록하면 하루 이야기에 '같이 걸은 친구'로 붙는다(2026-09-12)
     { label: '내 반려동물', path: '/app/pets' },
-    { label: '최근 본 상품', path: '/app/recently-viewed' },
-    { label: '리뷰 관리', path: '/app/my-reviews' },
   ]
+}
+
+// 묶음 하나(쇼핑/커뮤니티/설정)를 그리는 공통 틀 — 라벨 위 작은 회색 소제목 + 행 목록
+function MenuGroup({ title, items, onNavigate }: { title: string; items: MenuItem[]; onNavigate: (path: string) => void }) {
+  if (items.length === 0) return null
+  return (
+    <div className="mt-2 bg-paper">
+      <p className="px-5 py-3 text-[12px] font-bold text-ink-faint tracking-wide">{title}</p>
+      {items.map(({ label, path, count, value }) => (
+        <button
+          key={label}
+          onClick={() => path && onNavigate(path)}
+          className="w-full flex items-center justify-between px-5 py-3.5 border-b border-rule last:border-0 focus:outline-none focus-visible:shadow-ring"
+        >
+          <span className="text-[14px] text-ink">{label}</span>
+          <div className="flex items-center gap-2">
+            {count !== undefined && (
+              <span className="text-[13px] font-bold tabular-nums text-ink">{count}</span>
+            )}
+            {value && (
+              <span className="text-[13px] text-ink-soft">{value}</span>
+            )}
+            <span className="text-ink-faint" aria-hidden="true">›</span>
+          </div>
+        </button>
+      ))}
+    </div>
+  )
 }
 
 const SETTING_ITEMS = [
@@ -310,27 +344,9 @@ export default function AppMyPage() {
         )}
       </div>
 
-      {/* 메뉴 */}
-      <div className="mt-2 bg-paper">
-        {buildMenuItems(user, activeMissions.length > 0, friendRequests).map(({ label, path, count, value }) => (
-          <button
-            key={label}
-            onClick={() => path && navigate(path)}
-            className="w-full flex items-center justify-between px-5 py-3.5 border-b border-rule last:border-0 focus:outline-none focus-visible:shadow-ring"
-          >
-            <span className="text-[14px] text-ink">{label}</span>
-            <div className="flex items-center gap-2">
-              {count !== undefined && (
-                <span className="text-[13px] font-bold tabular-nums text-ink">{count}</span>
-              )}
-              {value && (
-                <span className="text-[13px] font-bold tabular-nums text-ink">{value}</span>
-              )}
-              <span className="text-ink-faint" aria-hidden="true">›</span>
-            </div>
-          </button>
-        ))}
-      </div>
+      {/* 메뉴 — 쇼핑/커뮤니티/설정 3묶음으로 나눠 한눈에 들어오게(2026-09-13) */}
+      <MenuGroup title="쇼핑" items={buildShoppingItems(user)} onNavigate={navigate} />
+      <MenuGroup title="커뮤니티" items={buildCommunityItems(activeMissions.length > 0, friendRequests)} onNavigate={navigate} />
 
       {/* 설정 */}
       <div className="mt-2 bg-paper">
