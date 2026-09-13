@@ -63,8 +63,11 @@ async function sendLiveStartNotifications(
       .in('user_id', userIds)
     if (!subs || subs.length === 0) return
 
+    // 2026-09-14 대표님 지시 — 후킹 카피 원칙(열린 고리) 적용: "라이브 시작"이라는
+    // 사실 전달 대신, 지금 안 보면 궁금증이 안 풀린다는 느낌으로 바꿈. body(실제 방송 제목)는
+    // 손대지 않는다 — 구체적 정보라 그대로 두는 게 맞다.
     const payload = JSON.stringify({
-      title: `${notifyName} 라이브 시작`,
+      title: `${notifyName} 지금 라이브 중 · 놓치면 아쉬운 이유가 있어요`,
       body: live.title,
       data: { url: `/app/live/${live.id}` },
     })
