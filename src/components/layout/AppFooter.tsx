@@ -45,7 +45,7 @@ export default function AppFooter() {
           <p>대표전화 <a href={`tel:${COMPANY_INFO.csPhone}`} className="hover:text-ink-soft">{COMPANY_INFO.csPhone}</a>({COMPANY_INFO.csHours})</p>
           <p>대표메일 {COMPANY_INFO.csEmail}</p>
           <p>주소 {COMPANY_INFO.address}</p>
-          <p>대표이사 {COMPANY_INFO.ceo} · 사업자등록번호 {COMPANY_INFO.bizNumber}</p>
+          <p>대표이사 {COMPANY_INFO.ceo}</p>
           <p>호스팅제공자 Vercel Inc.</p>
         </div>
 
