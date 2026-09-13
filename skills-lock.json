@@ -1,6 +1,12 @@
 {
   "version": 1,
   "skills": {
+    "ab-testing": {
+      "source": "coreyhaines31/marketingskills",
+      "sourceType": "github",
+      "skillPath": "skills/ab-testing/SKILL.md",
+      "computedHash": "4ea04d576507f4a683e6203737c33993fb36add719f628b7200649a9cb87b5fe"
+    },
     "community-marketing": {
       "source": "coreyhaines31/marketingskills",
       "sourceType": "github",
@@ -55,6 +61,18 @@
       "skillPath": "skills/marketing-plan/SKILL.md",
       "computedHash": "b97f11ea56c2db71d3d6a06cd779ae1fc7789ef8a2bb925cb20996fd1f511735"
     },
+    "onboarding": {
+      "source": "coreyhaines31/marketingskills",
+      "sourceType": "github",
+      "skillPath": "skills/onboarding/SKILL.md",
+      "computedHash": "ba2fe5408a824eec4a42497f4d43c5ffcc90e3ab6fd6bdc87e6532367de44433"
+    },
+    "paywalls": {
+      "source": "coreyhaines31/marketingskills",
+      "sourceType": "github",
+      "skillPath": "skills/paywalls/SKILL.md",
+      "computedHash": "2f85b43846a4e88633e504fcae9165d0c104fd7ca7ae9c4748a13e4dc35bf12b"
+    },
     "product-marketing": {
       "source": "coreyhaines31/marketingskills",
       "sourceType": "github",
@@ -72,6 +90,12 @@
       "sourceType": "github",
       "skillPath": "skills/referrals/SKILL.md",
       "computedHash": "e374f9a5460fbea97ba4b1ecd45984b5c1dbbac3b53a11d7b79acdd84f9128c9"
+    },
+    "revops": {
+      "source": "coreyhaines31/marketingskills",
+      "sourceType": "github",
+      "skillPath": "skills/revops/SKILL.md",
+      "computedHash": "c05345d2db25fff632dbce95a07324d973ed381b10f88b443f75db1d79cc7481"
     },
     "seo-audit": {
       "source": "coreyhaines31/marketingskills",
