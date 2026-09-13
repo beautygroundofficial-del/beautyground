@@ -23,9 +23,9 @@ export default function AppFooter() {
 
   return (
     <footer className="bg-paper border-t border-rule">
-      <div className="px-5 pt-7 pb-9">
+      <div className="px-5 pt-5 pb-6">
         {/* 상단 링크 탭 */}
-        <nav className="flex items-center gap-4 text-[13px] font-semibold text-ink-soft pb-5 border-b border-rule" aria-label="하단 메뉴">
+        <nav className="flex items-center gap-3 text-[12px] font-semibold text-ink-soft pb-3 border-b border-rule" aria-label="하단 메뉴">
           {loggedIn ? (
             <Link to="/app/mypage" className="hover:text-ink transition-colors">마이페이지</Link>
           ) : (
@@ -35,9 +35,10 @@ export default function AppFooter() {
           <a href={`tel:${COMPANY_INFO.csPhone}`} className="hover:text-ink transition-colors">소비자상담실</a>
         </nav>
 
-        {/* 사업자 정보 */}
-        <div className="pt-5 text-[11.5px] text-ink-faint leading-[1.75]">
-          <p className="text-ink-soft font-semibold text-[12.5px] mb-1">{COMPANY_INFO.name}</p>
+        {/* 사업자 정보 — 대표전화 한 줄에 상담 운영시간까지 묶어서, 아래 별도 "소비자상담실"
+            블록(같은 번호 반복)을 없앴다(2026-09-13, 대표님 "중첩된 내용" 지적) */}
+        <div className="pt-3 text-[11px] text-ink-faint leading-[1.6]">
+          <p className="text-ink-soft font-semibold text-[12px] mb-1">{COMPANY_INFO.name}</p>
           <p>대표이사 {COMPANY_INFO.ceo} · 개인정보보호책임자 {COMPANY_INFO.privacyOfficer} · 사업자등록번호 {COMPANY_INFO.bizNumber}</p>
           <p>
             통신판매업신고 {COMPANY_INFO.mailOrderNumber}{' '}
@@ -45,27 +46,18 @@ export default function AppFooter() {
               href={FTC_URL}
               target="_blank"
               rel="noreferrer"
-              className="ml-1 inline-block px-1.5 py-px border border-rule text-[11px] text-ink-soft hover:bg-quiet transition-colors"
+              className="ml-1 inline-block px-1.5 py-px border border-rule text-[10.5px] text-ink-soft hover:bg-quiet transition-colors"
             >
               사업자정보확인
             </a>
           </p>
-          <p>대표전화 {COMPANY_INFO.csPhone} · 대표메일 {COMPANY_INFO.csEmail}</p>
+          <p>대표전화 {COMPANY_INFO.csPhone}({COMPANY_INFO.csHours}) · 대표메일 {COMPANY_INFO.csEmail}</p>
           <p>주소 {COMPANY_INFO.address}</p>
           <p>호스팅제공자 Vercel Inc.</p>
         </div>
 
-        {/* 소비자상담실 (호스팅제공자 아래) */}
-        <div className="mt-5 text-[11.5px] text-ink-faint leading-[1.75]">
-          <p className="text-ink-soft font-semibold text-[12.5px] mb-1">소비자상담실</p>
-          <p>
-            <a href={`tel:${COMPANY_INFO.csPhone}`} className="text-ink-soft">{COMPANY_INFO.csPhone}</a>
-          </p>
-          <p>운영시간 {COMPANY_INFO.csHours}</p>
-        </div>
-
         {/* 법적 링크 */}
-        <div className="mt-6 flex flex-wrap items-center gap-x-3 gap-y-2 text-[12.5px]">
+        <div className="mt-4 flex flex-wrap items-center gap-x-2.5 gap-y-1.5 text-[12px]">
           <Link to="/terms" className="text-ink-soft hover:text-ink transition-colors">이용약관</Link>
           {sep}
           <Link to="/privacy" className="text-ink font-semibold hover:text-ink transition-colors">개인정보처리방침</Link>
@@ -73,7 +65,7 @@ export default function AppFooter() {
           <Link to="/company" className="text-ink-soft hover:text-ink transition-colors">회사소개</Link>
         </div>
 
-        <p className="mt-6 text-[11px] text-ink-faint/80">
+        <p className="mt-4 text-[10.5px] text-ink-faint/80">
           © 2026 {COMPANY_INFO.name}. All rights reserved.
         </p>
       </div>
