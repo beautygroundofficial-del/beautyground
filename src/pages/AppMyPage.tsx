@@ -263,17 +263,19 @@ export default function AppMyPage() {
             가볍게 묶었다. 테두리선을 최소화하고 세로 간격도 좁혔다. */}
         <div className="mt-4 grid grid-cols-3 gap-0 rounded-card bg-quiet/50">
           {[
-            { label: '주문', value: user.orders },
-            { label: '찜', value: user.wishlist },
-            { label: '쿠폰', value: user.coupons },
-          ].map(({ label, value }, i) => (
-            <div
+            { label: '주문', value: user.orders, path: '/app/orders' },
+            { label: '찜', value: user.wishlist, path: '/app/wishlist' },
+            { label: '쿠폰', value: user.coupons, path: '/app/benefits' },
+          ].map(({ label, value, path }, i) => (
+            <button
               key={label}
-              className={`py-3 text-center ${i < 2 ? 'border-r border-paper' : ''}`}
+              type="button"
+              onClick={() => navigate(path)}
+              className={`py-3 text-center focus:outline-none focus-visible:shadow-ring ${i < 2 ? 'border-r border-paper' : ''}`}
             >
               <p className="text-[18px] font-bold tabular-nums text-ink">{value}</p>
               <p className="text-[11.5px] text-ink-soft mt-0.5">{label}</p>
-            </div>
+            </button>
           ))}
         </div>
 
