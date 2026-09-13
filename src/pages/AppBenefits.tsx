@@ -234,10 +234,24 @@ export default function AppBenefits() {
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="text-[13px] font-bold text-ink">{c.label}</p>
-                        <p className="text-[11px] text-ink-faint mt-0.5">
-                          {c.minOrderAmount > 0 ? `${c.minOrderAmount.toLocaleString('ko-KR')}원 이상 · ` : ''}
-                          {new Date(c.expiresAt).toLocaleDateString('ko-KR')}까지
-                        </p>
+                        {/* 만료 임박(7일 이하)일 때만 손실회피 톤으로 강조 — 실제 만료일은 그대로,
+                            라벨만 바뀐다(2026-09-14, live-input.ts 라이브 알림과 같은 패턴). */}
+                        {(() => {
+                          const daysLeft = Math.ceil((new Date(c.expiresAt).getTime() - Date.now()) / 86400000)
+                          const prefix = c.minOrderAmount > 0 ? `${c.minOrderAmount.toLocaleString('ko-KR')}원 이상 · ` : ''
+                          if (daysLeft <= 7) {
+                            return (
+                              <p className="text-[11px] font-bold text-signal-red mt-0.5">
+                                {prefix}D-{Math.max(daysLeft, 0)} · {daysLeft <= 0 ? '오늘' : `${daysLeft}일 뒤`} 사라져요
+                              </p>
+                            )
+                          }
+                          return (
+                            <p className="text-[11px] text-ink-faint mt-0.5">
+                              {prefix}{new Date(c.expiresAt).toLocaleDateString('ko-KR')}까지
+                            </p>
+                          )
+                        })()}
                       </div>
                     </div>
                   </div>

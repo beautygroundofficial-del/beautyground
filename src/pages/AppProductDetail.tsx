@@ -477,6 +477,11 @@ export default function AppProductDetail() {
             일시 품절
           </p>
         )}
+        {/* 재고 신호 — 장바구니(AppCart.tsx)엔 있었는데 정작 구매 결정이 일어나는
+            상세페이지엔 없었다(2026-09-14 조사로 발견). 같은 기준(5개 이하)·같은 문구로 통일. */}
+        {!view.soldOut && view.stock != null && view.stock <= 5 && (
+          <p className="mt-2 text-[12px] font-bold text-signal-red">재고 {view.stock}개 남음</p>
+        )}
 
         {/* 상품 정보 테이블 (적립금·브랜드·제조국·배송비) — 소비자가/판매가는 위 가격 표시로 대체 */}
         <ProductInfoTable

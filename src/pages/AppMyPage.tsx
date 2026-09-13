@@ -297,8 +297,11 @@ export default function AppMyPage() {
                 현재 <b style={{ color: membership.tier.color === '#FFFFFF' ? '#17181C' : membership.tier.color }}>{membership.tier.label}</b> · 구매 시 {membership.tier.rewardRate}% 적립 예정
               </span>
               {membership.next && (
-                <span className="text-[12px] text-ink-faint tabular-nums">
-                  {membership.next.next.label}까지 {membership.next.remain.toLocaleString('ko-KR')}원
+                // 2026-09-14 조사로 발견 — 실데이터(남은 금액·다음 등급 적립률)는 그대로 두고
+                // "대비" 프레이밍만 얹었다: 목표 지점 대신 "지금 vs 다음" 적립률 차이를 보여준다.
+                <span className="text-[12px] font-semibold tabular-nums">
+                  <span className="text-signal-red">{membership.next.remain.toLocaleString('ko-KR')}원</span>
+                  <span className="text-ink-faint">만 더 사면 {membership.next.next.label} {membership.next.next.rewardRate}%</span>
                 </span>
               )}
             </div>
