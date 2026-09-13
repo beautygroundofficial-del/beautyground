@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import BackHeader from '../components/layout/BackHeader'
 import AppFrame from '../components/layout/AppFrame'
@@ -43,6 +43,17 @@ export default function AppBoard() {
   const [selected, setSelected] = useState<BoardCategory[]>(initialCategory ? [initialCategory] : [])
   const [feed, setFeed] = useState<BoardPost[]>([])
   const [loading, setLoading] = useState(true)
+  const chipRefs = useRef<Partial<Record<BoardCategory, HTMLButtonElement>>>({})
+
+  // 홈에서 특정 카테고리로 들어오면 칩이 실제로 골라져 있어도, 가로 스크롤 줄 밖(오른쪽)에 있으면
+  // 화면엔 항상 똑같은 왼쪽 칩들(전체·아이 키우는 이야기…)만 보여서 "카테고리를 눌러도 다 똑같은
+  // 화면 같다"고 느끼게 된다(2026-09-13 발견 — 라우팅 자체는 정상, 골라진 칩이 안 보이는 게 문제).
+  // 진입 시 그 칩을 보이는 위치로 스크롤해 확실히 보여준다.
+  useEffect(() => {
+    if (!initialCategory) return
+    chipRefs.current[initialCategory]?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const load = useCallback(async (cats: BoardCategory[]) => {
     setLoading(true)
@@ -86,6 +97,7 @@ export default function AppBoard() {
             return (
               <button
                 key={c.key}
+                ref={(el) => { if (el) chipRefs.current[c.key] = el }}
                 type="button"
                 onClick={() => toggleCat(c.key)}
                 aria-pressed={on}
@@ -110,7 +122,11 @@ export default function AppBoard() {
             className="w-full rounded-card border border-dashed border-rule bg-quiet/40 px-5 py-12 text-center focus:outline-none focus-visible:shadow-ring"
           >
             <p className="text-[14px] font-semibold text-ink">
-              {selected.length > 0 ? '이 이야기는 아직 비어 있어요' : '아직 아무도 속 이야기를 꺼내지 않았어요'}
+              {selected.length === 1
+                ? `'${categoryLabel(selected[0])}'는 아직 비어 있어요`
+                : selected.length > 1
+                ? '이 이야기는 아직 비어 있어요'
+                : '아직 아무도 속 이야기를 꺼내지 않았어요'}
             </p>
             <p className="text-[12.5px] text-ink-faint mt-1.5">먼저 털어놓아 주세요. 누군가 들어줄 거예요</p>
           </button>
