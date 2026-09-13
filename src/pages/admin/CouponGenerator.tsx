@@ -179,7 +179,7 @@ export default function AdminCouponGenerator() {
         body: JSON.stringify({
           pushAction: 'sendCoupon',
           userIds,
-          title: `${campaign.badge} 쿠폰 도착!`,
+          title: `${campaign.badge} · 오늘 안 열면 사라지는 쿠폰이 와 있어요`,
           body: `${label.trim()} — ${discountLabel()}`,
           image: bannerUrl,
           url: '/app/benefits',

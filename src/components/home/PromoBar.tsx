@@ -19,7 +19,7 @@ interface PromoItem {
 const ITEMS: PromoItem[] = [
   {
     key: 'kakao',
-    message: '적립금 받기 + 카카오 친구추가 혜택 보러가기',
+    message: '안 받으면 손해예요 — 카카오 친구추가하면 3,000원 바로 적립',
     href: '/app/benefits',
     bgClass: 'bg-[#0F0F0F]',
     withKakao: true,

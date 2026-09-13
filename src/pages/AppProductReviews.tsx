@@ -179,7 +179,7 @@ export default function AppProductReviews() {
         </div>
 
         {reviews.length === 0 ? (
-          <div className="px-4 py-16 text-center text-ink-faint text-[14px]">아직 등록된 리뷰가 없습니다.</div>
+          <div className="px-4 py-16 text-center text-ink-faint text-[14px]">아직 리뷰가 없어요 — 이 상품의 첫 리뷰 주인공이 되어보세요</div>
         ) : (
           <>
             {/* PHOTO REVIEW 그리드 */}

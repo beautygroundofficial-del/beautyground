@@ -84,7 +84,7 @@ export default function LiveSchedule() {
         {loading ? (
           <p className="text-[13px] text-[#666666] py-8 text-center">불러오는 중…</p>
         ) : groups.length === 0 ? (
-          <p className="text-[13px] text-[#666666] py-8 text-center">예정된 방송이 없습니다.</p>
+          <p className="text-[13px] text-[#666666] py-8 text-center">아직 예정된 방송이 없어요 — 곧 새로운 일정이 올라와요</p>
         ) : (
           groups.map((g) => (
             <section key={g.key} className="mb-7">

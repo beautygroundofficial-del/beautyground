@@ -202,7 +202,7 @@ export default function LiveMain() {
           {loading ? (
             <p className="text-[13px] text-[#666666] py-8 text-center">불러오는 중…</p>
           ) : carouselItems.length === 0 ? (
-            <p className="text-[13px] text-[#666666] py-8 text-center">진행 중이거나 지난 라이브가 없습니다.</p>
+            <p className="text-[13px] text-[#666666] py-8 text-center">지금은 진행 중인 라이브가 없어요 — 곧 새로운 방송이 열려요</p>
           ) : (
             <div
               ref={trackRef}

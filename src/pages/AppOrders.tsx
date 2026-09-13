@@ -182,8 +182,8 @@ export default function AppOrders() {
 
       {groups.length === 0 ? (
         <div className="flex flex-col items-center justify-center px-8 pt-28 text-center">
-          <p className="text-[15px] text-ink font-bold mb-2">아직 주문 내역이 없어요</p>
-          <p className="text-[13px] text-ink-faint mb-6">마음에 드는 상품을 찾아보세요.</p>
+          <p className="text-[15px] text-ink font-bold mb-2">아직 첫 주문 전이시네요</p>
+          <p className="text-[13px] text-ink-faint mb-6">오늘 첫 주문을 시작해보세요</p>
           <button onClick={() => navigate('/app/home')} className="rounded-control bg-ink text-paper font-bold text-[14px] px-8 py-3.5 focus:outline-none focus-visible:shadow-ring">
             쇼핑하러 가기
           </button>

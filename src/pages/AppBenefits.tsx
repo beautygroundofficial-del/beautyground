@@ -136,9 +136,9 @@ export default function AppBenefits() {
             로그인
           </button>
           <p className="text-[12.5px] text-ink-faint mt-4">
-            아직 회원이 아니신가요?{' '}
+            아직 안 받으셨다면 지금 3,000P가 대기 중이에요{' '}
             <button onClick={() => navigate('/app/signup')} className="text-ink font-bold underline focus:outline-none focus-visible:shadow-ring">
-              회원가입하고 3,000P 받기
+              지금 회원가입하기
             </button>
           </p>
         </div>
@@ -151,7 +151,7 @@ export default function AppBenefits() {
               <span className="text-[13px] font-bold tabular-nums text-ink bg-signal-yellow px-2 py-0.5">3,000P</span>
             </div>
             <p className="text-[12.5px] text-ink-soft mt-2 leading-relaxed">
-              회원가입 시 자동으로 지급돼요. {minOrderText}(지급일로부터 30일 이내).
+              회원가입 시 자동으로 지급돼요. {minOrderText}(지급 후 30일 뒤 자동 소멸 — 놓치지 마세요).
             </p>
           </div>
 
@@ -223,7 +223,7 @@ export default function AppBenefits() {
               )}
             </div>
             {coupons.length === 0 ? (
-              <p className="text-[13px] text-ink-faint py-2">보유 중인 쿠폰이 없어요.</p>
+              <p className="text-[13px] text-ink-faint py-2">지금 놓치고 있는 혜택이 있을 수 있어요, 위에서 확인해보세요</p>
             ) : (
               <div className="space-y-2.5">
                 {coupons.map((c) => (

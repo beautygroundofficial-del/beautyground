@@ -87,8 +87,8 @@ export default function AppRecentlyViewed() {
       {lines.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-24 px-8 text-center">
           <IconHome className="w-10 h-10 mb-4 text-ink-faint" />
-          <p className="text-[16px] font-bold text-ink mb-2">아직 본 상품이 없어요</p>
-          <p className="text-[13px] text-ink-soft mb-6">상품을 둘러보면 여기에 모여요</p>
+          <p className="text-[16px] font-bold text-ink mb-2">아직 마음에 둔 제품이 없으신가요?</p>
+          <p className="text-[13px] text-ink-soft mb-6">지금 인기 상품부터 볼까요?</p>
           <button
             onClick={() => navigate('/app/home')}
             className="rounded-control bg-ink text-paper font-bold text-[14px] px-8 py-3 focus:outline-none focus-visible:shadow-ring"

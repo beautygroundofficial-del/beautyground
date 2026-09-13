@@ -4,7 +4,7 @@ import { SHIPPING_FEE, FREE_SHIPPING_THRESHOLD } from '../../constants'
 // 홈 어디에도 이런 요약이 없어서(대표님 지적, 2026-08-06) 히어로 배너 바로 아래에 얇게 배치.
 const ITEMS = [
   { label: '무료배송', desc: `${FREE_SHIPPING_THRESHOLD.toLocaleString('ko-KR')}원 이상 구매 시 (미만 ${SHIPPING_FEE.toLocaleString('ko-KR')}원)` },
-  { label: '신규가입 혜택', desc: '적립금 3,000원 + 첫구매 쿠폰 2종' },
+  { label: '신규가입 혜택', desc: '가입만 해도 3,000원, 첫 구매하면 쿠폰까지' },
 ]
 
 export default function TrustStrip() {

@@ -599,9 +599,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (buyerEmail) {
     await sendMail(
       buyerEmail,
-      `[뷰티그라운드] 주문이 완료되었습니다 - ${orderName}`,
+      `[뷰티그라운드] ${buyerName}님, ${orderName} 주문 확정 - 이제 배송만 남았어요`,
       `<div style="font-family:sans-serif;max-width:480px;margin:0 auto;">
-         <h2 style="color:#b8924a;">주문이 완료되었습니다</h2>
+         <h2 style="color:#b8924a;">주문 확정 — 이제 배송만 남았어요</h2>
          <p>${buyerName}님, 주문해 주셔서 감사합니다.</p>
          ${itemTable}
          <p style="color:#888;font-size:13px;margin-top:24px;">주문번호: ${paymentId}<br/>문의: beautyground.official@gmail.com</p>

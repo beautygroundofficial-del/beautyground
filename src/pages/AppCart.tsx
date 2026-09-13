@@ -187,8 +187,8 @@ export default function AppCart() {
       {lines.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-24">
           <IconCart className="w-12 h-12 mb-4 text-ink-faint" />
-          <p className="text-[16px] font-bold text-ink mb-2">장바구니가 비어있어요</p>
-          <p className="text-[13px] text-ink-soft mb-6">마음에 드는 상품을 담아보세요</p>
+          <p className="text-[16px] font-bold text-ink mb-2">장바구니가 허전해요</p>
+          <p className="text-[13px] text-ink-soft mb-6">최근 둘러본 상품이 아직 기다리고 있어요</p>
           <button
             onClick={() => navigate('/app/home')}
             className="rounded-pill bg-ink text-paper font-bold text-[14px] px-8 py-3 focus:outline-none focus-visible:shadow-ring"
@@ -317,7 +317,7 @@ export default function AppCart() {
               </div>
               {subtotal > 0 && subtotal < FREE_SHIPPING_THRESHOLD && (
                 <p className="text-[11px] text-ink-faint">
-                  {(FREE_SHIPPING_THRESHOLD - subtotal).toLocaleString('ko-KR')}원 더 담으면 무료 배송
+                  무료배송까지 {(FREE_SHIPPING_THRESHOLD - subtotal).toLocaleString('ko-KR')}원 남았어요
                 </p>
               )}
               <div className="flex justify-between pt-2 border-t border-rule mt-2">
