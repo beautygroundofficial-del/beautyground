@@ -58,13 +58,24 @@ function buildCommunityItems(showMissions: boolean, friendRequests: number): Men
   ]
 }
 
-// 묶음 하나(쇼핑/커뮤니티/설정)를 그리는 공통 틀 — 라벨 위 작은 회색 소제목 + 행 목록
+// 묶음 하나(쇼핑/커뮤니티/설정)를 그리는 공통 틀 — 소제목을 누르면 접히고 펼쳐진다.
+// 2026-09-13 대표님 지시: "버튼을 누르면 아래 내용이 펼쳐지게" — 기본은 접힌 채로 시작해
+// 제목 줄만 보이게 해서 페이지를 짧게 만들고, 누르면 그 묶음만 펼쳐진다.
 function MenuGroup({ title, items, onNavigate }: { title: string; items: MenuItem[]; onNavigate: (path: string) => void }) {
+  const [open, setOpen] = useState(false)
   if (items.length === 0) return null
   return (
     <div className="mt-2 bg-paper">
-      <p className="px-5 py-3 text-[12px] font-bold text-ink-faint tracking-wide">{title}</p>
-      {items.map(({ label, path, count, value }) => (
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        className="w-full flex items-center justify-between px-5 py-3 focus:outline-none focus-visible:shadow-ring"
+      >
+        <span className="text-[12px] font-bold text-ink-faint tracking-wide">{title}</span>
+        <span className={`text-ink-faint text-[12px] transition-transform ${open ? 'rotate-180' : ''}`} aria-hidden="true">⌄</span>
+      </button>
+      {open && items.map(({ label, path, count, value }) => (
         <button
           key={label}
           onClick={() => path && onNavigate(path)}
@@ -347,19 +358,7 @@ export default function AppMyPage() {
       <MenuGroup title="커뮤니티" items={buildCommunityItems(activeMissions.length > 0, friendRequests)} onNavigate={navigate} />
 
       {/* 설정 */}
-      <div className="mt-2 bg-paper">
-        <p className="px-5 py-3 text-[12px] font-bold text-ink-faint tracking-wide">설정</p>
-        {SETTING_ITEMS.map(({ label, path }) => (
-          <button
-            key={label}
-            onClick={() => path && navigate(path)}
-            className="w-full flex items-center justify-between px-5 py-3.5 border-b border-rule last:border-0 focus:outline-none focus-visible:shadow-ring"
-          >
-            <span className="text-[14px] text-ink">{label}</span>
-            <span className="text-ink-faint" aria-hidden="true">›</span>
-          </button>
-        ))}
-      </div>
+      <MenuGroup title="설정" items={SETTING_ITEMS} onNavigate={navigate} />
 
       {/* 직원 전용 바로가기 — app_staff 지정 계정에만 노출(관리자 회원관리 > 직원 지정) */}
       {isStaff && (
