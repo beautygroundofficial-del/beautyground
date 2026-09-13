@@ -86,10 +86,10 @@ function MenuGroup({ title, items, onNavigate }: { title: string; items: MenuIte
   )
 }
 
+// 이용약관·개인정보처리방침은 페이지 맨 아래 푸터에 이미 있어서 여기선 뺐다
+// (2026-09-13 대표님 "이게 너무 많다" 지적 — 중복 줄로 세지 않는다)
 const SETTING_ITEMS = [
   { label: '계정/보안', path: '/app/account' },
-  { label: '이용약관', path: '/terms' },
-  { label: '개인정보처리방침', path: '/privacy' },
   { label: '고객센터', path: '/about' },
 ]
 
@@ -266,12 +266,18 @@ export default function AppMyPage() {
           ))}
         </div>
 
-        {/* 회원 등급 — 누적 구매금액 기반, 배지 클릭으로 등급표 열람 */}
+        {/* 회원 등급 + 보유 포인트 — 원래 별도 블록 2개였던 것을 하나로 합쳤다(2026-09-13,
+            대표님 "이게 너무 많다" 지적 — 묶기만 하고 안 줄이면 소용없다는 지적에 따라
+            블록 자체를 줄임). 배지 클릭으로 등급표 열람 */}
         {loggedIn && membership && (
           <div className="mt-2 rounded-card bg-quiet/50 px-4 py-3">
             <div className="flex items-center justify-between">
               <span className="text-[13px] text-ink-soft">누적 구매금액</span>
               <span className="text-[14px] font-bold tabular-nums text-ink">{membership.totalSpent.toLocaleString('ko-KR')}원</span>
+            </div>
+            <div className="flex items-center justify-between mt-1.5">
+              <span className="text-[13px] text-ink-soft">보유 포인트</span>
+              <span className="text-[13px] font-bold tabular-nums text-ink bg-signal-yellow px-2 py-0.5">{user.points.toLocaleString()}P</span>
             </div>
             <div className="flex items-center justify-between mt-1">
               <span className="text-[12px] text-ink-faint">
@@ -317,14 +323,6 @@ export default function AppMyPage() {
             )}
           </div>
         )}
-
-        {/* 포인트 — 조건부 혜택 성격이라 신호색(노랑) 작은 칩으로 */}
-        <div className="mt-2 rounded-card bg-quiet/50 px-4 py-3 flex items-center justify-between">
-          <span className="text-[14px] font-bold text-ink">보유 포인트</span>
-          <span className="text-[13px] font-bold tabular-nums text-ink bg-signal-yellow px-2 py-0.5">
-            {user.points.toLocaleString()}P
-          </span>
-        </div>
 
         {/* 활동 미션 — 구매 없이도 포인트를 모을 수 있는 진입구. 유입 장치라 목록에 묻히지 않게 따로 뺀다.
             켜진 미션이 없으면 렌더하지 않는다(관리자 스위치). */}
