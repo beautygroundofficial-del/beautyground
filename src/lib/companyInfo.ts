@@ -12,7 +12,7 @@ export const COMPANY_INFO = {
   privacyOfficer: '김은경',
   bizNumber: '303-81-80858',
   mailOrderNumber: '제2022-성남분당B-0349호',
-  address: '경기도 성남시 분당구 성남대로 345, 4층 407호(정자동, 정자역프라자)',
+  address: '경기도 성남시 분당구 성남대로 345, 4층 407호',
   csPhone: '02-897-8287',
   csHours: '09:00~18:00',
   csEmail: 'beautyground.official@gmail.com',
