@@ -88,12 +88,8 @@ export default function AppCategory() {
         ))}
       </div>
 
-      {/* 브랜드 텍스트 레일 — /live·홈과 동일 컴포넌트 (2026-08-12 대표님 지시로 카테고리에도 노출) */}
-      <div className="pt-2">
-        <BrandRail brands={brands} loading={brandsLoading} />
-      </div>
-
-      {/* 홈에서 옮겨온 상품 레일 3종 */}
+      {/* 홈에서 옮겨온 상품 레일 3종 — 2026-09-15 대표님 지시로 브랜드 목록보다 먼저 보이게 순서 변경
+          (브랜드가 다 펼쳐지면 할인특가·추천상품이 스크롤 없이는 안 보이는 문제) */}
       {saleProducts.length > 0 && (
         <ProductRail id="shop-sale" title="할인 특가" products={saleProducts} loading={saleLoading} onProductClick={goProduct} />
       )}
@@ -104,8 +100,12 @@ export default function AppCategory() {
         loading={prodLoading}
         onProductClick={goProduct}
       />
-      <div className="pb-8">
-        <ProductRail id="shop-products" title="신상품" products={products} loading={prodLoading} onProductClick={goProduct} />
+      <ProductRail id="shop-products" title="신상품" products={products} loading={prodLoading} onProductClick={goProduct} />
+
+      {/* 브랜드 텍스트 레일 — /live·홈과 동일 컴포넌트 (2026-08-12 대표님 지시로 카테고리에도 노출).
+          2026-09-15: 상품 레일 뒤로 순서 이동 + 기본 2줄 접힘(BrandRail 자체에서 처리) */}
+      <div className="pt-2 pb-8">
+        <BrandRail brands={brands} loading={brandsLoading} />
       </div>
 
       <AppFooter />
