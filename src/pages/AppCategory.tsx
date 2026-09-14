@@ -39,8 +39,10 @@ export default function AppCategory() {
   const { products: saleProducts, loading: saleLoading } = useSaleProducts()
   const { products, recommended, seasonLabel, loading: prodLoading } = useHomeProductSections()
   const goProduct = (id: string) => navigate(`/app/product/${id}`)
-  // 뷰티를 기본으로 펼쳐둠 — 기존에 이 화면을 쓰던 사람이 탭을 한 번 더 누르지 않아도 되게.
-  const [openGroup, setOpenGroup] = useState<CategoryGroupId | null>('beauty')
+  // 2026-09-14: 뷰티를 기본으로 펼쳐두면 소분류 6개가 화면을 다 차지해서 그 아래 상품(할인특가·
+  // 추천상품·신상품)이 스크롤 없이는 안 보이는 문제 발견(대표님 "제품들이 다 사라졌어") — 기본은
+  // 전부 접힌 상태로 시작해 상품이 바로 보이게 되돌림.
+  const [openGroup, setOpenGroup] = useState<CategoryGroupId | null>(null)
 
   if (isDesktop) {
     return (
