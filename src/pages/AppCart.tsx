@@ -12,7 +12,7 @@ import { useCartRecommendations } from '../hooks/useCartRecommendations'
 import { SHIPPING_FEE, FREE_SHIPPING_THRESHOLD } from '../constants'
 import { IconCart, IconClose, IconMinus, IconPlus } from '../components/common/Icon'
 import { supabase } from '../lib/supabase'
-import { vvipPrice } from '../lib/vvip'
+import { vvipPrice, getVvipDeptStoreMap } from '../lib/vvip'
 
 export default function AppCart() {
   const navigate = useNavigate()
@@ -49,12 +49,8 @@ export default function AppCart() {
       setSelected(new Set(adjusted.filter((l) => l.product.status === 'on_sale' && (typeof l.product.stock !== 'number' || l.product.stock > 0)).map((l) => l.id)))
       if (vvip) {
         const partnerIds = [...new Set(adjusted.map((l) => l.product.partner_id).filter((v): v is string => !!v))]
-        if (partnerIds.length > 0) {
-          const { data: partners } = await supabase.from('partners').select('id, is_dept_store_brand').in('id', partnerIds)
-          if (active) {
-            setDeptStoreByPartner(new Map(((partners ?? []) as { id: string; is_dept_store_brand: boolean }[]).map((p) => [p.id, p.is_dept_store_brand])))
-          }
-        }
+        const map = await getVvipDeptStoreMap(partnerIds)
+        if (active) setDeptStoreByPartner(map)
       }
       setLoading(false)
     })()

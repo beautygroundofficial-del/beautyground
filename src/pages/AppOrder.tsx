@@ -17,17 +17,7 @@ import {
   getMyPointsBalance, getMyValidCoupons, couponDiscountFor, redeemPoints, releasePoints,
   redeemSignupCoupon, releaseSignupCoupon, type ValidCoupon,
 } from '../lib/rewards'
-import { vvipPrice } from '../lib/vvip'
-
-interface OrderItem {
-  product_id: string
-  name: string
-  price: number
-  quantity: number
-  thumbnail?: string | null
-  cart_item_id?: string
-  option_label?: string | null
-}
+import { revalidateOrderItems, buildOrderRows, type OrderItem } from '../lib/orders'
 
 type Status = 'idle' | 'paying' | 'verifying' | 'done' | 'error'
 
@@ -138,55 +128,11 @@ export default function AppOrder() {
   // ── 주문 상품 서버 재검증 ─────────────────────────────────────────────────
   // 장바구니에 담아둔 사이 가격·재고·판매상태가 바뀔 수 있으므로, 화면에 보이는
   // 값이 아니라 "지금 DB의 값"을 기준으로 주문한다. (진입 시 + 결제 직전 각 1회)
-  const revalidateItems = async (
-    current: OrderItem[]
-  ): Promise<{ items: OrderItem[]; notices: string[]; blocked: string[] }> => {
-    if (current.length === 0) return { items: current, notices: [], blocked: [] }
-    const ids = current.map((i) => i.product_id)
-    const [{ data }, { data: vvipData, error: vvipErr }] = await Promise.all([
-      supabase.from('products').select('id, name, price, sale_price, stock, status, partner_id').in('id', ids),
-      supabase.rpc('is_vvip'),
-    ])
-    const vvip = !vvipErr && vvipData === true
-    setIsVvip(vvip)
-    const products = (data ?? []) as { id: string; name: string; price: number; sale_price: number | null; stock: number; status: string; partner_id: string | null }[]
-    const byId = new Map(products.map((p) => [p.id, p]))
-
-    // VVIP면 브랜드별 백화점 입점 여부로 할인율(20%/30%) 결정 — partner_id 없거나 조회 실패 시 백화점(20%)로 안전하게 처리
-    const deptStoreMap = new Map<string, boolean>()
-    if (vvip) {
-      const partnerIds = [...new Set(products.map((p) => p.partner_id).filter((v): v is string => !!v))]
-      if (partnerIds.length > 0) {
-        const { data: partners } = await supabase.from('partners').select('id, is_dept_store_brand').in('id', partnerIds)
-        for (const p of (partners ?? []) as { id: string; is_dept_store_brand: boolean }[]) {
-          deptStoreMap.set(p.id, p.is_dept_store_brand)
-        }
-      }
-    }
-
-    const notices: string[] = []
-    const blocked: string[] = []
-    const next: OrderItem[] = []
-    for (const it of current) {
-      const p = byId.get(it.product_id)
-      if (!p || p.status !== 'on_sale' || p.stock <= 0) {
-        blocked.push(p?.name ?? it.name)
-        continue
-      }
-      let qty = it.quantity
-      if (qty > p.stock) {
-        qty = p.stock
-        notices.push(`"${p.name}" 재고가 부족해 수량을 ${p.stock}개로 조정했어요.`)
-      }
-      const basePrice = p.sale_price ?? p.price
-      if (basePrice !== it.price) {
-        notices.push(`"${p.name}" 가격이 ${it.price.toLocaleString('ko-KR')}원 → ${basePrice.toLocaleString('ko-KR')}원으로 변경되었어요.`)
-      }
-      const isDeptStore = p.partner_id ? (deptStoreMap.get(p.partner_id) ?? true) : true
-      const nowPrice = vvip ? vvipPrice(basePrice, isDeptStore) : basePrice
-      next.push({ ...it, price: nowPrice, quantity: qty })
-    }
-    return { items: next, notices, blocked }
+  // 실제 로직은 src/lib/orders.ts revalidateOrderItems() — 여기서는 결과의 isVvip를 상태에 반영만 한다.
+  const revalidateItems = async (current: OrderItem[]) => {
+    const reval = await revalidateOrderItems(current)
+    setIsVvip(reval.isVvip)
+    return reval
   }
 
   // 로그인 확인 + 이름/연락처 기본값(가입정보) 채우기
@@ -431,110 +377,13 @@ export default function AppOrder() {
     const orderName = items.length > 1 ? `${items[0].name} 외 ${items.length - 1}건` : items[0].name
 
     const memo = deliveryMemo.trim() || null
-    const rows = items.map((i) => ({
-      payment_id: paymentId,
-      order_name: orderName,
-      product_id: i.product_id,
-      partner_id: partnerOf.get(i.product_id) ?? null,
-      live_id: liveId,
-      quantity: i.quantity,
-      amount: i.price * i.quantity,
-      buyer_name: name.trim(),
-      buyer_phone: phone.trim(),
-      buyer_email: buyerEmail,
-      status: 'pending',
-      user_id: user?.id ?? null,
-      delivery_memo: memo,
-      recipient_name: name.trim(),
-      recipient_phone: phone.trim(),
-      ship_address: fullAddress,
-      option_label: i.option_label ?? null,
-    }))
-    // 배송비도 한 행으로 반영(상품 없는 배송비 행) — 합계 검증(payment-complete)과 일치시키기 위함
-    if (deliveryFee > 0) {
-      rows.push({
-        payment_id: paymentId,
-        order_name: '배송비',
-        product_id: null as unknown as string,
-        partner_id: null,
-        live_id: liveId,
-        quantity: 1,
-        amount: deliveryFee,
-        buyer_name: name.trim(),
-        buyer_phone: phone.trim(),
-        buyer_email: buyerEmail,
-        status: 'pending',
-        user_id: user?.id ?? null,
-        delivery_memo: memo,
-      recipient_name: name.trim(),
-      recipient_phone: phone.trim(),
-      ship_address: fullAddress,
-        option_label: null,
-      })
-    }
-    if (couponDiscount > 0) {
-      rows.push({
-        payment_id: paymentId,
-        order_name: '라이브 쿠폰 할인',
-        product_id: null as unknown as string,
-        partner_id: null,
-        live_id: liveId,
-        quantity: 1,
-        amount: -couponDiscount,
-        buyer_name: name.trim(),
-        buyer_phone: phone.trim(),
-        buyer_email: buyerEmail,
-        status: 'pending',
-        user_id: user?.id ?? null,
-        delivery_memo: memo,
-      recipient_name: name.trim(),
-      recipient_phone: phone.trim(),
-      ship_address: fullAddress,
-        option_label: null,
-      })
-    }
-    if (redeemedPoints > 0) {
-      rows.push({
-        payment_id: paymentId,
-        order_name: '적립금 사용',
-        product_id: null as unknown as string,
-        partner_id: null,
-        live_id: liveId,
-        quantity: 1,
-        amount: -redeemedPoints,
-        buyer_name: name.trim(),
-        buyer_phone: phone.trim(),
-        buyer_email: buyerEmail,
-        status: 'pending',
-        user_id: user?.id ?? null,
-        delivery_memo: memo,
-      recipient_name: name.trim(),
-      recipient_phone: phone.trim(),
-      ship_address: fullAddress,
-        option_label: null,
-      })
-    }
-    if (redeemedCouponId && signupCouponPreview > 0) {
-      rows.push({
-        payment_id: paymentId,
-        order_name: `쿠폰 할인 (${selectedCoupon?.label ?? ''})`,
-        product_id: null as unknown as string,
-        partner_id: null,
-        live_id: liveId,
-        quantity: 1,
-        amount: -signupCouponPreview,
-        buyer_name: name.trim(),
-        buyer_phone: phone.trim(),
-        buyer_email: buyerEmail,
-        status: 'pending',
-        user_id: user?.id ?? null,
-        delivery_memo: memo,
-      recipient_name: name.trim(),
-      recipient_phone: phone.trim(),
-      ship_address: fullAddress,
-        option_label: null,
-      })
-    }
+    const rows = buildOrderRows({
+      items, paymentId, orderName, partnerOf, liveId,
+      buyerName: name.trim(), buyerPhone: phone.trim(), buyerEmail, memo, fullAddress,
+      deliveryFee, couponDiscount, redeemedPoints, redeemedCouponId,
+      signupCouponPreview, selectedCouponLabel: selectedCoupon?.label ?? null,
+      userId: user?.id ?? null,
+    })
 
     let { error: insErr } = await supabase.from('orders').insert(rows)
     if (insErr && /delivery_memo/i.test(insErr.message)) {
