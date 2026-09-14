@@ -92,9 +92,9 @@ export default function AppBoardPost() {
         rightElement={
           post ? (
             post.is_mine ? (
-              <div className="flex items-center gap-3">
-                <button type="button" onClick={() => navigate(`/app/board/write?id=${post.id}`)} className="text-[12.5px] text-ink-faint">수정</button>
-                <button type="button" onClick={() => void onDelete()} className="text-[12.5px] text-ink-faint">삭제</button>
+              <div className="flex items-center gap-2">
+                <button type="button" onClick={() => navigate(`/app/board/write?id=${post.id}`)} className="text-[13px] font-semibold text-ink bg-quiet rounded-full px-3 py-1">수정</button>
+                <button type="button" onClick={() => void onDelete()} className="text-[13px] font-semibold text-ink-soft bg-quiet rounded-full px-3 py-1">삭제</button>
               </div>
             ) : (
               <button type="button" onClick={() => void onReport()} className="text-[12.5px] text-ink-faint">신고</button>
