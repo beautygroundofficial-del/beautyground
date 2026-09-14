@@ -33,3 +33,15 @@ export function vvipDiscountRate(isDeptStoreBrand: boolean): number {
 export function vvipPrice(price: number, isDeptStoreBrand: boolean): number {
   return Math.round(price * (1 - vvipDiscountRate(isDeptStoreBrand)))
 }
+
+// partner_id별 백화점 입점 여부 조회 — VVIP 할인율(20%/30%) 판별에 쓰인다.
+// AppCart.tsx·AppOrder.tsx가 각자 따로 구현하고 있던 걸 하나로 합침(2026-09-14).
+export async function getVvipDeptStoreMap(partnerIds: string[]): Promise<Map<string, boolean>> {
+  const map = new Map<string, boolean>()
+  if (partnerIds.length === 0) return map
+  const { data } = await supabase.from('partners').select('id, is_dept_store_brand').in('id', partnerIds)
+  for (const p of (data ?? []) as { id: string; is_dept_store_brand: boolean }[]) {
+    map.set(p.id, p.is_dept_store_brand)
+  }
+  return map
+}
