@@ -306,6 +306,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     res.status(500).json({ ok: false, reason: '회원 생성 중 오류가 발생했습니다.' })
     return
   }
+  // createErr가 없으면 방금 새로 생성된 계정(신규가입), "already registered"면 기존 계정(로그인).
+  // AppNaverCallback.tsx가 이 값으로 로그인 화면발 신규가입을 동의 화면으로 되돌려보낸다(2026-09-15).
+  const isNewUser = !createErr
 
   // 4) 세션 발급용 OTP 코드 생성 — 프론트에서 verifyOtp(type:'email')로 교환해 세션 완성.
   // ⚠️ type:'magiclink' + hashed_token 조합은 verifyOtp에서 항상 otp_expired로 실패함(실측 확인,
@@ -320,5 +323,5 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return
   }
 
-  res.status(200).json({ ok: true, email, emailOtp: linkData.properties.email_otp })
+  res.status(200).json({ ok: true, email, emailOtp: linkData.properties.email_otp, isNewUser })
 }

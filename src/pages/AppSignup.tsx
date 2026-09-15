@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import BackHeader from '../components/layout/BackHeader'
 import ViewModeToggle from '../components/layout/ViewModeToggle'
 import DesktopAuthLayout from '../components/auth/DesktopAuthLayout'
@@ -14,13 +14,33 @@ import { supabase } from '../lib/supabase'
 // 이메일/비번 가입자는 AppLogin.tsx에서 계속 로그인 가능.
 export default function AppSignup() {
   const location = useLocation()
+  const navigate = useNavigate()
   const { mode, isDesktop, toggle } = useViewMode()
   // AppLogin.tsx 와 같은 이유로 기본 목적지를 홈(커뮤니티)으로 맞춘다(2026-09-09).
   const from = (location.state as { from?: string } | null)?.from ?? '/app/home'
+  // AppLogin.tsx의 카카오·네이버 버튼(게이트: AppKakaoGate.tsx / AppNaverCallback.tsx)이
+  // 신규가입으로 판별해 여기로 돌려보낸 경우 — 소셜 로그인은 이미 끝나 세션이 있는 상태다.
+  // 이때는 버튼을 다시 누르게 하지 않고 동의 체크박스만 받아 가입을 완료시킨다(2026-09-15).
+  const pendingConsent = Boolean((location.state as { pendingConsent?: boolean } | null)?.pendingConsent)
   const [notice, setNotice] = useState('')
   const [agreeTerms, setAgreeTerms] = useState(false)
   const [agreePrivacy, setAgreePrivacy] = useState(false)
   const canProceed = agreeTerms && agreePrivacy
+
+  // pendingConsent 전용 — 동의 확인 후 가입 완료(원래 가려던 곳으로 이동)
+  const handleContinue = () => {
+    if (!canProceed) {
+      setNotice('이용약관과 개인정보 수집·이용에 모두 동의해주세요.')
+      return
+    }
+    navigate(from, { replace: true })
+  }
+
+  // pendingConsent 전용 — 동의를 원치 않으면 방금 생성된 세션을 로그아웃하고 로그인 화면으로
+  const handleCancelConsent = async () => {
+    await supabase.auth.signOut()
+    navigate('/app/login', { replace: true })
+  }
 
   const handleKakao = async () => {
     setNotice('')
@@ -45,6 +65,8 @@ export default function AppSignup() {
   // 회사 계정 신규 등록 후 정상 확인(YEG1xy5kENWD037qOt3T). 빌드 캐시 무효화용 재배포 트리거 2차.
   // 네이버는 Supabase 공식 지원 밖이라 커스텀 OAuth — state/from을 sessionStorage에 저장해두고
   // 콜백(AppNaverCallback.tsx)에서 CSRF 대조 후 /api/auth-naver 로 code를 넘겨 세션을 완성한다.
+  // entry='signup' — 이 화면은 버튼을 누르기 전에 이미 canProceed로 동의를 확인했으므로,
+  // 콜백이 다시 동의 화면으로 돌려보내지 않고 그대로 from으로 통과시킨다(AppLogin.tsx와 구분).
   const handleNaver = () => {
     setNotice('')
     if (!canProceed) {
@@ -59,6 +81,7 @@ export default function AppSignup() {
     const state = crypto.randomUUID()
     sessionStorage.setItem('naver_oauth_state', state)
     sessionStorage.setItem('naver_oauth_from', from)
+    sessionStorage.setItem('naver_oauth_entry', 'signup')
     const url = new URL('https://nid.naver.com/oauth2.0/authorize')
     url.searchParams.set('response_type', 'code')
     url.searchParams.set('client_id', clientId)
@@ -67,35 +90,71 @@ export default function AppSignup() {
     window.location.href = url.toString()
   }
 
-  const formContent = (
+  // 필수 약관 동의 체크박스 — 일반 진입(소셜 버튼 누르기 전)과 pendingConsent(소셜 로그인은
+  // 이미 끝난 뒤 동의만 받는 경우) 두 화면에서 같이 쓰므로 한 번만 작성해 재사용한다.
+  const consentCheckboxes = (
+    <div className="rounded-control bg-quiet p-4 space-y-2.5 mb-4">
+      <label className="flex items-start gap-2.5 cursor-pointer">
+        <input
+          type="checkbox"
+          checked={agreeTerms}
+          onChange={(e) => setAgreeTerms(e.target.checked)}
+          className="w-4 h-4 accent-ink mt-0.5 shrink-0"
+        />
+        <span className="text-[13px] text-ink">
+          <span className="text-signal-red font-bold">(필수)</span>{' '}
+          <Link to="/terms" target="_blank" rel="noreferrer" className="underline font-bold">이용약관</Link>에 동의합니다
+        </span>
+      </label>
+      <label className="flex items-start gap-2.5 cursor-pointer">
+        <input
+          type="checkbox"
+          checked={agreePrivacy}
+          onChange={(e) => setAgreePrivacy(e.target.checked)}
+          className="w-4 h-4 accent-ink mt-0.5 shrink-0"
+        />
+        <span className="text-[13px] text-ink">
+          <span className="text-signal-red font-bold">(필수)</span>{' '}
+          <Link to="/privacy" target="_blank" rel="noreferrer" className="underline font-bold">개인정보 수집·이용</Link>에 동의합니다
+        </span>
+      </label>
+    </div>
+  )
+
+  // pendingConsent — AppLogin.tsx의 카카오·네이버 버튼에서 신규가입으로 판별돼 넘어온 경우.
+  // 소셜 로그인 자체는 이미 끝나 세션이 있으므로 버튼을 다시 보여주지 않고 동의만 받는다.
+  const formContent = pendingConsent ? (
+    <>
+      <p className="text-[13px] text-ink-soft text-center mb-4 leading-relaxed">
+        소셜 로그인 확인이 끝났어요. 약관에 동의하시면 가입이 완료됩니다.
+      </p>
+      {consentCheckboxes}
+
+      {notice && (
+        <p className="text-center text-[13px] text-ink-faint mt-1 mb-4" role="status">{notice}</p>
+      )}
+
+      <button
+        type="button"
+        onClick={handleContinue}
+        disabled={!canProceed}
+        className="w-full rounded-control bg-ink text-paper font-bold text-[15px] py-3.5 disabled:opacity-40 focus:outline-none focus-visible:shadow-ring"
+      >
+        동의하고 가입 완료
+      </button>
+
+      <button
+        type="button"
+        onClick={handleCancelConsent}
+        className="w-full text-center text-[13px] text-ink-faint underline mt-4 focus:outline-none focus-visible:shadow-ring"
+      >
+        가입을 취소하고 로그아웃할게요
+      </button>
+    </>
+  ) : (
     <>
       {/* 필수 약관 동의 — 소셜 로그인 시작 전 명시적 opt-in (PG 심사 대응) */}
-      <div className="rounded-control bg-quiet p-4 space-y-2.5 mb-4">
-        <label className="flex items-start gap-2.5 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={agreeTerms}
-            onChange={(e) => setAgreeTerms(e.target.checked)}
-            className="w-4 h-4 accent-ink mt-0.5 shrink-0"
-          />
-          <span className="text-[13px] text-ink">
-            <span className="text-signal-red font-bold">(필수)</span>{' '}
-            <Link to="/terms" target="_blank" rel="noreferrer" className="underline font-bold">이용약관</Link>에 동의합니다
-          </span>
-        </label>
-        <label className="flex items-start gap-2.5 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={agreePrivacy}
-            onChange={(e) => setAgreePrivacy(e.target.checked)}
-            className="w-4 h-4 accent-ink mt-0.5 shrink-0"
-          />
-          <span className="text-[13px] text-ink">
-            <span className="text-signal-red font-bold">(필수)</span>{' '}
-            <Link to="/privacy" target="_blank" rel="noreferrer" className="underline font-bold">개인정보 수집·이용</Link>에 동의합니다
-          </span>
-        </label>
-      </div>
+      {consentCheckboxes}
 
       <div className="rounded-control border border-rule p-6 space-y-3">
         {/* 카카오 — 공식 버튼 규격(#FEE500 배경 + 검정 85% 텍스트) */}

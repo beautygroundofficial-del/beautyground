@@ -34,6 +34,7 @@ const AppGuestOrder = lazy(() => import('./pages/AppGuestOrder'))
 const AppLogin = lazy(() => import('./pages/AppLogin'))
 const AppSignup = lazy(() => import('./pages/AppSignup'))
 const AppNaverCallback = lazy(() => import('./pages/AppNaverCallback'))
+const AppKakaoGate = lazy(() => import('./pages/AppKakaoGate'))
 const AppAccount = lazy(() => import('./pages/AppAccount'))
 const AppAddresses = lazy(() => import('./pages/AppAddresses'))
 const AppWishlist = lazy(() => import('./pages/AppWishlist'))
@@ -346,6 +347,9 @@ export default function App() {
             AppSignupEmail.tsx 코드는 나중에 되살릴 수 있게 남겨둠. */}
         <Route path="/app/signup/email" element={<Navigate to="/app/signup" replace />} />
         <Route path="/app/auth/naver/callback" element={<AppNaverCallback />} />
+        {/* 로그인 화면(AppLogin.tsx)의 카카오 버튼 전용 게이트 — 신규가입이면 AppSignup.tsx
+            동의 화면으로, 기존 가입자면 그대로 통과(2026-09-15, AppKakaoGate.tsx 참고) */}
+        <Route path="/app/auth/kakao/gate" element={<AppKakaoGate />} />
         <Route path="/app/account" element={<AppAccount />} />
         <Route path="/app/addresses" element={<AppAddresses />} />
         <Route path="/app/wishlist" element={<AppWishlist />} />

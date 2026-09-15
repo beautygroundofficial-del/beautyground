@@ -4,8 +4,13 @@ import ViewModeToggle from '../components/layout/ViewModeToggle'
 import { useViewMode } from '../lib/viewMode'
 import { supabase } from '../lib/supabase'
 
-// 네이버 로그인 콜백 — AppSignup.tsx에서 네이버로 보낼 때 sessionStorage에 저장해둔
-// state/from과 대조(CSRF 방지)한 뒤, 서버(/api/auth-naver)에 code를 넘겨 세션 토큰을 받는다.
+// 네이버 로그인 콜백 — AppSignup.tsx / AppLogin.tsx 양쪽에서 네이버로 보낼 때 sessionStorage에
+// 저장해둔 state/from과 대조(CSRF 방지)한 뒤, 서버(/api/auth-naver)에 code를 넘겨 세션 토큰을 받는다.
+//
+// entry로 어느 화면에서 시작됐는지 구분한다. AppSignup.tsx는 버튼을 누르기 전에 이미 체크박스로
+// 동의를 받으므로 그대로 from으로 통과시키고, AppLogin.tsx는 동의 절차가 없으므로 서버가
+// isNewUser=true(신규가입)를 돌려주면 AppSignup.tsx의 동의 화면(pendingConsent)으로 돌려보낸다
+// (2026-09-15, 로그인 화면 소셜 버튼이 동의 없이 신규가입을 완료시키는 문제의 후속 조치).
 export default function AppNaverCallback() {
   const navigate = useNavigate()
   const { mode, toggle } = useViewMode()
@@ -19,9 +24,11 @@ export default function AppNaverCallback() {
       const state = params.get('state')
       const savedState = sessionStorage.getItem('naver_oauth_state')
       const from = sessionStorage.getItem('naver_oauth_from') || '/app/mypage'
+      const entry = sessionStorage.getItem('naver_oauth_entry') || 'signup'
       setReturnTo(from)
       sessionStorage.removeItem('naver_oauth_state')
       sessionStorage.removeItem('naver_oauth_from')
+      sessionStorage.removeItem('naver_oauth_entry')
 
       if (params.get('error')) {
         setError('네이버 로그인이 취소되었습니다.')
@@ -50,6 +57,10 @@ export default function AppNaverCallback() {
         })
         if (verifyError) {
           setError('로그인 세션 생성에 실패했습니다.')
+          return
+        }
+        if (entry === 'login' && json.isNewUser) {
+          navigate('/app/signup', { replace: true, state: { pendingConsent: true, from } })
           return
         }
         navigate(from, { replace: true })

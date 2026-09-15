@@ -58,13 +58,18 @@ export default function AppLogin() {
     navigate(from, { replace: true })
   }
 
-  // 카카오 로그인 — 완료 후 원래 가려던 페이지로 복귀
+  // 카카오 로그인 — "처음이면 자동가입, 이미 있으면 로그인" 방식이라 이 화면(로그인)에는
+  // 회원가입 화면(AppSignup.tsx)의 필수 약관 체크박스가 없다 — 그대로 두면 동의 없이 신규가입이
+  // 완료돼버린다(2026-09-15 발견, 동의 체크박스 추가 작업의 후속 조치).
+  // 그래서 redirectTo를 바로 from으로 보내지 않고 게이트 페이지(AppKakaoGate.tsx)로 보내
+  // 신규가입 여부를 판별한 뒤, 신규면 AppSignup.tsx 동의 화면으로, 기존 가입자면 그대로 from으로 보낸다.
   const handleKakao = async () => {
     setError('')
+    sessionStorage.setItem('kakao_oauth_from', from)
     const { error: oauthError } = await supabase.auth.signInWithOAuth({
       provider: 'kakao',
       options: {
-        redirectTo: `${window.location.origin}${from}`,
+        redirectTo: `${window.location.origin}/app/auth/kakao/gate`,
         // account_email: 혜택 중복지급 차단 기준 / plusfriends: 채널 추가 상태 조회
         scopes: 'profile_nickname account_email plusfriends',
         // 동의 화면에 "카카오톡 채널 추가" 체크 노출 (뷰티그라운드 채널 _vnwfX)
@@ -77,6 +82,8 @@ export default function AppLogin() {
   // 네이버 로그인 — 회원가입 화면(AppSignup.tsx)과 같은 방식.
   // 네이버는 Supabase 공식 지원 밖이라 커스텀 OAuth다: state/from 을 sessionStorage 에 저장해두고
   // 콜백(AppNaverCallback.tsx)에서 CSRF 대조 후 /api/auth-naver 로 code 를 넘겨 세션을 완성한다.
+  // entry='login' 표시 — 콜백이 "이 화면(로그인)에서 시작된 신규가입"인 경우만 동의 화면으로
+  // 돌려보내도록 구분한다(AppSignup.tsx에서 시작한 경우는 이미 동의를 받고 왔으므로 그대로 통과).
   const handleNaver = () => {
     setError('')
     const clientId = import.meta.env.VITE_NAVER_CLIENT_ID as string | undefined
@@ -87,6 +94,7 @@ export default function AppLogin() {
     const state = crypto.randomUUID()
     sessionStorage.setItem('naver_oauth_state', state)
     sessionStorage.setItem('naver_oauth_from', from)
+    sessionStorage.setItem('naver_oauth_entry', 'login')
     const url = new URL('https://nid.naver.com/oauth2.0/authorize')
     url.searchParams.set('response_type', 'code')
     url.searchParams.set('client_id', clientId)
