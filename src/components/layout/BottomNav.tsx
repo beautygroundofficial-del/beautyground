@@ -1,16 +1,17 @@
 import { Link, useLocation } from 'react-router-dom'
-import { IconHome, IconGrid, IconLive, IconTalk, IconUser } from '../common/Icon'
+import { IconHome, IconGrid, IconTalk, IconUser } from '../common/Icon'
 
 // 2026-09-02 개편 — 하단 5칸 중 3칸이 제품(카테고리·장바구니)이라 쇼핑몰로만 보였다.
 // 커뮤니티를 앞세우는 라이프스타일 플랫폼 방향에 맞춰 제품은 '쇼핑' 한 칸으로 묶고,
 // 그 자리에 '이야기'(살아가는 이야기)를 넣었다. 장바구니는 상단 헤더에 아이콘·개수 뱃지가
 // 이미 있어 중복이므로 하단에서 뺐다.
 // 2026-09-14: 라이브를 쇼핑 뒤로 이동(대표님 지시) — 홈/이야기/쇼핑/라이브/마이 순.
+// 2026-09-15: 커뮤니티가 완전히 활성화되기 전까지 라이브 탭 숨김(대표님 지시) — 라우트·화면은
+// 그대로 두고 하단 네비에서만 뺀다. 재노출 시 NAV_ITEMS에 다시 넣으면 됨.
 const NAV_ITEMS = [
   { path: '/app/home', Icon: IconHome, label: '홈' },
   { path: '/app/diary', Icon: IconTalk, label: '이야기' },
   { path: '/app/category', Icon: IconGrid, label: '쇼핑' },
-  { path: '/live', Icon: IconLive, label: '라이브' },
   { path: '/app/mypage', Icon: IconUser, label: '마이' },
 ]
 
