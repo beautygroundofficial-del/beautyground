@@ -18,9 +18,16 @@ export default function AppSignup() {
   // AppLogin.tsx 와 같은 이유로 기본 목적지를 홈(커뮤니티)으로 맞춘다(2026-09-09).
   const from = (location.state as { from?: string } | null)?.from ?? '/app/home'
   const [notice, setNotice] = useState('')
+  const [agreeTerms, setAgreeTerms] = useState(false)
+  const [agreePrivacy, setAgreePrivacy] = useState(false)
+  const canProceed = agreeTerms && agreePrivacy
 
   const handleKakao = async () => {
     setNotice('')
+    if (!canProceed) {
+      setNotice('이용약관과 개인정보 수집·이용에 모두 동의해주세요.')
+      return
+    }
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'kakao',
       options: {
@@ -40,6 +47,10 @@ export default function AppSignup() {
   // 콜백(AppNaverCallback.tsx)에서 CSRF 대조 후 /api/auth-naver 로 code를 넘겨 세션을 완성한다.
   const handleNaver = () => {
     setNotice('')
+    if (!canProceed) {
+      setNotice('이용약관과 개인정보 수집·이용에 모두 동의해주세요.')
+      return
+    }
     const clientId = import.meta.env.VITE_NAVER_CLIENT_ID as string | undefined
     if (!clientId) {
       setNotice('네이버 로그인이 아직 설정되지 않았습니다.')
@@ -58,12 +69,41 @@ export default function AppSignup() {
 
   const formContent = (
     <>
+      {/* 필수 약관 동의 — 소셜 로그인 시작 전 명시적 opt-in (PG 심사 대응) */}
+      <div className="rounded-control bg-quiet p-4 space-y-2.5 mb-4">
+        <label className="flex items-start gap-2.5 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={agreeTerms}
+            onChange={(e) => setAgreeTerms(e.target.checked)}
+            className="w-4 h-4 accent-ink mt-0.5 shrink-0"
+          />
+          <span className="text-[13px] text-ink">
+            <span className="text-signal-red font-bold">(필수)</span>{' '}
+            <Link to="/terms" target="_blank" rel="noreferrer" className="underline font-bold">이용약관</Link>에 동의합니다
+          </span>
+        </label>
+        <label className="flex items-start gap-2.5 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={agreePrivacy}
+            onChange={(e) => setAgreePrivacy(e.target.checked)}
+            className="w-4 h-4 accent-ink mt-0.5 shrink-0"
+          />
+          <span className="text-[13px] text-ink">
+            <span className="text-signal-red font-bold">(필수)</span>{' '}
+            <Link to="/privacy" target="_blank" rel="noreferrer" className="underline font-bold">개인정보 수집·이용</Link>에 동의합니다
+          </span>
+        </label>
+      </div>
+
       <div className="rounded-control border border-rule p-6 space-y-3">
         {/* 카카오 — 공식 버튼 규격(#FEE500 배경 + 검정 85% 텍스트) */}
         <button
           type="button"
           onClick={handleKakao}
-          className="w-full flex items-center justify-center gap-2 rounded-control font-bold text-[15px] py-3.5 focus:outline-none focus-visible:shadow-ring"
+          disabled={!canProceed}
+          className="w-full flex items-center justify-center gap-2 rounded-control font-bold text-[15px] py-3.5 focus:outline-none focus-visible:shadow-ring disabled:opacity-40"
           style={{ backgroundColor: '#FEE500', color: 'rgba(0,0,0,0.85)' }}
         >
           <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
@@ -79,7 +119,8 @@ export default function AppSignup() {
         <button
           type="button"
           onClick={handleNaver}
-          className="w-full flex items-center justify-center gap-2 rounded-control font-bold text-[15px] py-3.5 text-paper focus:outline-none focus-visible:shadow-ring"
+          disabled={!canProceed}
+          className="w-full flex items-center justify-center gap-2 rounded-control font-bold text-[15px] py-3.5 text-paper focus:outline-none focus-visible:shadow-ring disabled:opacity-40"
           style={{ backgroundColor: '#03C75A' }}
         >
           <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true">
