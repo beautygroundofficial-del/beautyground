@@ -14,6 +14,8 @@ const GMAIL_USER = process.env.GMAIL_USER || 'beautyground.official@gmail.com'
 const GMAIL_APP_PASSWORD = process.env.GMAIL_APP_PASSWORD || ''
 // 주문·취소가 나면 대표님이 바로 아셔야 한다(2026-09-09 지시). 손님 메일과 별개로 사본을 보낸다.
 const ADMIN_MAIL = 'beautyground.official@gmail.com'
+// job=notify 를 부를 수 있는 관리자 계정 — api/order-cancel.ts 와 동일한 화이트리스트.
+const ADMIN_EMAILS = [ADMIN_MAIL]
 // 대사 작업(?job=reconcile)은 Vercel 크론만 호출할 수 있게 막는다
 const CRON_SECRET = process.env.CRON_SECRET
 
@@ -41,6 +43,128 @@ async function sendMail(to: string, subject: string, html: string) {
 }
 
 const won = (n: number) => `${(n || 0).toLocaleString('ko-KR')}원`
+
+// 브랜드(파트너) 알림 메일 주소 조회 — partners 테이블엔 이메일 컬럼이 없어(2026-09-16 확인),
+// 셀러센터 로그인 계정(partners.user_id → auth.users.email)으로만 보낸다. 로그인 계정이
+// 아직 없는 브랜드(user_id null)는 조용히 건너뛴다 — 알림 실패가 주문 처리를 막으면 안 된다.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function getPartnerEmail(
+  supabase: any,
+  partnerId: string | null | undefined
+): Promise<string | null> {
+  if (!partnerId) return null
+  try {
+    const { data: partner } = await supabase.from('partners').select('user_id').eq('id', partnerId).maybeSingle()
+    const uid = (partner as { user_id?: string } | null)?.user_id
+    if (!uid) return null
+    const { data: userRes } = await supabase.auth.admin.getUserById(uid)
+    return userRes?.user?.email ?? null
+  } catch (e) {
+    console.error('[payment-complete] 브랜드 이메일 조회 실패', partnerId, e)
+    return null
+  }
+}
+
+// ── job=notify ────────────────────────────────────────────────────────────
+// 관리자 화면(배송 상태 변경·정산 지급완료)이 DB를 직접 업데이트한 "다음에" 호출하는
+// 알림 전용 엔드포인트. 새 api 파일을 만들 수 없어(Vercel 12/12 함수 한도) 이미 메일
+// 인프라(sendMail)가 있는 이 파일에 얹는다. 관리자 로그인 세션(Bearer 토큰)만 호출 가능.
+async function notifyHandler(req: VercelRequest, res: VercelResponse) {
+  const supabase = createClient(SUPABASE_URL, SERVICE_ROLE as string)
+  const token = (req.headers.authorization ?? '').replace(/^Bearer\s+/i, '')
+  if (!token) {
+    res.status(401).json({ ok: false, reason: '인증이 필요합니다.' })
+    return
+  }
+  const { data: userData } = await supabase.auth.getUser(token)
+  if (!ADMIN_EMAILS.includes(userData?.user?.email ?? '')) {
+    res.status(403).json({ ok: false, reason: '관리자만 호출할 수 있습니다.' })
+    return
+  }
+
+  let body: unknown = req.body
+  if (typeof body === 'string') {
+    try { body = JSON.parse(body) } catch { body = {} }
+  }
+  const type = (body as { type?: string } | null)?.type
+  const paymentId = (body as { paymentId?: string } | null)?.paymentId
+  const settlementId = (body as { settlementId?: string } | null)?.settlementId
+
+  if (type === 'shipped' || type === 'delivered') {
+    if (!paymentId) {
+      res.status(400).json({ ok: false, reason: 'paymentId 가 필요합니다.' })
+      return
+    }
+    const { data: rows } = await supabase
+      .from('orders')
+      .select('buyer_email, buyer_name, order_name, tracking_number')
+      .eq('payment_id', paymentId)
+    type R = { buyer_email: string | null; buyer_name: string | null; order_name: string | null; tracking_number: string | null }
+    const list = (rows ?? []) as unknown as R[]
+    const buyerEmail = list.find((r) => r.buyer_email)?.buyer_email
+    const buyerName = list.find((r) => r.buyer_name)?.buyer_name ?? '고객'
+    const orderName = list[0]?.order_name ?? '주문 상품'
+    const tracking = list.find((r) => r.tracking_number)?.tracking_number
+    if (buyerEmail) {
+      const subject =
+        type === 'shipped'
+          ? `[뷰티그라운드] ${buyerName}님, ${orderName} 배송이 시작됐어요`
+          : `[뷰티그라운드] ${buyerName}님, ${orderName} 배송이 완료됐어요`
+      const html =
+        type === 'shipped'
+          ? `<div style="font-family:sans-serif;max-width:480px;margin:0 auto;">
+               <h2 style="color:#b8924a;">배송이 시작됐어요</h2>
+               <p>${buyerName}님, 주문하신 상품이 발송됐습니다.</p>
+               <p>주문번호: ${paymentId}${tracking ? `<br/>송장번호(CJ대한통운): ${tracking}` : ''}</p>
+               <p style="color:#888;font-size:13px;margin-top:24px;">문의: beautyground.official@gmail.com</p>
+             </div>`
+          : `<div style="font-family:sans-serif;max-width:480px;margin:0 auto;">
+               <h2 style="color:#b8924a;">배송이 완료됐어요</h2>
+               <p>${buyerName}님, 주문하신 상품이 배송완료 처리됐습니다. 이용해 주셔서 감사합니다.</p>
+               <p>주문번호: ${paymentId}</p>
+             </div>`
+      await sendMail(buyerEmail, subject, html)
+    }
+    res.status(200).json({ ok: true, sent: !!buyerEmail })
+    return
+  }
+
+  if (type === 'settlement_paid') {
+    if (!settlementId) {
+      res.status(400).json({ ok: false, reason: 'settlementId 가 필요합니다.' })
+      return
+    }
+    const { data: settlement } = await supabase
+      .from('settlements')
+      .select('id, partner_id, period, payout_amount, status')
+      .eq('id', settlementId)
+      .maybeSingle()
+    type S = { id: string; partner_id: string; period: string; payout_amount: number; status: string }
+    const s = settlement as unknown as S | null
+    if (!s) {
+      res.status(404).json({ ok: false, reason: '정산 내역을 찾을 수 없습니다.' })
+      return
+    }
+    const { data: partner } = await supabase.from('partners').select('brand_name').eq('id', s.partner_id).maybeSingle()
+    const brandName = (partner as { brand_name?: string } | null)?.brand_name ?? '브랜드'
+    const brandEmail = await getPartnerEmail(supabase, s.partner_id)
+    if (brandEmail) {
+      await sendMail(
+        brandEmail,
+        `[뷰티그라운드] ${brandName} ${s.period} 정산 지급완료`,
+        `<div style="font-family:sans-serif;max-width:480px;margin:0 auto;">
+           <h2 style="color:#b8924a;">정산 지급이 완료됐습니다</h2>
+           <p>${brandName}님, ${s.period} 정산금 ${won(s.payout_amount)}이 지급 처리됐습니다.</p>
+           <p style="color:#888;font-size:13px;margin-top:24px;">자세한 내역은 셀러센터 &gt; 정산에서 확인해 주세요.</p>
+         </div>`
+      )
+    }
+    res.status(200).json({ ok: true, sent: !!brandEmail })
+    return
+  }
+
+  res.status(400).json({ ok: false, reason: 'type 값이 올바르지 않습니다.' })
+}
 
 // ── ?job=reconcile ────────────────────────────────────────────────────────
 // 하루 한 번 DB 와 포트원 원장을 맞춰본다.
@@ -137,6 +261,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     await reconcileHandler(req, res)
     return
   }
+  if (req.query.job === 'notify') {
+    if (!SERVICE_ROLE) {
+      res.status(500).json({ ok: false, reason: '서버 환경변수 누락' })
+      return
+    }
+    if (req.method !== 'POST') {
+      res.status(405).json({ ok: false, reason: 'POST 요청만 허용됩니다.' })
+      return
+    }
+    await notifyHandler(req, res)
+    return
+  }
   if (req.method !== 'POST') {
     res.status(405).json({ ok: false, reason: 'POST 요청만 허용됩니다.' })
     return
@@ -196,14 +332,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const isCancel = WEBHOOK_CANCELLED.includes(webhookType)
     const { data: rows } = await supabase
       .from('orders')
-      .select('id, product_id, quantity, status, order_name, buyer_name, amount')
+      .select('id, product_id, partner_id, quantity, status, order_name, buyer_name, buyer_email, amount')
       .eq('payment_id', paymentId)
     if (!rows || rows.length === 0) {
       // 포트원 콘솔 '호출 테스트'(가짜 결제ID)도 여기로 온다 — 200 으로 조용히 넘긴다
       res.status(200).json({ ok: true, skipped: 'order_not_found' })
       return
     }
-    type Row = { id: string; product_id: string | null; quantity: number; status: string; order_name: string | null; buyer_name: string | null; amount: number }
+    type Row = { id: string; product_id: string | null; partner_id: string | null; quantity: number; status: string; order_name: string | null; buyer_name: string | null; buyer_email: string | null; amount: number }
     const list = rows as unknown as Row[]
 
     if (!isCancel) {
@@ -258,6 +394,34 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
        <ul><li>주문번호: ${paymentId}</li><li>구매자: ${list[0].buyer_name ?? '-'}</li>
        <li>금액: ${won(total)}</li><li>재고 복구: ${hadPayment ? '완료' : '해당없음(미결제 주문)'}</li></ul></div>`
     )
+    // 구매자·브랜드는 그동안 이 취소를 통보받지 못했다(2026-09-16 전수조사) — 여기서 함께 보낸다.
+    const cancelBuyerEmail = list.find((r) => r.buyer_email)?.buyer_email
+    if (cancelBuyerEmail) {
+      await sendMail(
+        cancelBuyerEmail,
+        `[뷰티그라운드] ${list[0].buyer_name ?? '고객'}님, 주문이 취소·환불됐어요`,
+        `<div style="font-family:sans-serif;max-width:480px;margin:0 auto;">
+           <h2 style="color:#b8924a;">취소·환불 처리됐어요</h2>
+           <p>${list[0].buyer_name ?? '고객'}님, ${list[0].order_name ?? '주문'} 취소가 처리됐습니다.</p>
+           <p>주문번호: ${paymentId}${hadPayment ? `<br/>환불금액: ${won(total)} (결제수단으로 환불)` : ''}</p>
+           <p style="color:#888;font-size:13px;margin-top:24px;">문의: beautyground.official@gmail.com</p>
+         </div>`
+      )
+    }
+    const cancelPartnerIds = [...new Set(list.map((r) => r.partner_id).filter((v): v is string => !!v))]
+    for (const pid of cancelPartnerIds) {
+      const email = await getPartnerEmail(supabase, pid)
+      if (!email) continue
+      await sendMail(
+        email,
+        `[뷰티그라운드] 주문취소 알림 — ${paymentId}`,
+        `<div style="font-family:sans-serif;max-width:480px;margin:0 auto;">
+           <h3>주문이 취소됐습니다</h3>
+           <p>주문번호: ${paymentId}</p>
+           <p style="color:#888;font-size:13px;">포트원 웹훅으로 통보받은 취소입니다.</p>
+         </div>`
+      )
+    }
     res.status(200).json({ ok: true, marked: 'cancelled', rows: flippedRows.length })
     return
   }
@@ -620,6 +784,34 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
        <p style="margin-top:20px"><a href="https://beautyground.co.kr/admin/orders" style="background:#1a1e36;color:#fff;padding:10px 18px;border-radius:6px;text-decoration:none">주문 관리 열기</a></p>
      </div>`
   )
+
+  // 7) 브랜드(판매자) 알림 — 지금까지 새 주문을 알려주는 코드가 전혀 없었다(2026-09-16 전수조사).
+  //    partner_id 별로 묶어 각 브랜드에게 자기 몫만 보낸다(장바구니 다건 주문 대응).
+  const notifyPartnerIds = [...new Set(rows.map((r) => r.partner_id).filter((v): v is string => !!v))]
+  for (const pid of notifyPartnerIds) {
+    const partnerEmail = await getPartnerEmail(supabase, pid)
+    if (!partnerEmail) continue
+    const mine = orderRows.filter((r) => (r as unknown as { partner_id?: string | null }).partner_id === pid)
+    const mineLines = mine
+      .map((r) => {
+        const productName = (r as unknown as { products?: { name?: string } | null }).products?.name ?? r.order_name
+        return `<tr><td style="padding:8px 0;">${productName}</td><td style="padding:8px 0;text-align:center;">${r.quantity}</td><td style="padding:8px 0;text-align:right;">${won(r.amount as number)}</td></tr>`
+      })
+      .join('')
+    const mineTotal = mine.reduce((s, r) => s + ((r.amount as number) || 0), 0)
+    await sendMail(
+      partnerEmail,
+      `[뷰티그라운드] 새 주문이 들어왔어요 — ${won(mineTotal)}`,
+      `<div style="font-family:sans-serif;max-width:480px;margin:0 auto;">
+         <h2 style="color:#b8924a;">새 주문 알림</h2>
+         <table style="width:100%;border-collapse:collapse;margin-top:12px;">
+           <thead><tr style="border-bottom:1px solid #e5e0d8;"><th style="text-align:left;padding:8px 0;">상품</th><th style="padding:8px 0;">수량</th><th style="text-align:right;padding:8px 0;">금액</th></tr></thead>
+           <tbody>${mineLines}</tbody>
+         </table>
+         <p style="color:#888;font-size:13px;margin-top:24px;">주문번호: ${paymentId}<br/>자세한 내역은 셀러센터에서 확인해 주세요.</p>
+       </div>`
+    )
+  }
 
   res.status(200).json({ ok: true })
 }

@@ -177,10 +177,28 @@ export default function AdminShipping() {
     setMsg(`${target.length}건 내보냈습니다. LoIS 파일접수에서 형식명 "뷰티그라운드몰"을 고르고 업로드하세요.`)
   }
 
+  // 배송상태 변경을 구매자에게 메일로 알림 — api/payment-complete.ts?job=notify (서버가 이미 갖고 있는
+  // Gmail 발송 인프라를 재사용, 새 api 파일은 만들지 않음. 실패해도 화면 처리 자체는 막지 않는다(2026-09-16).
+  const notifyBuyer = async (paymentId: string, type: 'shipped' | 'delivered') => {
+    try {
+      const { data } = await supabase.auth.getSession()
+      await fetch('/api/payment-complete?job=notify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${data.session?.access_token ?? ''}` },
+        body: JSON.stringify({ type, paymentId }),
+      })
+    } catch (e) {
+      console.error('[Shipping] 알림 메일 요청 실패', e)
+    }
+  }
+
   // ── 송장 반영(주문 묶음 단위) ──
   const applyTracking = async (paymentId: string, tracking: string) => {
     const no = tracking.replace(/[^0-9]/g, '')
     if (no.length < 10) { setMsg(`송장번호 형식을 확인해 주세요: ${tracking}`); return false }
+    // 이미 shipped 인 주문의 송장 정정까지 "배송시작" 메일을 다시 보내지 않도록, 전환 전 상태를 먼저 본다.
+    const { data: before } = await supabase.from('orders').select('status').eq('payment_id', paymentId)
+    const wasPaid = (before ?? []).some((r) => r.status === 'paid')
     // shipping.sql(신규 컬럼) 실행 전이라도 송장·상태 반영은 되도록 — 컬럼 없음 오류면 기본 컬럼만으로 재시도
     let { error } = await supabase
       .from('orders')
@@ -191,6 +209,7 @@ export default function AdminShipping() {
       ;({ error } = await supabase.from('orders').update({ tracking_number: no, tracking_carrier: 'cj', status: 'shipped' }).eq('payment_id', paymentId).in('status', ['paid', 'shipped']))
     }
     if (error) { setMsg(`반영 실패(${paymentId}): ${error.message}`); return false }
+    if (wasPaid) void notifyBuyer(paymentId, 'shipped')
     return true
   }
 
@@ -227,6 +246,7 @@ export default function AdminShipping() {
       ;({ error } = await supabase.from('orders').update({ status: 'done' }).eq('payment_id', paymentId).eq('status', 'shipped'))
     }
     setMsg(error ? `완료 처리 실패: ${error.message}` : '배송완료 처리했습니다.')
+    if (!error) void notifyBuyer(paymentId, 'delivered')
     await load()
   }
 
