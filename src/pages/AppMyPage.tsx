@@ -12,7 +12,7 @@ import { getMyPointsBalance, getMyValidCoupons } from '../lib/rewards'
 import { IconUser } from '../components/common/Icon'
 import { useIsStaff } from '../lib/staff'
 import { useActiveMissions } from '../hooks/useActiveMissions'
-import { getFriendRequestCount } from '../lib/friends'
+import { getFriendRequestCount, getMyFriends, type FriendRow } from '../lib/friends'
 
 // 실제 로그인 사용자 프로필 (포인트/쿠폰은 supabase/signup_bonus.sql 적용 후 실제 지급값)
 interface RealUser {
@@ -119,13 +119,15 @@ export default function AppMyPage() {
   const [loggedIn, setLoggedIn] = useState<boolean | null>(null)
   const [toast, setToast] = useState<string | null>(null)
   const [friendRequests, setFriendRequests] = useState(0)
+  const [friends, setFriends] = useState<FriendRow[]>([])
 
   const loadUser = async () => {
     const { data } = await supabase.auth.getUser()
     const authUser = data.user
     setLoggedIn(!!authUser)
-    if (!authUser) { setUser(EMPTY_USER); setMembership(null); setFriendRequests(0); return }
+    if (!authUser) { setUser(EMPTY_USER); setMembership(null); setFriendRequests(0); setFriends([]); return }
     void getFriendRequestCount().then(setFriendRequests)
+    void getMyFriends().then(setFriends)
 
     const meta = authUser.user_metadata as { name?: string } | undefined
     const name = meta?.name || authUser.email?.split('@')[0] || '고객'
@@ -354,6 +356,43 @@ export default function AppMyPage() {
             </span>
           </span>
           <span className="text-ink-faint" aria-hidden="true">›</span>
+        </button>
+        )}
+
+        {/* 친구 — 마이페이지에서 바로 누구인지 보이게(2026-09-15 대표님 지시: "친구가 추가를 하면
+            마이페이지에서 친구가 누구인지는 보여져야하지"). 접힌 메뉴(커뮤니티 묶음) 안에 숨기지 않고
+            나의 활동·활동 미션과 같은 톤으로 항상 보이는 블록으로 뺐다. 전체 목록·신청 처리는 /app/friends. */}
+        {loggedIn && (
+        <button
+          type="button"
+          onClick={() => navigate('/app/friends')}
+          className="mt-2 w-full rounded-card bg-quiet/50 px-4 py-3 flex items-center justify-between text-left focus:outline-none focus-visible:shadow-ring"
+        >
+          <span className="min-w-0">
+            <span className="block text-[14px] font-bold text-ink">
+              친구{friends.length > 0 ? ` ${friends.length}` : ''}
+            </span>
+            {friends.length === 0 ? (
+              <span className="block text-[12px] text-ink-soft mt-0.5">아직 친구가 없어요</span>
+            ) : (
+              <span className="block text-[12px] text-ink-soft mt-0.5 truncate">
+                {friends.slice(0, 3).map((f) => f.nickname ?? '익명').join(', ')}
+                {friends.length > 3 ? ` 외 ${friends.length - 3}명` : ''}
+              </span>
+            )}
+          </span>
+          <span className="flex items-center gap-1 flex-shrink-0 ml-2">
+            {friends.slice(0, 3).map((f) => (
+              <span
+                key={f.user_id}
+                className="w-7 h-7 rounded-full bg-paper flex items-center justify-center text-ink-soft border border-rule"
+                aria-hidden="true"
+              >
+                <IconUser className="w-3.5 h-3.5" />
+              </span>
+            ))}
+            <span className="text-ink-faint" aria-hidden="true">›</span>
+          </span>
         </button>
         )}
       </div>
