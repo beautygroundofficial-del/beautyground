@@ -42,7 +42,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const { data: orderRows, error: selErr } = await supabase
     .from('orders')
-    .select('id, product_id, partner_id, quantity, status, user_id, buyer_phone')
+    .select('id, product_id, partner_id, quantity, status, user_id, buyer_phone, buyer_email, buyer_name, order_name, amount')
     .eq('payment_id', paymentId)
   if (selErr || !orderRows || orderRows.length === 0) {
     res.status(404).json({ ok: false, reason: '주문을 찾을 수 없습니다.' })
@@ -175,13 +175,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   // 취소·환불이 나면 대표님이 바로 아셔야 한다(2026-09-09 지시). 메일 실패가 취소를 막지는 않는다.
+  // 2026-09-16 전수조사에서 구매자·브랜드는 이 취소를 전혀 통보받지 못하는 게 확인돼 함께 보낸다.
   if (flippedRows.length > 0 && GMAIL_APP_PASSWORD) {
+    const transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: { user: GMAIL_USER, pass: GMAIL_APP_PASSWORD },
+    })
+    const who = role === 'buyer' ? '구매자 본인' : '관리자/파트너'
+    const won = (n: number) => `${(n || 0).toLocaleString('ko-KR')}원`
+    const buyerEmail = orderRows.find((r) => (r as { buyer_email?: string }).buyer_email)?.buyer_email as string | undefined
+    const buyerName = (orderRows.find((r) => (r as { buyer_name?: string }).buyer_name) as { buyer_name?: string } | undefined)?.buyer_name ?? '고객'
+    const orderName = (orderRows[0] as { order_name?: string }).order_name ?? '주문 상품'
+    const total = (orderRows as unknown as { amount: number }[]).reduce((s, r) => s + (r.amount || 0), 0)
+
     try {
-      const transporter = nodemailer.createTransport({
-        service: 'gmail',
-        auth: { user: GMAIL_USER, pass: GMAIL_APP_PASSWORD },
-      })
-      const who = role === 'buyer' ? '구매자 본인' : '관리자/파트너'
       await transporter.sendMail({
         from: `"뷰티그라운드" <${GMAIL_USER}>`,
         to: ADMIN_EMAILS.join(','),
@@ -195,7 +202,50 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                </div>`,
       })
     } catch (e) {
-      console.error('[order-cancel] 취소 알림 메일 실패', e)
+      console.error('[order-cancel] 취소 알림 메일(관리자) 실패', e)
+    }
+
+    if (buyerEmail) {
+      try {
+        await transporter.sendMail({
+          from: `"뷰티그라운드" <${GMAIL_USER}>`,
+          to: buyerEmail,
+          subject: `[뷰티그라운드] ${buyerName}님, 주문이 취소·환불됐어요`,
+          html: `<div style="font-family:sans-serif;max-width:480px;margin:0 auto;">
+                   <h2 style="color:#b8924a;">취소·환불 처리됐어요</h2>
+                   <p>${buyerName}님, ${orderName} 취소가 처리됐습니다.</p>
+                   <p>주문번호: ${paymentId}${hadPayment ? `<br/>환불금액: ${won(total)} (결제수단으로 환불)` : ''}</p>
+                   <p style="color:#888;font-size:13px;margin-top:24px;">문의: beautyground.official@gmail.com</p>
+                 </div>`,
+        })
+      } catch (e) {
+        console.error('[order-cancel] 취소 알림 메일(구매자) 실패', e)
+      }
+    }
+
+    // 브랜드(파트너) — partners.user_id로 로그인 계정이 있을 때만 보낸다(partners 테이블엔 이메일 컬럼이 없음).
+    const partnerIds = [...new Set(orderRows.map((r) => r.partner_id).filter((v): v is string => !!v))]
+    for (const pid of partnerIds) {
+      try {
+        const { data: partner } = await supabase.from('partners').select('user_id').eq('id', pid).maybeSingle()
+        const uid = (partner as { user_id?: string } | null)?.user_id
+        if (!uid) continue
+        const { data: userRes } = await supabase.auth.admin.getUserById(uid)
+        const email = userRes?.user?.email
+        if (!email) continue
+        await transporter.sendMail({
+          from: `"뷰티그라운드" <${GMAIL_USER}>`,
+          to: email,
+          subject: `[뷰티그라운드] 주문취소 알림 — ${paymentId}`,
+          html: `<div style="font-family:sans-serif;max-width:480px;margin:0 auto;">
+                   <h3>주문이 취소됐습니다</h3>
+                   <p>주문번호: ${paymentId}</p>
+                   <p style="color:#888;font-size:13px;">취소 주체: ${who}</p>
+                 </div>`,
+        })
+      } catch (e) {
+        console.error('[order-cancel] 취소 알림 메일(브랜드) 실패', pid, e)
+      }
     }
   }
 

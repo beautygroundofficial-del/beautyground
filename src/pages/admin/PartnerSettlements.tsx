@@ -89,6 +89,18 @@ export default function AdminPartnerSettlements() {
     const { error: err } = await supabase.rpc('admin_mark_partner_settlement_paid', { p_settlement_id: row.id })
     setPayingId(null)
     if (err) { setError(`지급 처리 실패: ${err.message}`); return }
+    // 지급완료 알림 — 이 RPC는 순수 SQL이라 메일을 못 보낸다(2026-09-16 전수조사).
+    // api/payment-complete.ts?job=notify(이미 있는 Gmail 발송 인프라)를 재사용해 브랜드에게 보낸다.
+    try {
+      const { data } = await supabase.auth.getSession()
+      await fetch('/api/payment-complete?job=notify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${data.session?.access_token ?? ''}` },
+        body: JSON.stringify({ type: 'settlement_paid', settlementId: row.id }),
+      })
+    } catch (e) {
+      console.error('[PartnerSettlements] 지급완료 알림 요청 실패', e)
+    }
     void loadRows()
   }
 
