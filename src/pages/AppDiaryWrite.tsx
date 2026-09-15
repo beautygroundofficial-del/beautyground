@@ -51,6 +51,14 @@ export default function AppDiaryWrite() {
   const [toast, setToast] = useState('')
   const [ready, setReady] = useState(false)
   const [showCardPicker, setShowCardPicker] = useState(false)
+  // "카드로 남기기" 최초 1회 안내 — 박채널(마케팅) 제안 B안, 2026-09-15
+  const [showCardTip, setShowCardTip] = useState(() => {
+    try { return !localStorage.getItem('bg_seen_card_tip') } catch { return false }
+  })
+  const dismissCardTip = () => {
+    setShowCardTip(false)
+    try { localStorage.setItem('bg_seen_card_tip', '1') } catch { /* 저장 안 돼도 무방 */ }
+  }
 
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 2400) }
 
@@ -177,13 +185,26 @@ export default function AppDiaryWrite() {
         />
 
         {!showCardPicker ? (
-          <button
-            type="button"
-            onClick={() => setShowCardPicker(true)}
-            className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-rule text-[12.5px] text-ink-soft focus:outline-none focus-visible:shadow-ring"
-          >
-            <span aria-hidden="true">🗂️</span> 카드로 남기기 <span className="text-ink-faint">(사진 대신)</span>
-          </button>
+          <div className="mt-3 relative inline-block">
+            {showCardTip && (
+              <div className="absolute bottom-full left-0 mb-2 w-56 rounded-lg bg-ink text-paper text-[11.5px] leading-relaxed px-3 py-2 shadow-lg">
+                사진 대신 그림 한 장 골라서, 짧은 마음을 적어보세요
+                <button
+                  type="button"
+                  onClick={() => dismissCardTip()}
+                  aria-label="안내 닫기"
+                  className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-paper text-ink text-[11px] leading-none flex items-center justify-center focus:outline-none focus-visible:shadow-ring"
+                >×</button>
+              </div>
+            )}
+            <button
+              type="button"
+              onClick={() => { setShowCardPicker(true); dismissCardTip() }}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-rule text-[12.5px] text-ink-soft focus:outline-none focus-visible:shadow-ring"
+            >
+              <span aria-hidden="true">🗂️</span> 카드로 남기기 <span className="text-ink-faint">— 사진 없어도 괜찮아요</span>
+            </button>
+          </div>
         ) : (
           <div className="mt-3">
             <StoryCardPicker
