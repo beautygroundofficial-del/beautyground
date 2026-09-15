@@ -88,7 +88,7 @@ export default function AppCategory() {
             className="w-full flex items-center justify-between py-4 focus:outline-none focus-visible:shadow-ring"
           >
             <span className="text-[17px] font-bold tracking-[-0.02em] text-ink">카테고리</span>
-            <span className="text-ink-faint text-sm" aria-hidden="true">{categoryOpen ? '접기 ⌃' : '펼치기 ⌄'}</span>
+            <span className={`text-ink-faint text-[13px] transition-transform ${categoryOpen ? 'rotate-180' : ''}`} aria-hidden="true">⌄</span>
           </button>
           {categoryOpen && (
             <div className="border-t border-rule divide-y divide-rule -mx-4 px-4">
@@ -124,11 +124,15 @@ export default function AppCategory() {
             className="w-full flex items-center justify-between py-4 focus:outline-none focus-visible:shadow-ring"
           >
             <span className="text-[17px] font-bold tracking-[-0.02em] text-ink">브랜드</span>
-            <span className="text-ink-faint text-sm" aria-hidden="true">{brandOpen ? '접기 ⌃' : '펼치기 ⌄'}</span>
+            <span className={`text-ink-faint text-[13px] transition-transform ${brandOpen ? 'rotate-180' : ''}`} aria-hidden="true">⌄</span>
           </button>
           {brandOpen && (
             <div className="border-t border-rule -mx-4">
-              <BrandRail brands={brands} loading={brandsLoading} />
+              {!brandsLoading && brands.length === 0 ? (
+                <p className="px-4 py-4 text-[12.5px] text-ink-faint">등록된 브랜드가 아직 없어요</p>
+              ) : (
+                <BrandRail brands={brands} loading={brandsLoading} />
+              )}
             </div>
           )}
         </div>
