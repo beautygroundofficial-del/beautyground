@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 
 // 사진 대신 "카드로 남기기" — 사진 올리기 부담스러운 날에도 글을 남길 수 있게.
 // 2026-09-15 대표님 지시("무료 섬네일 가져다 써서 팀원들 글 넣어 만들어") 실행.
@@ -32,8 +32,6 @@ export default function StoryCardPicker({ onGenerate, onCancel }: Props) {
   const [busy, setBusy] = useState(false)
   const canvasRef = useRef<HTMLCanvasElement>(null)
 
-  const wrapped = useMemo(() => wrapLines(caption, 14), [caption])
-
   const make = async () => {
     if (!caption.trim()) return
     setBusy(true)
@@ -50,7 +48,8 @@ export default function StoryCardPicker({ onGenerate, onCancel }: Props) {
       ctx.lineWidth = 2
       ctx.strokeRect(1, 1, CARD_W - 2, CARD_H - 2)
 
-      // 일러스트
+      // 일러스트 — 이미지 실제 높이를 재서, 라벨·캡션을 그 아래에 상대적으로 붙인다
+      // (고정 비율 좌표를 쓰면 가로로 넓은 템플릿에서 빈 여백이 커짐 — 이시안 디자인 검수 2026-09-15)
       const img = new Image()
       img.src = `/story-cards/${selected.file}`
       await new Promise<void>((resolve, reject) => { img.onload = () => resolve(); img.onerror = reject })
@@ -59,20 +58,27 @@ export default function StoryCardPicker({ onGenerate, onCancel }: Props) {
       const scale = Math.min(maxW / img.width, maxH / img.height)
       const iw = img.width * scale
       const ih = img.height * scale
-      ctx.drawImage(img, (CARD_W - iw) / 2, CARD_H * 0.14, iw, ih)
+      const imageTop = CARD_H * 0.14
+      ctx.drawImage(img, (CARD_W - iw) / 2, imageTop, iw, ih)
+      const imageBottom = imageTop + ih
 
       // 카테고리 라벨
       ctx.fillStyle = '#8E9199'
       ctx.font = '600 22px "Malgun Gothic","Apple SD Gothic Neo",sans-serif'
       ctx.textAlign = 'center'
-      ctx.fillText(selected.label.toUpperCase(), CARD_W / 2, CARD_H * 0.58)
+      const labelY = imageBottom + 56
+      ctx.fillText(selected.label.toUpperCase(), CARD_W / 2, labelY)
 
-      // 캡션(직접 입력한 글)
+      // 캡션(직접 입력한 글) — 실측 폭 기준 줄바꿈(공백 없는 긴 입력도 글자 단위로 강제 개행),
+      // 남은 세로 공간에 안 들어가면 말줄임(…) 표시(2026-09-15 이시안 디자인 검수 반영)
       ctx.fillStyle = '#1a1e36'
       ctx.font = '700 34px "Malgun Gothic","Apple SD Gothic Neo",sans-serif'
       ctx.textAlign = 'center'
       const lineHeight = 50
-      const startY = CARD_H * 0.66
+      const startY = labelY + 60
+      const watermarkTop = CARD_H - 70
+      const maxLines = Math.max(3, Math.floor((watermarkTop - startY) / lineHeight))
+      const wrapped = wrapLinesByWidth(ctx, caption.trim(), CARD_W * 0.8, maxLines)
       wrapped.forEach((line, i) => ctx.fillText(line, CARD_W / 2, startY + i * lineHeight))
 
       // 브랜드 워터마크
@@ -134,14 +140,49 @@ export default function StoryCardPicker({ onGenerate, onCancel }: Props) {
   )
 }
 
-function wrapLines(text: string, maxCharsPerLine: number): string[] {
-  const words = text.trim().split(/\s+/)
+// 공백 기준 단어 단위로 먼저 붙여보고, 단어 자체가 maxWidth보다 길면(공백 없이 쓴 경우 —
+// 이 화면 주 사용자층에서 실제로 흔함) 글자 단위로 강제 개행한다. maxLines를 넘으면 마지막
+// 줄에 말줄임(…)을 붙여 "조용히 사라지는" 대신 잘렸다는 걸 알 수 있게 한다.
+function wrapLinesByWidth(ctx: CanvasRenderingContext2D, text: string, maxWidth: number, maxLines: number): string[] {
   const lines: string[] = []
   let cur = ''
-  for (const w of words) {
-    const next = cur ? `${cur} ${w}` : w
-    if (next.length > maxCharsPerLine && cur) { lines.push(cur); cur = w } else { cur = next }
+
+  const pushChar = (ch: string) => {
+    const next = cur + ch
+    if (ctx.measureText(next).width > maxWidth && cur) {
+      lines.push(cur)
+      cur = ch
+    } else {
+      cur = next
+    }
   }
-  if (cur) lines.push(cur)
-  return lines.slice(0, 4)
+
+  const words = text.split(/\s+/).filter(Boolean)
+  words.forEach((word, wi) => {
+    const withSpace = cur ? `${cur} ${word}` : word
+    if (ctx.measureText(withSpace).width <= maxWidth) {
+      cur = withSpace
+    } else {
+      if (cur) { lines.push(cur); cur = '' }
+      // 단어 자체가 한 줄보다 길면 글자 단위로 쪼갠다
+      if (ctx.measureText(word).width > maxWidth) {
+        for (const ch of word) pushChar(ch)
+      } else {
+        cur = word
+      }
+    }
+    if (wi === words.length - 1 && cur) lines.push(cur)
+  })
+
+  if (lines.length === 0 && cur) lines.push(cur)
+
+  if (lines.length <= maxLines) return lines
+
+  const visible = lines.slice(0, maxLines)
+  let last = visible[maxLines - 1]
+  while (last.length > 0 && ctx.measureText(`${last}…`).width > maxWidth) {
+    last = last.slice(0, -1)
+  }
+  visible[maxLines - 1] = `${last}…`
+  return visible
 }
