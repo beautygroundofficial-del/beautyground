@@ -50,6 +50,7 @@ interface Props {
 }
 
 // 펼침 패널 — open 일 때만 그린다. 목록은 처음 열릴 때 한 번 불러온다.
+// 답글(대댓글)은 1단계 댓글에만 달 수 있다(2단계까지만 — 답글에는 "답글" 버튼을 보여주지 않는다).
 export default function DiaryComments({
   diaryId, open, count, loggedIn, myName, onCountChange, onAward, onNotice,
 }: Props) {
@@ -57,6 +58,9 @@ export default function DiaryComments({
   const [list, setList] = useState<DiaryComment[] | null>(null)
   const [draft, setDraft] = useState('')
   const [saving, setSaving] = useState(false)
+  const [replyOpenFor, setReplyOpenFor] = useState<string | null>(null)
+  const [replyDraft, setReplyDraft] = useState('')
+  const [replySaving, setReplySaving] = useState(false)
 
   useEffect(() => {
     if (open && list === null) void getDiaryComments(diaryId).then(setList)
@@ -80,37 +84,107 @@ export default function DiaryComments({
     if (res.awarded > 0) onAward?.(res.awarded)
   }
 
+  const submitReply = async (parentId: string) => {
+    if (!loggedIn) { navigate('/app/login'); return }
+    const text = replyDraft.trim()
+    if (!text) return
+
+    setReplySaving(true)
+    const res = await createDiaryComment(diaryId, text, myName, parentId)
+    setReplySaving(false)
+    if (!res.comment_id) { onNotice?.(res.message || '남기지 못했어요'); return }
+
+    setReplyDraft('')
+    setReplyOpenFor(null)
+    setList(await getDiaryComments(diaryId))
+    onCountChange(count + 1)
+    if (res.awarded > 0) onAward?.(res.awarded)
+  }
+
   const remove = async (c: DiaryComment) => {
     if (!window.confirm('이 댓글을 지울까요?')) return
     const ok = await deleteDiaryComment(c.id)
     if (!ok) { onNotice?.('지우지 못했어요'); return }
-    setList((prev) => (prev ?? []).filter((x) => x.id !== c.id))
-    onCountChange(Math.max(0, count - 1))
+    const removedIds = new Set([c.id, ...(list ?? []).filter((x) => x.parent_comment_id === c.id).map((x) => x.id)])
+    setList((prev) => (prev ?? []).filter((x) => !removedIds.has(x.id)))
+    onCountChange(Math.max(0, count - removedIds.size))
   }
+
+  const topLevel = (list ?? []).filter((c) => !c.parent_comment_id)
+  const repliesOf = (id: string) => (list ?? []).filter((c) => c.parent_comment_id === id)
+
+  const renderComment = (c: DiaryComment, isReply: boolean) => (
+    <div key={c.id} className={isReply ? 'pl-4 border-l border-rule' : ''}>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-[13px] text-ink leading-relaxed whitespace-pre-wrap">{c.content}</p>
+          <p className="text-[11px] text-ink-faint mt-0.5">
+            {c.is_mine ? '나' : maskName(c.nickname)}
+          </p>
+        </div>
+        <div className="shrink-0 flex items-center gap-2">
+          {!isReply && (
+            <button
+              type="button"
+              onClick={() => {
+                if (!loggedIn) { navigate('/app/login'); return }
+                setReplyOpenFor((prev) => (prev === c.id ? null : c.id))
+                setReplyDraft('')
+              }}
+              className="text-[11px] text-ink-faint"
+            >
+              답글
+            </button>
+          )}
+          {c.is_mine && (
+            <button
+              type="button"
+              onClick={() => void remove(c)}
+              className="text-[11px] text-ink-faint"
+            >
+              삭제
+            </button>
+          )}
+        </div>
+      </div>
+
+      {!isReply && replyOpenFor === c.id && (
+        <div className="mt-2 pl-4 flex items-end gap-2">
+          <textarea
+            value={replyDraft}
+            onChange={(e) => setReplyDraft(e.target.value)}
+            rows={1}
+            maxLength={500}
+            placeholder="답글을 남겨주세요"
+            className="flex-1 resize-none rounded-control border border-rule bg-paper px-3 py-1.5 text-[12.5px] text-ink placeholder:text-ink-faint focus:outline-none focus:border-ink"
+          />
+          <button
+            type="button"
+            onClick={() => void submitReply(c.id)}
+            disabled={replySaving || !replyDraft.trim()}
+            className="shrink-0 px-3 py-1.5 rounded-control bg-ink text-paper text-[12px] font-semibold disabled:opacity-40"
+          >
+            {replySaving ? '…' : '남기기'}
+          </button>
+        </div>
+      )}
+    </div>
+  )
 
   return (
     <div className="mt-3 pt-3 border-t border-rule">
       {list === null ? (
         <p className="text-[12.5px] text-ink-faint">불러오는 중…</p>
       ) : (
-        list.length > 0 && (
+        topLevel.length > 0 && (
           <ul className="space-y-2.5 mb-3">
-            {list.map((c) => (
-              <li key={c.id} className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="text-[13px] text-ink leading-relaxed whitespace-pre-wrap">{c.content}</p>
-                  <p className="text-[11px] text-ink-faint mt-0.5">
-                    {c.is_mine ? '나' : maskName(c.nickname)}
-                  </p>
-                </div>
-                {c.is_mine && (
-                  <button
-                    type="button"
-                    onClick={() => void remove(c)}
-                    className="shrink-0 text-[11px] text-ink-faint"
-                  >
-                    삭제
-                  </button>
+            {topLevel.map((c) => (
+              <li key={c.id} className="space-y-2">
+                {renderComment(c, false)}
+                {repliesOf(c.id).length > 0 && (
+                  <div className="space-y-2">
+                    {repliesOf(c.id).map((r) => renderComment(r, true))}
+                  </div>
                 )}
               </li>
             ))}

@@ -120,6 +120,7 @@ export interface DiaryComment {
   content: string
   created_at: string
   is_mine: boolean
+  parent_comment_id: string | null
 }
 
 export async function getDiaryComments(diaryId: string, limit = 50): Promise<DiaryComment[]> {
@@ -137,11 +138,12 @@ export interface CreateCommentResult {
 }
 
 export async function createDiaryComment(
-  diaryId: string, content: string, nickname?: string | null,
+  diaryId: string, content: string, nickname?: string | null, parentCommentId?: string | null,
 ): Promise<CreateCommentResult> {
   const fail: CreateCommentResult = { comment_id: null, awarded: 0, message: '잠시 후 다시 시도해 주세요' }
   const { data, error } = await supabase.rpc('create_diary_comment', {
     p_diary_id: diaryId, p_content: content, p_nickname: nickname ?? null,
+    p_parent_comment_id: parentCommentId ?? null,
   })
   if (error) return fail
   const row = Array.isArray(data) ? data[0] : data
