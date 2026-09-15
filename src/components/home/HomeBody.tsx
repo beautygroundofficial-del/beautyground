@@ -3,7 +3,6 @@ import AppHeader from '../layout/AppHeader'
 import MarqueeBar from './MarqueeBar'
 import MissionBanner from './MissionBanner'
 import TodayQuestion from '../community/TodayQuestion'
-import PhoneVerifyBanner from '../community/PhoneVerifyBanner'
 import DiaryHomeFeed from './DiaryHomeFeed'
 import BoardHomeFeed from './BoardHomeFeed'
 import BoardCategoryGrid from './BoardCategoryGrid'
@@ -46,11 +45,9 @@ export default function HomeBody({ marqueeItems, promoBarAbove = false }: HomeBo
       {/* 오늘 할 수 있는 일 — 관리자가 미션을 켜야 나타난다 */}
       <MissionBanner />
 
-      {/* 전화번호 인증 배너 — 로그인했고 아직 인증 안 한 사람에게만, 딱 이 자리에서만 보인다.
-          안 눌러도 아무것도 안 막힌다(포인트만 안 쌓인다). 2026-09-09 */}
-      <div className="px-5 pt-4">
-        <PhoneVerifyBanner />
-      </div>
+      {/* 전화번호 인증 배너 제거(2026-09-16) — claim_mission()에서 전화인증 게이트를
+          없애 포인트가 인증 없이도 지급되므로, "인증해야 포인트"라는 이 배너 문구가
+          더는 사실이 아니게 됐다. */}
 
       {/* 오늘의 질문 — 한 줄만 답하면 되는 자리. 오늘 걸린 질문이 없으면 스스로 감춘다 */}
       <div className="px-5 pt-4">
