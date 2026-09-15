@@ -27,6 +27,9 @@ export default function AppSignupEmail() {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [needsVerify, setNeedsVerify] = useState(false)
+  const [agreeTerms, setAgreeTerms] = useState(false)
+  const [agreePrivacy, setAgreePrivacy] = useState(false)
+  const canProceed = agreeTerms && agreePrivacy
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -38,6 +41,7 @@ export default function AppSignupEmail() {
     if (!EMAIL_RE.test(email.trim())) return setError('올바른 이메일 형식이 아닙니다.')
     if (!PASSWORD_RE.test(password)) return setError('비밀번호는 8자 이상, 영문+숫자를 포함해야 합니다.')
     if (password !== passwordConfirm) return setError('비밀번호가 일치하지 않습니다.')
+    if (!canProceed) return setError('이용약관과 개인정보 수집·이용에 모두 동의해주세요.')
 
     setSubmitting(true)
     const { data, error: signUpError } = await supabase.auth.signUp({
@@ -116,11 +120,39 @@ export default function AppSignupEmail() {
         <input id="passwordConfirm" type="password" value={passwordConfirm} onChange={(e) => setPasswordConfirm(e.target.value)} placeholder="비밀번호 재입력" className={field} />
       </div>
 
+      {/* 필수 약관 동의 — 가입 제출 전 명시적 opt-in (PG 심사 대응) */}
+      <div className="rounded-control bg-quiet p-4 space-y-2.5">
+        <label className="flex items-start gap-2.5 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={agreeTerms}
+            onChange={(e) => setAgreeTerms(e.target.checked)}
+            className="w-4 h-4 accent-ink mt-0.5 shrink-0"
+          />
+          <span className="text-[13px] text-ink">
+            <span className="text-signal-red font-bold">(필수)</span>{' '}
+            <Link to="/terms" target="_blank" rel="noreferrer" className="underline font-bold">이용약관</Link>에 동의합니다
+          </span>
+        </label>
+        <label className="flex items-start gap-2.5 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={agreePrivacy}
+            onChange={(e) => setAgreePrivacy(e.target.checked)}
+            className="w-4 h-4 accent-ink mt-0.5 shrink-0"
+          />
+          <span className="text-[13px] text-ink">
+            <span className="text-signal-red font-bold">(필수)</span>{' '}
+            <Link to="/privacy" target="_blank" rel="noreferrer" className="underline font-bold">개인정보 수집·이용</Link>에 동의합니다
+          </span>
+        </label>
+      </div>
+
       {error && <p className="text-[13px] text-signal-red" role="alert">{error}</p>}
 
       <button
         type="submit"
-        disabled={submitting}
+        disabled={submitting || !canProceed}
         className="w-full rounded-control bg-ink text-paper font-bold text-[15px] py-3.5 disabled:opacity-60 focus:outline-none focus-visible:shadow-ring"
       >
         {submitting ? '가입 중…' : '회원가입'}
