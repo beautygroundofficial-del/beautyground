@@ -83,6 +83,9 @@ export default function AppOrder() {
   // (2026-08-27 실제 방송 중 발견: "주소 검색" 눌러도 아무 반응 없음).
   const [addrSearchOpen, setAddrSearchOpen] = useState(false)
   const addrContainerRef = useRef<HTMLDivElement>(null)
+  // 입력 오류 시 이 지점(폼 맨 위)으로 스크롤 — 메시지가 화면 하단(결제버튼 근처)에만 뜨면
+  // 위쪽 입력칸을 보고 있던 유저가 못 보고 넘어가는 문제 방지(2026-09-15 박채널 UX 검토)
+  const formTopRef = useRef<HTMLDivElement>(null)
   const handleSearchAddress = () => setAddrSearchOpen(true)
   useEffect(() => {
     if (!addrSearchOpen || !addrContainerRef.current) return
@@ -111,6 +114,8 @@ export default function AppOrder() {
   const [message, setMessage] = useState('')
   const [doneOrder, setDoneOrder] = useState<{ orderName: string; amount: number; paymentId: string } | null>(null)
   const [liveCoupon, setLiveCoupon] = useState<LiveCoupon | null>(null)
+  // 결제확인이 오래 걸리면(네트워크 지연 등) 탈출구를 보여준다 — 스피너만 보고 멈춰있던 문제(2026-09-15 박채널 UX 검토)
+  const [verifyStuck, setVerifyStuck] = useState(false)
 
   // 적립금·가입 쿠폰(첫구매 등 공용 혜택) — 라이브 쿠폰과 별개, 동시 사용 가능
   const [pointsBalance, setPointsBalance] = useState(0)
@@ -231,6 +236,8 @@ export default function AppOrder() {
   const verify = async (paymentId: string) => {
     setStatus('verifying')
     setMessage('')
+    setVerifyStuck(false)
+    const stuckTimer = window.setTimeout(() => setVerifyStuck(true), 15000)
     try {
       const res = await fetch('/api/payment-complete', {
         method: 'POST',
@@ -264,6 +271,8 @@ export default function AppOrder() {
     } catch {
       setStatus('error')
       setMessage('결제 검증 요청에 실패했습니다.')
+    } finally {
+      window.clearTimeout(stuckTimer)
     }
   }
 
@@ -285,17 +294,17 @@ export default function AppOrder() {
   const handlePay = async () => {
     setMessage('')
     if (items.length === 0) { setMessage('주문할 상품이 없습니다.'); return }
-    if (!name.trim() || !phone.trim() || !address.trim()) {
-      setMessage('배송지 정보를 모두 입력해 주세요.')
-      return
-    }
-    if (!/^01[016789][-\s]?\d{3,4}[-\s]?\d{4}$/.test(phone.trim())) {
-      setMessage('연락처를 휴대폰 번호 형식(010-0000-0000)으로 입력해 주세요.')
-      return
-    }
+    // 필드별로 어디가 비었는지 한 번에 모아서 보여준다 — 하나씩 걸려서 여러 번 눌러야 하는 문제 방지(2026-09-15 박채널 UX 검토)
+    const fieldErrors: string[] = []
+    if (!name.trim()) fieldErrors.push('받는 분 성함을 입력해 주세요')
+    if (!phone.trim()) fieldErrors.push('연락처를 입력해 주세요')
+    else if (!/^01[016789][-\s]?\d{3,4}[-\s]?\d{4}$/.test(phone.trim())) fieldErrors.push('연락처를 휴대폰 번호 형식(010-0000-0000)으로 입력해 주세요')
+    if (!address.trim()) fieldErrors.push('배송 주소를 입력해 주세요')
     // 이니시스 V2 일반결제 필수값 — 비면 결제창 호출 자체가 실패한다
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
-      setMessage('결제 영수증을 받으실 이메일을 정확히 입력해 주세요.')
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) fieldErrors.push('결제 영수증을 받으실 이메일을 정확히 입력해 주세요')
+    if (fieldErrors.length > 0) {
+      setMessage(fieldErrors.join(' · '))
+      formTopRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
       return
     }
     if (!storeId || !channelKey) {
@@ -397,8 +406,9 @@ export default function AppOrder() {
       ;({ error: insErr } = await supabase.from('orders').insert(fallbackRows))
     }
     if (insErr) {
+      console.error('[order] insert failed', insErr.message)
       setStatus('error')
-      setMessage(`주문 생성 실패: ${insErr.message}`)
+      setMessage('일시적인 오류로 주문을 완료하지 못했어요. 다시 시도해 주시거나 고객센터로 문의해 주세요.')
       return
     }
 
@@ -416,12 +426,13 @@ export default function AppOrder() {
         redirectUrl: `${window.location.origin}/app/order`,
       })
     } catch (err) {
+      console.error('[order] PortOne.requestPayment threw', err)
       await markOrderFailed(paymentId)
       if (redeemedCoupon && liveId) await supabase.rpc('release_live_coupon', { p_live_id: liveId })
       if (redeemedPoints > 0) await releasePoints(paymentId)
       if (redeemedCouponId) await releaseSignupCoupon(paymentId)
       setStatus('error')
-      setMessage(err instanceof Error ? err.message : '결제창 호출에 실패했습니다. 다시 시도해 주세요.')
+      setMessage('결제창을 여는 데 실패했어요. 다시 시도해 주세요.')
       return
     }
 
@@ -483,6 +494,19 @@ export default function AppOrder() {
       <OrderFrame className="flex flex-col items-center justify-center px-8 text-center">
         <h1 className="text-[20px] font-bold text-ink mb-2">결제를 확인하고 있어요</h1>
         <p className="text-ink-soft text-[14px]">잠시만 기다려주세요…</p>
+        {verifyStuck && (
+          <div className="mt-8 w-full max-w-xs">
+            <p className="text-ink-faint text-[12.5px] mb-4">생각보다 오래 걸리고 있어요. 주문내역에서 결제 상태를 확인하실 수 있어요.</p>
+            <div className="flex flex-col gap-3">
+              <button onClick={() => navigate('/app/orders')} className="w-full rounded-control bg-ink text-paper font-bold text-[14px] py-3.5 focus:outline-none focus-visible:shadow-ring">
+                주문 내역 확인
+              </button>
+              <button onClick={() => navigate('/app/home')} className="w-full rounded-control border border-rule text-ink-soft font-bold text-[14px] py-3.5 focus:outline-none focus-visible:shadow-ring">
+                홈으로
+              </button>
+            </div>
+          </div>
+        )}
       </OrderFrame>
     )
   }
@@ -568,6 +592,12 @@ export default function AppOrder() {
   return (
     <OrderFrame className="pb-40">
       <BackHeader title="주문/결제" />
+      <div ref={formTopRef} />
+      {message && (
+        <div className="bg-quiet border-b border-rule px-5 py-3">
+          <p className="text-[12.5px] text-signal-red" role="alert">{message}</p>
+        </div>
+      )}
 
       {!paymentReady && (
         <div className="bg-quiet border-b border-rule px-5 py-3">
@@ -619,7 +649,7 @@ export default function AppOrder() {
             <button type="button" onClick={() => navigate('/app/login', { state: { from: '/app/order' } })} className="text-ink font-bold underline underline-offset-2 focus:outline-none">
               로그인
             </button>
-            하면 적립금·쿠폰 혜택을 받을 수 있어요.
+            하면 적립금·쿠폰 혜택을 받을 수 있어요. (지금 입력한 배송지는 로그인 후 다시 입력해야 해요)
           </div>
         )}
 
@@ -736,6 +766,12 @@ export default function AppOrder() {
                   </option>
                 ))}
               </select>
+              {/* 미달 쿠폰이 있으면 드롭다운을 펼치지 않아도 보이게 — 적립금 힌트와 동일한 방식(2026-09-15 박채널 UX 검토) */}
+              {myCoupons.some((c) => subtotal < c.minOrderAmount) && (
+                <p className="text-[11.5px] text-ink-faint mt-1.5">
+                  {myCoupons.filter((c) => subtotal < c.minOrderAmount).map((c) => `${c.label}(${c.minOrderAmount.toLocaleString('ko-KR')}원 이상)`).join(' · ')}
+                </p>
+              )}
             </div>
           )}
           {pointsBalance > 0 && (
@@ -787,6 +823,7 @@ export default function AppOrder() {
             <span className="text-[20px] font-bold tabular-nums text-ink">{total.toLocaleString('ko-KR')}원</span>
           </div>
         </div>
+        <p className="text-[11.5px] text-ink-faint mt-3 pt-3 border-t border-rule">결제수단: 신용·체크카드</p>
       </div>
 
       {/* 안내 — 체크박스 대신 결제 시 동의 간주(쿠팡·네이버식). 주문 확인·정정 절차는 이 주문서 화면 자체로 충족 */}
