@@ -5,6 +5,7 @@ import type { Product, ScrapedReview } from '../../lib/types'
 import { won } from '../../lib/format'
 import { SEASONS } from '../../lib/season'
 import Button from '../../components/common/Button'
+import { getProductReviews, replyToProductReview, type AdminProductReview } from '../../lib/reviews'
 
 type Filter = Product['status'] | 'all'
 type ProductRow = Product & { partners: { brand_name: string } | null }
@@ -278,6 +279,40 @@ function ReviewModal({
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
 
+  // 회원이 실제로 쓴 구매후기(product_reviews) — 2026-09-16 알림 구멍 보완: 답변 기능이 아예 없었음.
+  const [memberReviews, setMemberReviews] = useState<AdminProductReview[]>([])
+  const [memberLoading, setMemberLoading] = useState(true)
+  const [replyTargetId, setReplyTargetId] = useState<string | null>(null)
+  const [replyDraft, setReplyDraft] = useState('')
+  const [replyBusy, setReplyBusy] = useState(false)
+
+  useEffect(() => {
+    let active = true
+    setMemberLoading(true)
+    getProductReviews(product.id).then((rows) => {
+      if (!active) return
+      setMemberReviews(rows)
+      setMemberLoading(false)
+    })
+    return () => { active = false }
+  }, [product.id])
+
+  const startReply = (r: AdminProductReview) => {
+    setReplyTargetId(r.id)
+    setReplyDraft(r.replyContent ?? '')
+  }
+
+  const submitReply = async (id: string) => {
+    if (!replyDraft.trim()) return
+    setReplyBusy(true)
+    const { error: err } = await replyToProductReview(id, replyDraft.trim())
+    setReplyBusy(false)
+    if (err) { setError(`답변 등록 실패: ${err}`); return }
+    setMemberReviews((prev) => prev.map((r) => (r.id === id ? { ...r, replyContent: replyDraft.trim(), repliedAt: new Date().toISOString() } : r)))
+    setReplyTargetId(null)
+    setReplyDraft('')
+  }
+
   const removeAt = async (idx: number) => {
     if (!window.confirm('이 리뷰를 삭제할까요?')) return
     setBusy(true)
@@ -304,33 +339,105 @@ function ReviewModal({
           <p className="text-[15px] font-bold text-ink">리뷰 관리 — {product.name}</p>
           <button onClick={onClose} className="text-ink-faint hover:text-ink"><IconX size={18} /></button>
         </div>
-        <div className="overflow-y-auto px-5 py-4 space-y-3">
+        <div className="overflow-y-auto px-5 py-4 space-y-5">
           {error && <div className="bg-red-50 border border-red-200 text-red-600 text-[12px] rounded-md px-3 py-2">{error}</div>}
-          {reviews.length === 0 ? (
-            <p className="text-[13px] text-ink-faint text-center py-10">남은 리뷰가 없습니다.</p>
-          ) : (
-            reviews.map((r, i) => (
-              <div key={i} className="border border-rule rounded-md p-3">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
+
+          {/* 회원이 실제로 작성한 구매후기 — 답변 등록/수정. 2026-09-16 이전엔 답변 컬럼 자체가 없었음. */}
+          <div>
+            <p className="text-[12.5px] font-bold text-ink-faint mb-2">회원 구매후기 ({memberReviews.length})</p>
+            {memberLoading ? (
+              <p className="text-[13px] text-ink-faint text-center py-6">불러오는 중…</p>
+            ) : memberReviews.length === 0 ? (
+              <p className="text-[13px] text-ink-faint text-center py-6">아직 작성된 구매후기가 없습니다.</p>
+            ) : (
+              <div className="space-y-3">
+                {memberReviews.map((r) => (
+                  <div key={r.id} className="border border-rule rounded-md p-3">
                     <div className="flex items-center gap-2 text-[12px] text-ink-soft mb-1">
-                      {r.rating != null && <span className="text-signal-blue font-semibold">★ {r.rating}</span>}
-                      {r.author && <span>{r.author}</span>}
-                      {r.date && <span className="text-ink-faint">{r.date}</span>}
+                      <span className="text-signal-blue font-semibold">★ {r.rating}</span>
+                      <span>{r.authorName}</span>
+                      <span className="text-ink-faint">{new Date(r.createdAt).toLocaleDateString('ko-KR')}</span>
                     </div>
-                    <p className="text-[13px] text-ink whitespace-pre-wrap break-words">{r.text}</p>
+                    <p className="text-[13px] text-ink whitespace-pre-wrap break-words">{r.reviewText}</p>
+
+                    {r.replyContent && replyTargetId !== r.id && (
+                      <div className="mt-2 ml-3 pl-3 border-l-2 border-rule">
+                        <div className="flex items-center gap-2 text-[12px] text-ink-soft mb-1">
+                          <span className="font-bold text-signal-blue">A</span>
+                          <span className="text-ink-faint">{r.repliedAt ? new Date(r.repliedAt).toLocaleDateString('ko-KR') : ''}</span>
+                        </div>
+                        <p className="text-[13px] text-ink whitespace-pre-wrap break-words">{r.replyContent}</p>
+                        <button onClick={() => startReply(r)} className="mt-1 text-[11px] text-ink-faint underline">답변 수정</button>
+                      </div>
+                    )}
+
+                    {replyTargetId === r.id ? (
+                      <div className="mt-2 flex flex-col gap-2">
+                        <textarea
+                          value={replyDraft}
+                          onChange={(e) => setReplyDraft(e.target.value)}
+                          rows={2}
+                          placeholder="답변을 입력하세요"
+                          className="w-full text-[13px] border border-rule rounded-md px-2 py-1.5 focus:outline-none"
+                        />
+                        <div className="flex gap-2">
+                          <button
+                            disabled={replyBusy || !replyDraft.trim()}
+                            onClick={() => void submitReply(r.id)}
+                            className="text-[12px] font-bold text-paper bg-ink px-3 py-1.5 rounded-md disabled:opacity-40"
+                          >
+                            {replyBusy ? '등록 중…' : '등록'}
+                          </button>
+                          <button
+                            onClick={() => { setReplyTargetId(null); setReplyDraft('') }}
+                            className="text-[12px] text-ink-soft px-3 py-1.5"
+                          >
+                            취소
+                          </button>
+                        </div>
+                      </div>
+                    ) : !r.replyContent ? (
+                      <button onClick={() => startReply(r)} className="mt-2 text-[12px] font-bold text-signal-blue underline">
+                        답변 등록
+                      </button>
+                    ) : null}
                   </div>
-                  <button
-                    disabled={busy}
-                    onClick={() => void removeAt(i)}
-                    className="shrink-0 text-signal-red text-[12px] underline disabled:opacity-50"
-                  >
-                    삭제
-                  </button>
-                </div>
+                ))}
               </div>
-            ))
-          )}
+            )}
+          </div>
+
+          {/* 스크랩 리뷰(외부 수집분) — 삭제만 가능, 기존 기능 */}
+          <div>
+            <p className="text-[12.5px] font-bold text-ink-faint mb-2">수집된 리뷰 ({reviews.length})</p>
+            {reviews.length === 0 ? (
+              <p className="text-[13px] text-ink-faint text-center py-10">남은 리뷰가 없습니다.</p>
+            ) : (
+              <div className="space-y-3">
+                {reviews.map((r, i) => (
+                  <div key={i} className="border border-rule rounded-md p-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 text-[12px] text-ink-soft mb-1">
+                          {r.rating != null && <span className="text-signal-blue font-semibold">★ {r.rating}</span>}
+                          {r.author && <span>{r.author}</span>}
+                          {r.date && <span className="text-ink-faint">{r.date}</span>}
+                        </div>
+                        <p className="text-[13px] text-ink whitespace-pre-wrap break-words">{r.text}</p>
+                      </div>
+                      <button
+                        disabled={busy}
+                        onClick={() => void removeAt(i)}
+                        className="shrink-0 text-signal-red text-[12px] underline disabled:opacity-50"
+                      >
+                        삭제
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

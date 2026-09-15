@@ -37,6 +37,7 @@ function buildShoppingItems(user: RealUser): MenuItem[] {
     { label: '찜 목록', path: '/app/wishlist' },
     { label: '최근 본 상품', path: '/app/recently-viewed' },
     { label: '리뷰 관리', path: '/app/my-reviews' },
+    { label: '내 문의·리뷰 답변', path: '/app/my-inquiries' },
     { label: '혜택', value: `쿠폰 ${user.coupons}장 · ${user.points.toLocaleString()}P`, path: '/app/benefits' },
   ]
 }
