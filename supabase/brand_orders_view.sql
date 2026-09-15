@@ -6,6 +6,10 @@
 -- ⚠️ 개인정보 비공개 원칙 — 히로인스도 "체험단 주문자 정보는 개인정보 비공개"로 설계했다.
 -- 구매자명·연락처·배송지·결제ID 등은 절대 반환하지 않는다(개인정보보호법 제3자 제공 소지 차단).
 -- Vercel 함수 12/12 한도라 Postgres RPC로 처리, 반환 컬럼을 여기서 직접 화이트리스트한다.
+-- 🔧 (2026-09-16 수정) RETURNS TABLE(id ...)이 plpgsql 내부에 암묵적 OUT변수 "id"를 만들어,
+-- v_partner_id를 구하는 select문의 "id"가 partners.id인지 그 OUT변수인지 모호해져
+-- 42702(column reference "id" is ambiguous)로 /brand/orders·/brand/report가 전부 깨져 있었음.
+-- partners에 별칭(pt)을 붙여 명시적으로 참조하도록 고침 — 로직(반환값·필터·정렬)은 그대로.
 create or replace function public.get_my_orders()
 returns table (
   id uuid,
@@ -32,7 +36,7 @@ begin
     raise exception '로그인이 필요합니다.';
   end if;
 
-  select id into v_partner_id from public.partners where user_id = auth.uid();
+  select pt.id into v_partner_id from public.partners pt where pt.user_id = auth.uid();
   if v_partner_id is null then
     raise exception '연결된 브랜드 계정을 찾을 수 없습니다.';
   end if;

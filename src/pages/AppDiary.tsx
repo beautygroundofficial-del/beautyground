@@ -177,25 +177,51 @@ export default function AppDiary() {
         </button>
       </section>
 
-      {/* 이달의 우수 사연 — 텍스트 나열 대신 가로 카드 */}
+      {/* 이달의 우수 사연 — 텍스트 나열 대신 가로 카드
+          누르면 그 글의 상세(댓글)를 펼친다(2026-09-16). best는 별도 쿼리라 feed(최신 30개)에
+          안 실려 있을 수 있어, 카드 자체를 펼쳐 보여준다(피드로 스크롤하는 방식은 못 찾는 경우가 생김). */}
       {best.length > 0 && (
         <section className="px-5 pt-8">
           <SectionHead label="이번 달, 많은 분이 마음을 눌러준" title="이달의 이야기" />
-          <div className="flex gap-2.5 overflow-x-auto scrollbar-hide -mx-1 px-1 snap-x">
-            {best.map((b, i) => (
-              <div
-                key={b.id}
-                className="shrink-0 w-[190px] snap-start rounded-card border border-rule bg-paper p-3"
-              >
-                <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-ink text-paper text-[11px] font-bold mb-1.5">
-                  {i + 1}
-                </span>
-                <p className="text-[13px] text-ink leading-snug line-clamp-2 min-h-[2.4em]">{b.content}</p>
-                {b.reaction_count > 0 && (
-                  <p className="text-[11.5px] text-ink-faint mt-1.5">🤍 {b.reaction_count}</p>
-                )}
-              </div>
-            ))}
+          <div className="flex items-start gap-2.5 overflow-x-auto scrollbar-hide -mx-1 px-1 snap-x">
+            {best.map((b, i) => {
+              const open = openComments.has(b.id)
+              return (
+                <div
+                  key={b.id}
+                  className={`shrink-0 snap-start rounded-card border bg-paper p-3 transition-[width] ${
+                    open ? 'w-[260px] border-ink' : 'w-[190px] border-rule'}`}
+                >
+                  <button
+                    type="button"
+                    onClick={() => toggleComments(b.id)}
+                    className="w-full text-left focus:outline-none focus-visible:shadow-ring"
+                  >
+                    <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-ink text-paper text-[11px] font-bold mb-1.5">
+                      {i + 1}
+                    </span>
+                    <p className={`text-[13px] text-ink leading-snug min-h-[2.4em] ${open ? '' : 'line-clamp-2'}`}>
+                      {b.content}
+                    </p>
+                    {b.reaction_count > 0 && (
+                      <p className="text-[11.5px] text-ink-faint mt-1.5">🤍 {b.reaction_count}</p>
+                    )}
+                  </button>
+                  {open && (
+                    <DiaryComments
+                      diaryId={b.id}
+                      open
+                      count={0}
+                      loggedIn={!!loggedIn}
+                      myName={myName}
+                      onCountChange={() => {}}
+                      onAward={(p) => showToast(`${p}P를 받았어요`)}
+                      onNotice={showToast}
+                    />
+                  )}
+                </div>
+              )
+            })}
           </div>
         </section>
       )}
