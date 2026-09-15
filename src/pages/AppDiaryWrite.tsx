@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import BackHeader from '../components/layout/BackHeader'
 import AppFrame from '../components/layout/AppFrame'
 import PostComposer, { loadDraft, saveDraft, clearDraft } from '../components/community/PostComposer'
+import StoryCardPicker from '../components/community/StoryCardPicker'
 import { supabase } from '../lib/supabase'
 import { createDiary, getMyDiary, updateDiary, uploadDiaryImages, uploadCommunityVideo } from '../lib/diaries'
 import { getMyPets, petEmoji, type Pet } from '../lib/pets'
@@ -49,6 +50,7 @@ export default function AppDiaryWrite() {
   const [saving, setSaving] = useState(false)
   const [toast, setToast] = useState('')
   const [ready, setReady] = useState(false)
+  const [showCardPicker, setShowCardPicker] = useState(false)
 
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 2400) }
 
@@ -173,6 +175,23 @@ export default function AppDiaryWrite() {
           autoFocus={!editId}
           onNotice={showToast}
         />
+
+        {!showCardPicker ? (
+          <button
+            type="button"
+            onClick={() => setShowCardPicker(true)}
+            className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-rule text-[12.5px] text-ink-soft focus:outline-none focus-visible:shadow-ring"
+          >
+            <span aria-hidden="true">🗂️</span> 카드로 남기기 <span className="text-ink-faint">(사진 대신)</span>
+          </button>
+        ) : (
+          <div className="mt-3">
+            <StoryCardPicker
+              onCancel={() => setShowCardPicker(false)}
+              onGenerate={(file) => { setFiles((prev) => [...prev, file].slice(0, 4)); setShowCardPicker(false); showToast('카드를 사진 자리에 넣었어요') }}
+            />
+          </div>
+        )}
       </section>
 
       {/* 같이 걸은 친구 — 펫이 등록돼 있을 때만. 사진이 없으면 안내만(사진 올리기 장려) */}
