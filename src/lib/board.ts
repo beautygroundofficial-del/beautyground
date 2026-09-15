@@ -113,18 +113,22 @@ export async function getMyBoardPosts(limit = 30, offset = 0): Promise<MyBoardPo
   return (data ?? []) as MyBoardPost[]
 }
 
-// ── 새 소식 — 내 글에 달린 댓글·공감 ────────────────────────────────────
+// ── 새 소식 — 내 글에 달린 댓글·공감·하트, 그리고 내가 보낸 친구신청 수락 ──────
 export interface NewsItem {
   // answer_* 는 news_answers.sql 실행 후부터 온다(오늘의 질문 답변, 2026-09-11)
-  kind: 'board_comment' | 'board_reaction' | 'diary_comment' | 'diary_reaction' | 'answer_comment' | 'answer_reaction'
-  target_type: 'board' | 'diary' | 'answer'
+  // *_like·friend_accept 는 news_likes_and_friends.sql 이후부터 온다(2026-09-16, 알림 구멍 메움)
+  kind: 'board_comment' | 'board_reaction' | 'board_like'
+      | 'diary_comment' | 'diary_reaction' | 'diary_like'
+      | 'answer_comment' | 'answer_reaction' | 'answer_like'
+      | 'friend_accept'
+  target_type: 'board' | 'diary' | 'answer' | 'friend'
   target_id: string
   actor_nickname: string | null
-  // 댓글 단 사람(news_actor.sql 이후) — 공감은 익명이라 null (2026-09-12)
+  // 댓글 단 사람(news_actor.sql 이후)·친구신청 수락한 사람 — 공감·하트는 익명이라 null (2026-09-12/16)
   actor_user_id?: string | null
   excerpt: string
   comment_text: string | null
-  reaction_kind: ReactionKind | null
+  reaction_kind: ReactionKind | 'like' | null
   created_at: string
   is_new: boolean
 }

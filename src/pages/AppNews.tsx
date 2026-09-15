@@ -35,12 +35,15 @@ function objectParticle(word: string) {
   return (last - 0xac00) % 28 === 0 ? '를' : '을'
 }
 
-// 공감은 닉네임이 없어 "누군가"로 — 조사가 달라져서 이름이 있을 때만 "님이"를 붙인다.
+// 공감·하트는 닉네임이 없어 "누군가"로 — 조사가 달라져서 이름이 있을 때만 "님이"를 붙인다.
 // 이름 부분만 따로 돌려줘서 화면에서 그 사람 페이지로 이어지게 한다(2026-09-12).
+// 하트(*_like)는 공감과 같은 익명 표시, 친구신청 수락(friend_accept)은 이름이 있어 linkable (2026-09-16).
 function headline(n: NewsItem): { who: string; rest: string; linkable: boolean } {
   const who = n.actor_nickname ? `${maskName(n.actor_nickname)}님이` : '누군가'
   const linkable = !!n.actor_nickname && !!n.actor_user_id
+  if (n.kind === 'friend_accept') return { who, rest: ' 친구 신청을 받아줬어요', linkable }
   if (n.kind.endsWith('_comment')) return { who, rest: ' 댓글을 남겼어요', linkable }
+  if (n.kind.endsWith('_like')) return { who, rest: ' ♥ 하트를 눌렀어요', linkable }
   const meta = REACTION_META.find((r) => r.kind === n.reaction_kind)
   return { who, rest: meta ? ` ${meta.emoji} ${meta.label}${objectParticle(meta.label)} 눌렀어요` : ' 마음을 남겼어요', linkable }
 }
@@ -63,13 +66,14 @@ export default function AppNews() {
   }, [])
 
   const open = (n: NewsItem) => {
-    // 오늘의 질문 답은 홈 카드 안에 있다(전용 화면 없음)
-    if (n.target_type === 'board') navigate(`/app/board/${n.target_id}`)
+    // 친구신청 수락은 그 사람 페이지로, 오늘의 질문 답은 홈 카드 안에 있다(전용 화면 없음)
+    if (n.target_type === 'friend') navigate(`/app/people/${n.target_id}`)
+    else if (n.target_type === 'board') navigate(`/app/board/${n.target_id}`)
     else if (n.target_type === 'answer') navigate('/app/home')
     else navigate('/app/diary', { state: { focus: n.target_id, ...(n.kind === 'diary_comment' ? { openComments: n.target_id } : {}) } })
   }
   const sourceLabel = (t: NewsItem['target_type']) =>
-    t === 'board' ? '속 이야기' : t === 'answer' ? '오늘의 질문' : '하루 이야기'
+    t === 'board' ? '속 이야기' : t === 'answer' ? '오늘의 질문' : t === 'friend' ? '친구' : '하루 이야기'
 
   return (
     <AppFrame>
@@ -120,9 +124,11 @@ export default function AppNews() {
                   {n.comment_text && (
                     <p className="text-[13px] text-ink mt-1.5 line-clamp-2">"{n.comment_text}"</p>
                   )}
-                  <p className="text-[12px] text-ink-faint mt-1.5 truncate">
-                    {sourceLabel(n.target_type)} · {n.excerpt}
-                  </p>
+                  {n.excerpt && (
+                    <p className="text-[12px] text-ink-faint mt-1.5 truncate">
+                      {sourceLabel(n.target_type)} · {n.excerpt}
+                    </p>
+                  )}
                 </button>
               </li>
             ))}
