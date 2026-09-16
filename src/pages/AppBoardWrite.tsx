@@ -4,6 +4,7 @@ import BackHeader from '../components/layout/BackHeader'
 import AppFrame from '../components/layout/AppFrame'
 import PostComposer, { loadDraft, saveDraft, clearDraft } from '../components/community/PostComposer'
 import { supabase } from '../lib/supabase'
+import { useIsAdmin } from '../lib/useIsAdmin'
 import { BOARD_CATEGORIES, createBoardPost, getBoardPost, updateBoardPost, type BoardCategory } from '../lib/board'
 import { uploadCommunityImages, uploadCommunityVideo } from '../lib/diaries'
 
@@ -21,6 +22,7 @@ export default function AppBoardWrite() {
   const navigate = useNavigate()
   const [sp] = useSearchParams()
   const editId = sp.get('id')
+  const { isAdmin, loading: adminLoading } = useIsAdmin()
 
   const [myName, setMyName] = useState<string | null>(null)
   const [category, setCategory] = useState<BoardCategory | null>(null)
@@ -36,6 +38,7 @@ export default function AppBoardWrite() {
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 2400) }
 
   useEffect(() => {
+    if (editId && adminLoading) return // 관리자 여부 확정 전엔 "본인 글 아님"으로 오판해 튕기지 않게 대기
     void (async () => {
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) { navigate('/app/login', { replace: true, state: { from: '/app/board/write' } }); return }
@@ -44,7 +47,7 @@ export default function AppBoardWrite() {
 
       if (editId) {
         const row = await getBoardPost(editId)
-        if (!row || !row.is_mine) { showToast('고칠 수 있는 글이 아니에요'); navigate('/app/board', { replace: true }); return }
+        if (!row || (!row.is_mine && !isAdmin)) { showToast('고칠 수 있는 글이 아니에요'); navigate('/app/board', { replace: true }); return }
         setCategory(row.category)
         setContent(row.content)
         setExistingImages(row.images ?? [])
@@ -56,7 +59,7 @@ export default function AppBoardWrite() {
       }
       setReady(true)
     })()
-  }, [navigate, editId])
+  }, [navigate, editId, isAdmin, adminLoading])
 
   useEffect(() => { if (ready && !editId) saveDraft(DRAFT_KEY, { content, category }) }, [ready, editId, content, category])
 

@@ -9,6 +9,7 @@ import Lightbox from '../components/community/Lightbox'
 import LikeButton from '../components/community/LikeButton'
 import { CommentToggle } from '../components/community/DiaryComments'
 import { supabase } from '../lib/supabase'
+import { useIsAdmin } from '../lib/useIsAdmin'
 import { categoryLabel, deleteBoardPost, getBoardPost, reportBoardPost, toggleBoardLike, type BoardPost } from '../lib/board'
 
 // 속 이야기 — 글 하나. (2026-09-10)
@@ -38,6 +39,7 @@ export default function AppBoardPost() {
   const navigate = useNavigate()
   const location = useLocation()
 
+  const { isAdmin } = useIsAdmin()
   const [loggedIn, setLoggedIn] = useState(false)
   const [myName, setMyName] = useState<string | null>(null)
   const [post, setPost] = useState<BoardPost | null | undefined>(undefined)
@@ -91,8 +93,9 @@ export default function AppBoardPost() {
         onBack={() => navigate('/app/board')}
         rightElement={
           post ? (
-            post.is_mine ? (
+            post.is_mine || isAdmin ? (
               <div className="flex items-center gap-2">
+                {isAdmin && !post.is_mine && <span className="text-[11px] text-ink-faint">관리자</span>}
                 <button type="button" onClick={() => navigate(`/app/board/write?id=${post.id}`)} className="text-[13px] font-semibold text-ink bg-quiet rounded-full px-3 py-1">수정</button>
                 <button type="button" onClick={() => void onDelete()} className="text-[13px] font-semibold text-ink-soft bg-quiet rounded-full px-3 py-1">삭제</button>
               </div>
