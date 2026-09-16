@@ -144,9 +144,19 @@ export default function AppBoard() {
                     </span>
                     <span className="text-[11px] text-ink-faint">{timeAgo(p.created_at)}</span>
                   </div>
-                  <p className="text-[14px] text-ink leading-relaxed whitespace-pre-wrap line-clamp-2">
-                    {p.content}
-                  </p>
+                  <div className="flex items-start gap-3">
+                    <p className="flex-1 text-[14px] text-ink leading-relaxed whitespace-pre-wrap line-clamp-2">
+                      {p.content}
+                    </p>
+                    {p.images?.[0] && (
+                      <img
+                        src={p.images[0]}
+                        alt=""
+                        loading="lazy"
+                        className="shrink-0 w-14 h-14 rounded-control object-cover bg-quiet"
+                      />
+                    )}
+                  </div>
                   {/* 하루 이야기와 같은 하트·말풍선 — 목록에선 개수만, 누르는 건 글 안에서 */}
                   <div className="flex items-center justify-between mt-3">
                     <span className="text-[11.5px] text-ink-faint">{p.is_mine ? '나' : maskName(p.nickname)}</span>
