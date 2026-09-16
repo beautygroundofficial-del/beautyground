@@ -113,7 +113,7 @@ export default function AdminLayout() {
 
   const handleLogout = async () => {
     await supabase.auth.signOut()
-    navigate('/app/home')
+    navigate('/app/login')
   }
 
   // 전체 화면 폭에 그대로 늘어붙는 대신, 콘텐츠 영역에 최대폭을 두고 가운데 정렬 —
