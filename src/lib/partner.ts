@@ -101,12 +101,11 @@ export async function updateMyExportStoryImages(images: string[]): Promise<Partn
   return data as Partner
 }
 
-// 수출용 이미지 1장을 product-images 버킷의 export/<partnerId>/... 경로에 업로드하고 공개 URL 반환.
-// storage RLS가 이 경로 접두사만 본인 partner_id로 제한(products_export_content.sql).
-export async function uploadExportImage(file: File, partnerId: string, folder: string): Promise<string> {
+// 브라우저에서 이미지 1장을 줄여 webp 로 바꾼 뒤 product-images 버킷의 지정 경로에 올리고 공개 URL 반환.
+// 경로 접두사(export/… · seller/…)별로 storage RLS 가 본인 partner_id 폴더만 허용한다.
+async function uploadResizedImage(file: File, path: string, maxWidth: number): Promise<string> {
   const bitmap = await createImageBitmap(file)
-  const MAX_W = 1600
-  const scale = Math.min(1, MAX_W / bitmap.width)
+  const scale = Math.min(1, maxWidth / bitmap.width)
   const w = Math.round(bitmap.width * scale)
   const h = Math.round(bitmap.height * scale)
   const canvas = document.createElement('canvas')
@@ -116,7 +115,6 @@ export async function uploadExportImage(file: File, partnerId: string, folder: s
   bitmap.close()
 
   const blob: Blob = await new Promise((resolve) => canvas.toBlob((b) => resolve(b!), 'image/webp', 0.85))
-  const path = `export/${partnerId}/${folder}/${Date.now()}_${Math.random().toString(36).slice(2, 8)}.webp`
   const { error } = await supabase.storage.from('product-images').upload(path, blob, {
     upsert: true,
     contentType: 'image/webp',
@@ -124,6 +122,28 @@ export async function uploadExportImage(file: File, partnerId: string, folder: s
   if (error) throw error
   const { data } = supabase.storage.from('product-images').getPublicUrl(path)
   return data.publicUrl
+}
+
+// 업로드 파일명 — 같은 시각에 여러 장을 올려도 겹치지 않게 난수를 붙인다.
+function imageFileName(): string {
+  return `${Date.now()}_${Math.random().toString(36).slice(2, 8)}.webp`
+}
+
+// 수출용 이미지 1장을 product-images 버킷의 export/<partnerId>/... 경로에 업로드하고 공개 URL 반환.
+// storage RLS가 이 경로 접두사만 본인 partner_id로 제한(products_export_content.sql).
+export async function uploadExportImage(file: File, partnerId: string, folder: string): Promise<string> {
+  return uploadResizedImage(file, `export/${partnerId}/${folder}/${imageFileName()}`, 1600)
+}
+
+// 셀러센터 상품 사진 1장을 seller/<partnerId>/<folder>/... 경로에 업로드하고 공개 URL 반환
+// (folder: thumb=대표사진 · gallery=상품사진 · detail=상세이미지, supabase/brand_product_images.sql).
+// 폭 1600px 은 수출용 이미지와 같은 기준 — 상세이미지의 작은 글씨도 읽히는 선.
+export async function uploadSellerProductImage(
+  file: File,
+  partnerId: string,
+  folder: 'thumb' | 'gallery' | 'detail',
+): Promise<string> {
+  return uploadResizedImage(file, `seller/${partnerId}/${folder}/${imageFileName()}`, 1600)
 }
 
 // 한글 텍스트를 영문으로 번역 (/api/translate, Gemini 사용 — 로그인 세션 토큰 필요)

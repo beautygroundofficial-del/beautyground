@@ -7,8 +7,9 @@ const inputCls =
   'w-full border border-rule rounded-control px-3 py-2 text-[13px] text-ink placeholder:text-ink-faint focus:outline-none focus:border-ink transition-colors bg-paper'
 
 // 브랜드(파트너) 관리 — 파트너센터 UI는 삭제됐지만 브랜드 식별/수수료율은 여전히 여기서 관리한다.
-// "계정 연결": 브랜드 로그인 계정은 관리자가 Supabase 대시보드에서 미리 만든 뒤, 이메일로
-// admin_link_partner_account RPC를 호출해 partners 행에 연결한다(자체 회원가입 없음).
+// 계정 연결 3가지 경로: ①이메일 "연결"(admin_link_partner_account) ②셀프가입 링크(/brand/register/:id)
+// ③브랜드가 /brand/login 이메일 인증으로 직접 시작 → /brand/onboarding에서 pending 파트너 생성 → 여기서 "승인".
+// pending은 승인 전까지 셀러센터에서 "수출 소개"만 열린다(2026-09-12 승인 버튼 추가).
 export default function AdminPartners() {
   const [partners, setPartners] = useState<Partner[]>([])
   const [loading, setLoading] = useState(true)
@@ -23,7 +24,10 @@ export default function AdminPartners() {
     setLoading(true)
     const { data, error: err } = await supabase.from('partners').select('*').order('brand_name')
     if (err) { setError(`목록 조회 실패: ${err.message}`); setLoading(false); return }
-    setPartners((data ?? []) as Partner[])
+    // 승인 대기(셀프 가입) 브랜드를 맨 위로 — 관리자가 승인 요청을 놓치지 않게
+    const rows = (data ?? []) as Partner[]
+    rows.sort((a, b) => (a.status === 'pending' ? 0 : 1) - (b.status === 'pending' ? 0 : 1) || a.brand_name.localeCompare(b.brand_name, 'ko'))
+    setPartners(rows)
     setLoading(false)
   }
 
@@ -81,7 +85,7 @@ export default function AdminPartners() {
   // 이메일 선연결 대신 쓸 수 있는 셀프가입 링크(견본, 2026-08-15) — 백화점 담당자용 방식과 동일:
   // 브랜드가 링크를 열면 자기 로고(BI)를 확인하고 이메일·비밀번호만 입력해 스스로 가입.
   const copyRegisterLink = (partner: Partner) => {
-    void navigator.clipboard.writeText(`https://beautyground.vercel.app/brand/register/${partner.id}`)
+    void navigator.clipboard.writeText(`${window.location.origin}/brand/register/${partner.id}`)
     setCopiedId(partner.id)
     setTimeout(() => setCopiedId((id) => (id === partner.id ? null : id)), 1500)
   }
@@ -96,7 +100,7 @@ export default function AdminPartners() {
     setBusyId(null)
     if (err) { setError(`수출 계정 초대링크 생성 실패: ${err.message}`); return }
     const slotId = (data as { id: string }).id
-    void navigator.clipboard.writeText(`https://beautyground.vercel.app/brand/export-register/${slotId}`)
+    void navigator.clipboard.writeText(`${window.location.origin}/brand/export-register/${slotId}`)
     setExportCopiedId(partner.id)
     setTimeout(() => setExportCopiedId((id) => (id === partner.id ? null : id)), 1500)
   }
@@ -151,10 +155,12 @@ export default function AdminPartners() {
                     <td className="px-4 py-3 whitespace-nowrap">
                       <span
                         className={`inline-flex items-center rounded-pill px-2.5 py-1 text-[12px] font-medium ${
-                          p.status === 'active' ? 'bg-signal-blue/10 text-signal-blue' : 'bg-quiet text-ink-faint'
+                          p.status === 'active' ? 'bg-signal-blue/10 text-signal-blue'
+                            : p.status === 'pending' ? 'bg-[#fff4e0] text-[#b8924a]'
+                            : 'bg-quiet text-ink-faint'
                         }`}
                       >
-                        {p.status === 'active' ? '이용중' : '정지됨'}
+                        {p.status === 'active' ? '이용중' : p.status === 'pending' ? '승인 대기' : '정지됨'}
                       </span>
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap">
@@ -240,7 +246,14 @@ export default function AdminPartners() {
                       )}
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap">
-                      {p.status !== 'suspended' ? (
+                      {p.status === 'pending' ? (
+                        <div className="flex items-center gap-2">
+                          {/* 셀프 가입(/brand/onboarding) 브랜드 승인 — active가 되면 셀러센터 전체 메뉴가 열리고
+                              바이어 카탈로그·미니페이지에도 공개된다. 승인 전엔 "수출 소개"만 편집 가능. */}
+                          <Button variant="accent" size="sm" label="승인" disabled={busyId === p.id} onClick={() => void changeStatus(p, 'active')} />
+                          <Button variant="inkOutline" size="sm" label="정지" disabled={busyId === p.id} onClick={() => void changeStatus(p, 'suspended')} />
+                        </div>
+                      ) : p.status !== 'suspended' ? (
                         <Button variant="inkOutline" size="sm" label="정지" disabled={busyId === p.id} onClick={() => void changeStatus(p, 'suspended')} />
                       ) : (
                         <Button variant="accent" size="sm" label="재활성화" disabled={busyId === p.id} onClick={() => void changeStatus(p, 'active')} />
