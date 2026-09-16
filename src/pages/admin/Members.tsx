@@ -19,6 +19,7 @@ interface MemberRow {
   live_spent: number
   live_order_count: number
   tier_label: string
+  is_seed: boolean
 }
 
 interface MembershipTierRow {
@@ -38,6 +39,7 @@ const PROVIDER_LABEL: Record<string, string> = {
 }
 
 type ChannelFilter = 'all' | 'mall' | 'live' | 'both'
+type SeedFilter = 'real' | 'seed' | 'all'
 
 function memberChannel(m: MemberRow): ChannelFilter | 'none' {
   const hasMall = m.mall_order_count > 0
@@ -106,6 +108,7 @@ export default function AdminMembers() {
   const [error, setError] = useState('')
   const [query, setQuery] = useState('')
   const [channelFilter, setChannelFilter] = useState<ChannelFilter>('all')
+  const [seedFilter, setSeedFilter] = useState<SeedFilter>('real')
 
   const loadMembers = async () => {
     setLoading(true)
@@ -125,11 +128,13 @@ export default function AdminMembers() {
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
     return members.filter((m) => {
+      if (seedFilter === 'real' && m.is_seed) return false
+      if (seedFilter === 'seed' && !m.is_seed) return false
       if (channelFilter !== 'all' && memberChannel(m) !== channelFilter) return false
       if (!q) return true
       return m.email?.toLowerCase().includes(q) || m.name?.toLowerCase().includes(q) || m.phone?.includes(q)
     })
-  }, [members, query, channelFilter])
+  }, [members, query, channelFilter, seedFilter])
 
   const channelCounts = useMemo(() => {
     const c = { all: members.length, mall: 0, live: 0, both: 0 }
@@ -138,6 +143,11 @@ export default function AdminMembers() {
       if (ch === 'mall' || ch === 'live' || ch === 'both') c[ch] += 1
     })
     return c
+  }, [members])
+
+  const seedCounts = useMemo(() => {
+    const seedCount = members.filter((m) => m.is_seed).length
+    return { real: members.length - seedCount, seed: seedCount, all: members.length }
   }, [members])
 
   // ── 등급 설정 ──
@@ -386,6 +396,23 @@ export default function AdminMembers() {
                   </button>
                 ))}
               </div>
+              <div className="flex gap-2">
+                {([
+                  { key: 'real', label: `실회원 ${seedCounts.real}` },
+                  { key: 'seed', label: `시딩계정 ${seedCounts.seed}` },
+                  { key: 'all', label: `전체 ${seedCounts.all}` },
+                ] as const).map((opt) => (
+                  <button
+                    key={opt.key}
+                    onClick={() => setSeedFilter(opt.key)}
+                    className={`px-3.5 py-2 rounded-control text-[12.5px] font-medium border transition-colors whitespace-nowrap ${
+                      seedFilter === opt.key ? 'bg-signal-blue text-paper border-signal-blue' : 'bg-paper text-ink-soft border-rule hover:border-ink-faint'
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
             </div>
 
             {error && (
@@ -422,7 +449,14 @@ export default function AdminMembers() {
                       <tr key={m.id} className="border-b border-rule last:border-b-0">
                         <td className="px-4 py-3 text-ink-soft whitespace-nowrap">{formatDateTime(m.created_at)}</td>
                         <td className="px-4 py-3 text-ink font-medium whitespace-nowrap">{m.email || '-'}</td>
-                        <td className="px-4 py-3 text-ink-soft whitespace-nowrap">{m.name || '-'}</td>
+                        <td className="px-4 py-3 text-ink-soft whitespace-nowrap">
+                          {m.name || '-'}
+                          {m.is_seed && (
+                            <span className="ml-1.5 inline-flex items-center rounded-pill px-1.5 py-0.5 text-[10.5px] font-semibold bg-signal-blue/10 text-signal-blue align-middle">
+                              시딩
+                            </span>
+                          )}
+                        </td>
                         <td className="px-4 py-3 text-ink-soft whitespace-nowrap">{m.phone || '-'}</td>
                         <td className="px-4 py-3 text-ink-soft whitespace-nowrap">{PROVIDER_LABEL[m.provider] ?? m.provider}</td>
                         <td className="px-4 py-3 whitespace-nowrap"><ChannelBadge m={m} /></td>
