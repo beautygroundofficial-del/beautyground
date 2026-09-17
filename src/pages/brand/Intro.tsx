@@ -9,8 +9,11 @@ import Button from '../../components/common/Button'
 // 링크(/brand/intro)도 함께 보내서 "이렇게 가입하고, 셀러센터에서 이런 걸 할 수 있다"를
 // 가입 전에 미리 보여준다. 로그인 후 화면별 상세 FAQ는 /brand/guide(BrandGuide)가 따로 있다 —
 // 이 페이지는 그 축약판 + 가입 절차 안내다.
+//
+// 디자인은 새 월드(흰 배경 + ink/paper, DESIGN.md) — admin 화면(/admin/partners 등)과
+// 동일한 톤으로 통일한다(대표님 지시, 2026-09-18). 구 골드 월드는 신규 작업에서 쓰지 않는다.
 
-const card = 'bg-white rounded-[14px] border border-[#e5e0d8]'
+const card = 'bg-paper rounded-md border border-rule'
 
 const STEPS = [
   { title: '가입 링크 받기', body: '뷰티그라운드 담당자가 브랜드 전용 가입 링크를 메일 또는 문자로 보내드립니다.' },
@@ -29,16 +32,16 @@ export default function BrandIntro() {
   return (
     <>
       <GNB />
-      <main style={{ backgroundColor: '#f7f4ef' }}>
+      <main className="bg-paper">
         <div className="max-w-[640px] mx-auto px-6 py-20 md:py-28">
           <div className="text-center mb-10">
-            <span className="text-gold text-[13px] font-medium tracking-widest uppercase mb-3 block">
+            <span className="text-signal-blue text-[13px] font-medium tracking-widest uppercase mb-3 block">
               BRAND PARTNER
             </span>
-            <h1 className="font-serif text-[26px] md:text-[32px] font-bold text-text mb-3">
+            <h1 className="text-[26px] md:text-[32px] font-bold text-ink mb-3">
               뷰티그라운드 브랜드 셀러센터
             </h1>
-            <p className="text-[13.5px] text-text-sub leading-relaxed">
+            <p className="text-[13.5px] text-ink-soft leading-relaxed">
               입점 브랜드가 직접 상품을 등록하고, 판매 현황과 정산을 확인하는 공간입니다.
               <br />
               가입은 뷰티그라운드가 보내드리는 전용 링크로만 진행됩니다.
@@ -46,53 +49,53 @@ export default function BrandIntro() {
           </div>
 
           <div className={`${card} p-6 md:p-8 mb-6`}>
-            <h2 className="text-[15px] font-bold text-text mb-5">가입 방법</h2>
+            <h2 className="text-[15px] font-bold text-ink mb-5">가입 방법</h2>
             <div className="space-y-5">
               {STEPS.map((s, i) => (
                 <div key={s.title} className="flex gap-4">
-                  <div className="shrink-0 w-7 h-7 rounded-full bg-[#f7f4ef] border border-[#e5e0d8] flex items-center justify-center text-[13px] font-bold text-gold">
+                  <div className="shrink-0 w-7 h-7 rounded-full bg-quiet flex items-center justify-center text-[13px] font-bold text-signal-blue">
                     {i + 1}
                   </div>
                   <div>
-                    <p className="text-[14px] font-semibold text-text mb-1">{s.title}</p>
-                    <p className="text-[13px] text-text-sub leading-relaxed">{s.body}</p>
+                    <p className="text-[14px] font-semibold text-ink mb-1">{s.title}</p>
+                    <p className="text-[13px] text-ink-soft leading-relaxed">{s.body}</p>
                   </div>
                 </div>
               ))}
             </div>
-            <p className="mt-6 pt-5 border-t border-[#efeae1] text-[12.5px] text-text-sub leading-relaxed">
+            <p className="mt-6 pt-5 border-t border-rule text-[12.5px] text-ink-faint leading-relaxed">
               아직 가입 링크를 받지 못하셨다면 아래 문의처로 연락해 주세요.
             </p>
           </div>
 
           <div className={`${card} p-6 md:p-8 mb-6`}>
-            <h2 className="text-[15px] font-bold text-text mb-5">셀러센터에서 할 수 있는 일</h2>
+            <h2 className="text-[15px] font-bold text-ink mb-5">셀러센터에서 할 수 있는 일</h2>
             <div className="grid gap-5 sm:grid-cols-2">
               {FEATURES.map((f) => (
                 <div key={f.title}>
-                  <p className="text-[13.5px] font-semibold text-text mb-1">{f.title}</p>
-                  <p className="text-[12.5px] text-text-sub leading-relaxed">{f.body}</p>
+                  <p className="text-[13.5px] font-semibold text-ink mb-1">{f.title}</p>
+                  <p className="text-[12.5px] text-ink-soft leading-relaxed">{f.body}</p>
                 </div>
               ))}
             </div>
           </div>
 
           <div className={`${card} p-6 md:p-8 mb-6 text-center`}>
-            <p className="text-[13px] text-text-sub mb-4">이미 가입 링크로 계정을 만드셨나요?</p>
+            <p className="text-[13px] text-ink-soft mb-4">이미 가입 링크로 계정을 만드셨나요?</p>
             <Link to="/brand/login">
               <Button variant="ink" size="md" label="브랜드 로그인" className="w-full sm:w-auto sm:px-10" />
             </Link>
           </div>
 
           <div className={`${card} p-6 md:p-8`}>
-            <h2 className="text-[14px] font-bold text-text mb-4">문의하기</h2>
+            <h2 className="text-[14px] font-bold text-ink mb-4">문의하기</h2>
             <div className="space-y-3">
-              <a href="mailto:beautyground.official@gmail.com" className="flex items-center gap-2.5 text-[13.5px] text-text">
-                <IconMail size={17} className="text-gold" />
+              <a href="mailto:beautyground.official@gmail.com" className="flex items-center gap-2.5 text-[13.5px] text-ink">
+                <IconMail size={17} className="text-signal-blue" />
                 beautyground.official@gmail.com
               </a>
-              <a href="tel:02-897-8287" className="flex items-center gap-2.5 text-[13.5px] text-text">
-                <IconPhone size={17} className="text-gold" />
+              <a href="tel:02-897-8287" className="flex items-center gap-2.5 text-[13.5px] text-ink">
+                <IconPhone size={17} className="text-signal-blue" />
                 02-897-8287
               </a>
             </div>
