@@ -60,6 +60,10 @@ export default function AdminProducts() {
 
   const handleToggleHide = async (product: ProductRow) => {
     const next: Product['status'] = product.status === 'hidden' ? 'on_sale' : 'hidden'
+    if (next === 'on_sale' && !hasLegalLabel(product)) {
+      window.alert('전성분·사용기한이 비어있어 노출할 수 없습니다. 편집기에서 채운 뒤 다시 시도해주세요.')
+      return
+    }
     setBusyId(product.id)
     setProducts((prev) => prev.map((p) => (p.id === product.id ? { ...p, status: next } : p)))
     const { error: err } = await supabase.from('products').update({ status: next }).eq('id', product.id)
@@ -80,16 +84,28 @@ export default function AdminProducts() {
     setSelected((prev) => { const next = new Set(prev); if (next.has(id)) next.delete(id); else next.add(id); return next })
   }
 
+  // 전성분·사용기한이 둘 다 비어있으면 노출을 막는다 — 화장품 표시기재 의무 누락 방지.
+  // URL 자동등록(AI 스크래핑)이 원본 페이지에서 못 찾은 경우 이 값들이 비어 있을 수 있다.
+  const hasLegalLabel = (p: ProductRow) => !!(p.ingredients?.trim() || p.expiry_info?.trim())
+
   const publishSelected = async () => {
     const ids = [...selected]
     if (ids.length === 0) return
-    if (!window.confirm(`선택한 ${ids.length}개 상품을 판매중으로 바꿀까요? 소비자 화면에 바로 노출됩니다.`)) return
+    const targets = products.filter((p) => ids.includes(p.id))
+    const ready = targets.filter(hasLegalLabel).map((p) => p.id)
+    const blocked = targets.filter((p) => !hasLegalLabel(p))
+    if (blocked.length > 0) {
+      const names = blocked.map((p) => p.name).join(', ')
+      window.alert(`전성분·사용기한이 비어있어 ${blocked.length}개는 제외했습니다 (${names}). 편집기에서 채운 뒤 다시 노출해주세요.`)
+    }
+    if (ready.length === 0) { setSelected(new Set()); return }
+    if (!window.confirm(`선택한 ${ready.length}개 상품을 판매중으로 바꿀까요? 소비자 화면에 바로 노출됩니다.`)) return
     setBulkBusy(true)
     setError('')
-    const { error: err } = await supabase.from('products').update({ status: 'on_sale' }).in('id', ids)
+    const { error: err } = await supabase.from('products').update({ status: 'on_sale' }).in('id', ready)
     setBulkBusy(false)
     if (err) { setError(`일괄 노출 실패: ${err.message}`); return }
-    setProducts((prev) => prev.map((p) => (ids.includes(p.id) ? { ...p, status: 'on_sale' } : p)))
+    setProducts((prev) => prev.map((p) => (ready.includes(p.id) ? { ...p, status: 'on_sale' } : p)))
     setSelected(new Set())
   }
 
