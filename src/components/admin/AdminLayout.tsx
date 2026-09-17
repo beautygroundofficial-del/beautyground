@@ -208,6 +208,20 @@ export default function AdminLayout() {
               </a>
             ))}
           </div>
+
+          {/* 판매자 센터 — 관리자 계정이 partners.user_id로 "뷰티그라운드" 브랜드에 이미 연결돼 있어
+              (2026-06-30, supabase/unify_seller_account.sql) 새 계정 없이 바로 보인다(2026-09-18 대표님 지시).
+              여러 입점 브랜드를 골라서 보는 기능은 아직 없음 — 필요해지면 별도 작업. */}
+          <a
+            href="/brand/dashboard"
+            target="_blank"
+            rel="noreferrer"
+            className="flex items-center justify-center gap-2 py-2.5 mb-3 rounded-control border border-rule text-ink-soft hover:border-ink hover:text-ink transition-colors text-[12.5px] font-semibold"
+            title="판매자 센터 — 새 탭에서 열기"
+          >
+            <IconBuildingStore size={16} />
+            판매자 센터 보기
+          </a>
         </div>
 
         <div className="px-3 pb-6 pt-3 border-t border-rule">
