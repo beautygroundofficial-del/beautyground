@@ -18,6 +18,7 @@ export default function AdminPartners() {
   const [emailEdits, setEmailEdits] = useState<Record<string, string>>({})
   const [copiedId, setCopiedId] = useState<string | null>(null)
   const [exportCopiedId, setExportCopiedId] = useState<string | null>(null)
+  const [introCopied, setIntroCopied] = useState(false)
 
   const load = async () => {
     setLoading(true)
@@ -78,12 +79,20 @@ export default function AdminPartners() {
     setEmailEdits((prev) => { const next = { ...prev }; delete next[partner.id]; return next })
   }
 
-  // 이메일 선연결 대신 쓸 수 있는 셀프가입 링크(견본, 2026-08-15) — 백화점 담당자용 방식과 동일:
+  // 이메일 선연결 대신 쓸 수 있는 셀프가입 링크(2026-08-15) — 백화점 담당자용 방식과 동일:
   // 브랜드가 링크를 열면 자기 로고(BI)를 확인하고 이메일·비밀번호만 입력해 스스로 가입.
   const copyRegisterLink = (partner: Partner) => {
-    void navigator.clipboard.writeText(`https://beautyground.vercel.app/brand/register/${partner.id}`)
+    void navigator.clipboard.writeText(`https://beautyground.co.kr/brand/register/${partner.id}`)
     setCopiedId(partner.id)
     setTimeout(() => setCopiedId((id) => (id === partner.id ? null : id)), 1500)
+  }
+
+  // 가입 절차·셀러센터 기능을 미리 보여주는 공개 안내 페이지(로그인 불필요, 브랜드 무관 공통
+  // 링크) — 가입 링크와 함께 보내는 용도(2026-09-18, src/pages/brand/Intro.tsx).
+  const copyIntroLink = () => {
+    void navigator.clipboard.writeText('https://beautyground.co.kr/brand/intro')
+    setIntroCopied(true)
+    setTimeout(() => setIntroCopied(false), 1500)
   }
 
   // 수출 전용 계정(대시보드/판매내역/정산내역은 안 보이고 "수출 소개"만 접근) 초대링크 생성.
@@ -96,7 +105,7 @@ export default function AdminPartners() {
     setBusyId(null)
     if (err) { setError(`수출 계정 초대링크 생성 실패: ${err.message}`); return }
     const slotId = (data as { id: string }).id
-    void navigator.clipboard.writeText(`https://beautyground.vercel.app/brand/export-register/${slotId}`)
+    void navigator.clipboard.writeText(`https://beautyground.co.kr/brand/export-register/${slotId}`)
     setExportCopiedId(partner.id)
     setTimeout(() => setExportCopiedId((id) => (id === partner.id ? null : id)), 1500)
   }
@@ -109,10 +118,20 @@ export default function AdminPartners() {
 
       <main className="max-w-[1200px] p-8">
         <h1 className="text-[22px] font-bold text-ink mb-2">브랜드 관리</h1>
-        <p className="text-[13px] text-ink-soft mb-5">
+        <p className="text-[13px] text-ink-soft mb-3">
           브랜드별 수수료율을 관리하고, 브랜드 로그인 계정을 연결합니다. 계정은 Supabase 대시보드 →
           Authentication에서 먼저 만든 뒤 이메일로 연결하세요.
         </p>
+        <div className="flex items-center gap-2 mb-5">
+          <Button
+            variant="inkOutline" size="sm"
+            label={introCopied ? '가이드 링크 복사됨' : '브랜드 안내 페이지 링크 복사'}
+            onClick={copyIntroLink}
+          />
+          <span className="text-[12px] text-ink-faint">
+            로그인 없이 누구나 보는 소개 페이지 — 아래 "셀프가입 링크"와 함께 보내세요.
+          </span>
+        </div>
 
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-600 text-[13px] rounded-md px-4 py-3 mb-5">{error}</div>

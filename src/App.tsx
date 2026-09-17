@@ -106,6 +106,7 @@ const HostProfile = lazy(() => import('./pages/host/Profile'))
 const HostGoLive = lazy(() => import('./pages/host/GoLive'))
 
 // 브랜드사(파트너) 읽기 전용 포털 (RequireBrandAuth + RequireBrand + BrandLayout)
+const BrandIntro = lazy(() => import('./pages/brand/Intro'))
 const BrandLogin = lazy(() => import('./pages/brand/Login'))
 const BrandOnboarding = lazy(() => import('./pages/brand/Onboarding'))
 const BrandRegister = lazy(() => import('./pages/brand/Register'))
@@ -287,6 +288,8 @@ export default function App() {
             /brand/export는 판매 파트너 계정뿐 아니라 "수출 전용 계정"(export_contacts)도 접근
             가능 — 단, 수출 전용 계정은 대시보드/판매내역/정산내역(RequireBrand, 판매 파트너만)에는
             접근할 수 없다(2026-08-16, 라이브 판매실적 비공개 원칙). */}
+        {/* 로그인 없이 누구나 보는 공개 안내 — 관리자가 가입 링크와 함께 보내는 용도(2026-09-18) */}
+        <Route path="/brand/intro" element={<BrandIntro />} />
         <Route path="/brand/login" element={<BrandLogin />} />
         {/* OTP 첫 로그인 계정의 새 브랜드 생성(셀프 가입) — pending 상태로 생성, 관리자 승인 후 공개 */}
         <Route path="/brand/onboarding" element={<BrandOnboarding />} />
