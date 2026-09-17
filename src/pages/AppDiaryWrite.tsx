@@ -7,6 +7,8 @@ import StoryCardPicker from '../components/community/StoryCardPicker'
 import { supabase } from '../lib/supabase'
 import { createDiary, getMyDiary, updateDiary, uploadDiaryImages, uploadCommunityVideo } from '../lib/diaries'
 import { getMyPets, petEmoji, type Pet } from '../lib/pets'
+import { useNicknameGate } from '../hooks/useNicknameGate'
+import NicknameModal from '../components/community/NicknameModal'
 
 // 오늘 남기기 — 하루 이야기 쓰기·고쳐 쓰기 화면. (2026-09-11)
 // 대표님 지시 "걷기를 통한 하루 일기 … 이미지와 텍스트", "삭제 옆에 수정도", "MP4 영상도".
@@ -36,8 +38,8 @@ export default function AppDiaryWrite() {
   const navigate = useNavigate()
   const [sp] = useSearchParams()
   const editId = sp.get('id')
+  const { modalOpen, ensureNickname, handleDone, closeModal } = useNicknameGate()
 
-  const [myName, setMyName] = useState<string | null>(null)
   const [content, setContent] = useState('')
   const [steps, setSteps] = useState('')
   const [files, setFiles] = useState<File[]>([])
@@ -66,8 +68,6 @@ export default function AppDiaryWrite() {
     void (async () => {
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) { navigate('/app/login', { replace: true, state: { from: '/app/diary/write' } }); return }
-      const meta = session.user.user_metadata as { name?: string } | undefined
-      setMyName(meta?.name || session.user.email?.split('@')[0] || null)
       setPets(await getMyPets())
 
       if (editId) {
@@ -96,7 +96,7 @@ export default function AppDiaryWrite() {
 
   const stepsNum = Number(steps.replace(/[^0-9]/g, '')) || 0
 
-  const submit = async () => {
+  const doSubmit = async (nickname: string | null) => {
     if (content.trim().length < MIN_LEN) { showToast(`${MIN_LEN}자 이상 적어주세요`); return }
     setSaving(true)
     const newUrls = files.length > 0 ? await uploadDiaryImages(files) : []
@@ -119,7 +119,7 @@ export default function AppDiaryWrite() {
       return
     }
 
-    const res = await createDiary(content, images, myName, stepsNum > 0 ? stepsNum : null, videoUrl, petsToSave)
+    const res = await createDiary(content, images, nickname, stepsNum > 0 ? stepsNum : null, videoUrl, petsToSave)
     setSaving(false)
     if (!res || !res.diary_id) { showToast(res?.message || '올리지 못했어요'); return }
     clearDraft(DRAFT_KEY)
@@ -127,6 +127,12 @@ export default function AppDiaryWrite() {
       replace: true,
       state: { toast: res.awarded > 0 ? `${res.awarded}P를 받았어요` : '오늘을 남겼어요' },
     })
+  }
+
+  // 새 글 작성만 애칭이 필요하다 — 고쳐 쓰기는 닉네임을 새로 남기지 않으므로 그대로 진행
+  const submit = () => {
+    if (editId) { void doSubmit(null); return }
+    ensureNickname((nickname) => void doSubmit(nickname))
   }
 
   const canSubmit = ready && content.trim().length >= MIN_LEN && !saving
@@ -274,6 +280,8 @@ export default function AppDiaryWrite() {
           {toast}
         </div>
       )}
+
+      <NicknameModal open={modalOpen} onDone={handleDone} onClose={closeModal} />
     </AppFrame>
   )
 }

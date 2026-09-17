@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import {
   getBoardComments, createBoardComment, deleteBoardComment, type BoardComment,
 } from '../../lib/board'
+import { useNicknameGate } from '../../hooks/useNicknameGate'
+import NicknameModal from './NicknameModal'
 
 // 속 이야기 댓글 — DiaryComments 와 같은 규칙(펼쳐야 보임, 포인트는 남긴 뒤 조용히).
 // 상세 화면에서는 처음부터 펼쳐 보인다 — 글 하나만 보는 화면이라 빽빽해질 일이 없다.
@@ -27,29 +29,28 @@ interface Props {
   postId: string
   count: number
   loggedIn: boolean
-  myName: string | null
   onCountChange: (next: number) => void
   onAward?: (points: number) => void
   onNotice?: (msg: string) => void
 }
 
 export default function BoardComments({
-  postId, count, loggedIn, myName, onCountChange, onAward, onNotice,
+  postId, count, loggedIn, onCountChange, onAward, onNotice,
 }: Props) {
   const navigate = useNavigate()
+  const { modalOpen, ensureNickname, handleDone, closeModal } = useNicknameGate()
   const [list, setList] = useState<BoardComment[] | null>(null)
   const [draft, setDraft] = useState('')
   const [saving, setSaving] = useState(false)
 
   useEffect(() => { void getBoardComments(postId).then(setList) }, [postId])
 
-  const submit = async () => {
-    if (!loggedIn) { navigate('/app/login'); return }
+  const doSubmit = async (nickname: string | null) => {
     const text = draft.trim()
     if (!text) return
 
     setSaving(true)
-    const res = await createBoardComment(postId, text, myName)
+    const res = await createBoardComment(postId, text, nickname)
     setSaving(false)
     if (!res.comment_id) { onNotice?.(res.message || '남기지 못했어요'); return }
 
@@ -57,6 +58,12 @@ export default function BoardComments({
     setList(await getBoardComments(postId))
     onCountChange(count + 1)
     if (res.awarded > 0) onAward?.(res.awarded)
+  }
+
+  const submit = () => {
+    if (!loggedIn) { navigate('/app/login'); return }
+    if (!draft.trim()) return
+    ensureNickname((nickname) => void doSubmit(nickname))
   }
 
   const remove = async (c: BoardComment) => {
@@ -110,13 +117,15 @@ export default function BoardComments({
         />
         <button
           type="button"
-          onClick={() => void submit()}
+          onClick={submit}
           disabled={saving || !draft.trim()}
           className="shrink-0 px-3.5 py-2 rounded-control bg-ink text-paper text-[12.5px] font-semibold disabled:opacity-40"
         >
           {saving ? '…' : '남기기'}
         </button>
       </div>
+
+      <NicknameModal open={modalOpen} onDone={handleDone} onClose={closeModal} />
     </section>
   )
 }
