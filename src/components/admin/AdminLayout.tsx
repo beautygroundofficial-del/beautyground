@@ -21,6 +21,20 @@ import {
   IconTrophy,
   IconChevronRight, IconTruck, IconGift, IconFlag } from '@tabler/icons-react'
 import { supabase } from '../../lib/supabase'
+import {
+  IconHome as IconAppHome, IconTalk as IconAppTalk,
+  IconGrid as IconAppGrid, IconUser as IconAppUser,
+} from '../common/Icon'
+
+// 손님 화면 바로가기 — 관리자 계정도 곧 손님 계정이라(app_admins 화이트리스트일 뿐 같은 로그인),
+// 화면만 오가면 되는데 그동안 admin↔app 왕복 링크가 없어 매번 새로 로그인하는 것처럼 느껴졌다
+// (2026-09-18 대표님 지시). BottomNav.tsx와 동일한 4개(홈/이야기/쇼핑/마이)로 맞춘다.
+const APP_SHORTCUTS = [
+  { label: '홈', to: '/app/home', icon: IconAppHome },
+  { label: '이야기', to: '/app/diary', icon: IconAppTalk },
+  { label: '쇼핑', to: '/app/category', icon: IconAppGrid },
+  { label: '마이', to: '/app/mypage', icon: IconAppUser },
+]
 
 // 온라인몰과 라이브커머스를 당분간 분리 운영하기로 한 방침(2026-07-31)을 관리자 메뉴에도 그대로
 // 반영 — 채널별로 묶어서 한눈에 훑을 수 있게 소제목으로 나눈다(2026-08-08).
@@ -176,6 +190,25 @@ export default function AdminLayout() {
             )
           })}
         </nav>
+
+        <div className="px-3 pt-3 border-t border-rule">
+          <p className="px-1 pb-2 text-[11px] font-bold text-ink-faint tracking-wide">손님 화면 바로가기</p>
+          <div className="grid grid-cols-4 gap-1.5 pb-3">
+            {APP_SHORTCUTS.map(({ label, to, icon: Icon }) => (
+              <a
+                key={to}
+                href={to}
+                target="_blank"
+                rel="noreferrer"
+                className="flex flex-col items-center gap-1 py-2.5 rounded-control border border-rule text-ink-soft hover:border-ink hover:text-ink transition-colors"
+                title={`${label} — 새 탭에서 열기`}
+              >
+                <Icon className="w-[18px] h-[18px]" />
+                <span className="text-[10.5px] font-semibold">{label}</span>
+              </a>
+            ))}
+          </div>
+        </div>
 
         <div className="px-3 pb-6 pt-3 border-t border-rule">
           <button
