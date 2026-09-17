@@ -191,7 +191,11 @@ export default function BrandLayout() {
         </header>
 
         <main className="flex-1 p-4 sm:p-6 lg:p-8">
-          <Outlet />
+          {/* 넓은 화면에서 카드가 끝까지 늘어지지 않게 폭 제한(2026-09-18 대표님 지적) —
+              화면마다 따로 잡지 않고 여기 한 곳에서 셀러센터 전체에 적용한다. */}
+          <div className="max-w-[880px] mx-auto">
+            <Outlet />
+          </div>
         </main>
       </div>
     </div>
