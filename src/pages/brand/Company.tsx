@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { getMyPartner } from '../../lib/partner'
 import type { Partner } from '../../lib/types'
@@ -34,6 +35,8 @@ const STATUS_LABEL: Record<Partner['status'], string> = {
 }
 
 export default function BrandCompany() {
+  const [searchParams] = useSearchParams()
+  const asPartnerId = searchParams.get('as') ?? undefined
   const [loading, setLoading] = useState(true)
   const [partner, setPartner] = useState<Partner | null>(null)
   const [form, setForm] = useState<FormState>(emptyForm)
@@ -44,7 +47,7 @@ export default function BrandCompany() {
   useEffect(() => {
     let active = true
     ;(async () => {
-      const p = await getMyPartner()
+      const p = await getMyPartner(asPartnerId)
       if (!active) return
       setPartner(p)
       if (p) {
@@ -61,7 +64,7 @@ export default function BrandCompany() {
       setLoading(false)
     })()
     return () => { active = false }
-  }, [])
+  }, [asPartnerId])
 
   const save = async () => {
     setSaving(true); setMsg(''); setOk('')

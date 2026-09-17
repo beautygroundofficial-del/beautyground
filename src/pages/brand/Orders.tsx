@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { IconReceipt } from '@tabler/icons-react'
 import { supabase } from '../../lib/supabase'
 import { getMyPartner } from '../../lib/partner'
@@ -36,6 +37,8 @@ const STATUS_LABEL: Record<string, { text: string; cls: string }> = {
 const card = 'bg-white rounded-[14px] border border-[#e5e0d8]'
 
 export default function BrandOrders() {
+  const [searchParams] = useSearchParams()
+  const asPartnerId = searchParams.get('as') ?? undefined
   const [loading, setLoading] = useState(true)
   const [partner, setPartner] = useState<Partner | null>(null)
   const [orders, setOrders] = useState<MyOrderRow[]>([])
@@ -44,18 +47,18 @@ export default function BrandOrders() {
   useEffect(() => {
     let active = true
     ;(async () => {
-      const p = await getMyPartner()
+      const p = await getMyPartner(asPartnerId)
       if (!active) return
       setPartner(p)
       if (!p) { setLoading(false); return }
-      const { data, error } = await supabase.rpc('get_my_orders')
+      const { data, error } = await supabase.rpc('get_my_orders', { p_partner_id: asPartnerId ?? null })
       if (!active) return
       if (error) setErr(error.message)
       setOrders((data ?? []) as MyOrderRow[])
       setLoading(false)
     })()
     return () => { active = false }
-  }, [])
+  }, [asPartnerId])
 
   if (loading) {
     return <div className="flex items-center justify-center py-24"><p className="text-[14px] text-[#9a9080]">불러오는 중...</p></div>

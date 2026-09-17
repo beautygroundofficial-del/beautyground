@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { IconChevronRight, IconVideo } from '@tabler/icons-react'
 import { supabase } from '../../lib/supabase'
 import { getMyPartner } from '../../lib/partner'
@@ -15,6 +15,8 @@ function formatScheduled(iso: string | null) {
 }
 
 export default function BrandDashboard() {
+  const [searchParams] = useSearchParams()
+  const asPartnerId = searchParams.get('as') ?? undefined
   const [loading, setLoading] = useState(true)
   const [partner, setPartner] = useState<Partner | null>(null)
   const [monthSales, setMonthSales] = useState(0)
@@ -24,7 +26,7 @@ export default function BrandDashboard() {
   useEffect(() => {
     let active = true
     const load = async () => {
-      const p = await getMyPartner()
+      const p = await getMyPartner(asPartnerId)
       if (!active) return
       if (!p) { setPartner(null); setLoading(false); return }
       setPartner(p)
@@ -32,10 +34,11 @@ export default function BrandDashboard() {
       const now = new Date()
       const startISO = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
 
-      const { data } = await supabase
-        .from('partner_live_sales_view')
-        .select('*')
-        .order('created_at', { ascending: false })
+      // 관리자가 다른 브랜드를 보는 중이면(p.id가 asPartnerId) admin-aware RPC로,
+      // 아니면 기존처럼 뷰를 그대로 쓴다 — 정상 경로 성능·안정성 그대로 유지.
+      const { data } = asPartnerId
+        ? await supabase.rpc('get_partner_live_sales', { p_partner_id: asPartnerId }).order('created_at', { ascending: false })
+        : await supabase.from('partner_live_sales_view').select('*').order('created_at', { ascending: false })
       if (!active) return
 
       const rows = (data ?? []) as PartnerSaleRow[]

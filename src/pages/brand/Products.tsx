@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { IconLink, IconPhoto, IconPlus, IconSearch, IconTrash, IconX } from '@tabler/icons-react'
 import { supabase } from '../../lib/supabase'
 import { getMyPartner, uploadSellerProductImage } from '../../lib/partner'
@@ -156,6 +157,8 @@ function ImageStrip({ images, onChange, onPick, uploading, hint }: {
 }
 
 export default function BrandProducts() {
+  const [searchParams] = useSearchParams()
+  const asPartnerId = searchParams.get('as') ?? undefined
   const [partner, setPartner] = useState<Partner | null>(null)
   const [loading, setLoading] = useState(true)
   const [items, setItems] = useState<Product[]>([])
@@ -206,14 +209,14 @@ export default function BrandProducts() {
   useEffect(() => {
     let active = true
     ;(async () => {
-      const p = await getMyPartner()
+      const p = await getMyPartner(asPartnerId)
       if (!active) return
       setPartner(p)
       if (p) await loadItems(p.id)
       setLoading(false)
     })()
     return () => { active = false }
-  }, [])
+  }, [asPartnerId])
 
   // 여러 주소 한 번에: 추출 → 가격 있으면 바로 등록(확인 대기), 없으면 편집기로 넘길 초안만 보관
   const runBulk = async () => {
