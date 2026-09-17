@@ -231,20 +231,32 @@ export default function AppMyPage() {
             </div>
             <p className="text-[13px] text-ink-soft mt-0.5">{user.email}</p>
           </div>
-          {/* 2026-09-13 대표님 지시: 프로필 수정 밑에 로그아웃 버튼 — 페이지 맨 아래 것과 별개로 여기서도 바로 가능하게 */}
+          {/* 2026-09-13 대표님 지시: 프로필 수정 밑에 로그아웃 버튼 — 페이지 맨 아래 것과 별개로 여기서도 바로 가능하게
+              ⚠️ 로그인 여부를 안 가려서 게스트 상태에서도 "로그아웃"이 보이던 버그 수정(2026-09-17) */}
           <div className="flex flex-col items-end gap-1.5">
-            <button
-              onClick={() => navigate('/app/account')}
-              className="text-[12px] text-ink-soft rounded-control border border-rule px-3 py-1.5 whitespace-nowrap focus:outline-none focus-visible:shadow-ring"
-            >
-              프로필 수정
-            </button>
-            <button
-              onClick={handleLogout}
-              className="text-[11.5px] text-ink-faint underline whitespace-nowrap focus:outline-none focus-visible:shadow-ring"
-            >
-              로그아웃
-            </button>
+            {loggedIn === false ? (
+              <button
+                onClick={() => navigate('/app/login', { state: { from: '/app/mypage' } })}
+                className="text-[12px] text-ink-soft rounded-control border border-rule px-3 py-1.5 whitespace-nowrap focus:outline-none focus-visible:shadow-ring"
+              >
+                로그인
+              </button>
+            ) : (
+              <>
+                <button
+                  onClick={() => navigate('/app/account')}
+                  className="text-[12px] text-ink-soft rounded-control border border-rule px-3 py-1.5 whitespace-nowrap focus:outline-none focus-visible:shadow-ring"
+                >
+                  프로필 수정
+                </button>
+                <button
+                  onClick={handleLogout}
+                  className="text-[11.5px] text-ink-faint underline whitespace-nowrap focus:outline-none focus-visible:shadow-ring"
+                >
+                  로그아웃
+                </button>
+              </>
+            )}
           </div>
         </div>
 
