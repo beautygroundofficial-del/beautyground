@@ -41,7 +41,6 @@ export default function AppBoardPost() {
 
   const { isAdmin } = useIsAdmin()
   const [loggedIn, setLoggedIn] = useState(false)
-  const [myName, setMyName] = useState<string | null>(null)
   const [post, setPost] = useState<BoardPost | null | undefined>(undefined)
   const [toast, setToast] = useState('')
   const [viewerIndex, setViewerIndex] = useState<number | null>(null)
@@ -60,10 +59,6 @@ export default function AppBoardPost() {
       const { data: { session } } = await supabase.auth.getSession()
       if (!alive) return
       setLoggedIn(!!session)
-      if (session) {
-        const meta = session.user.user_metadata as { name?: string } | undefined
-        setMyName(meta?.name || session.user.email?.split('@')[0] || null)
-      }
       const p = await getBoardPost(id)
       if (alive) setPost(p)
     })()
@@ -198,7 +193,6 @@ export default function AppBoardPost() {
               postId={post.id}
               count={post.comment_count}
               loggedIn={loggedIn}
-              myName={myName}
               onCountChange={(n) => setPost((prev) => (prev ? { ...prev, comment_count: n } : prev))}
               onAward={(p) => showToast(`${p}P를 받았어요`)}
               onNotice={showToast}

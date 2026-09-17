@@ -4,6 +4,8 @@ import {
   getDiaryComments, createDiaryComment, deleteDiaryComment, type DiaryComment,
 } from '../../lib/diaries'
 import { BubbleIcon } from './marks'
+import { useNicknameGate } from '../../hooks/useNicknameGate'
+import NicknameModal from './NicknameModal'
 
 // 이야기 댓글 — 펼쳐야 보인다. (2026-09-07 → 2026-09-11 버튼과 패널을 분리)
 //
@@ -43,7 +45,6 @@ interface Props {
   open: boolean
   count: number
   loggedIn: boolean
-  myName: string | null
   onCountChange: (next: number) => void
   onAward?: (points: number) => void
   onNotice?: (msg: string) => void
@@ -52,9 +53,10 @@ interface Props {
 // 펼침 패널 — open 일 때만 그린다. 목록은 처음 열릴 때 한 번 불러온다.
 // 답글(대댓글)은 1단계 댓글에만 달 수 있다(2단계까지만 — 답글에는 "답글" 버튼을 보여주지 않는다).
 export default function DiaryComments({
-  diaryId, open, count, loggedIn, myName, onCountChange, onAward, onNotice,
+  diaryId, open, count, loggedIn, onCountChange, onAward, onNotice,
 }: Props) {
   const navigate = useNavigate()
+  const { modalOpen, ensureNickname, handleDone, closeModal } = useNicknameGate()
   const [list, setList] = useState<DiaryComment[] | null>(null)
   const [draft, setDraft] = useState('')
   const [saving, setSaving] = useState(false)
@@ -68,13 +70,12 @@ export default function DiaryComments({
 
   if (!open) return null
 
-  const submit = async () => {
-    if (!loggedIn) { navigate('/app/login'); return }
+  const doSubmit = async (nickname: string | null) => {
     const text = draft.trim()
     if (!text) return
 
     setSaving(true)
-    const res = await createDiaryComment(diaryId, text, myName)
+    const res = await createDiaryComment(diaryId, text, nickname)
     setSaving(false)
     if (!res.comment_id) { onNotice?.(res.message || '남기지 못했어요'); return }
 
@@ -84,13 +85,18 @@ export default function DiaryComments({
     if (res.awarded > 0) onAward?.(res.awarded)
   }
 
-  const submitReply = async (parentId: string) => {
+  const submit = () => {
     if (!loggedIn) { navigate('/app/login'); return }
+    if (!draft.trim()) return
+    ensureNickname((nickname) => void doSubmit(nickname))
+  }
+
+  const doSubmitReply = async (parentId: string, nickname: string | null) => {
     const text = replyDraft.trim()
     if (!text) return
 
     setReplySaving(true)
-    const res = await createDiaryComment(diaryId, text, myName, parentId)
+    const res = await createDiaryComment(diaryId, text, nickname, parentId)
     setReplySaving(false)
     if (!res.comment_id) { onNotice?.(res.message || '남기지 못했어요'); return }
 
@@ -99,6 +105,12 @@ export default function DiaryComments({
     setList(await getDiaryComments(diaryId))
     onCountChange(count + 1)
     if (res.awarded > 0) onAward?.(res.awarded)
+  }
+
+  const submitReply = (parentId: string) => {
+    if (!loggedIn) { navigate('/app/login'); return }
+    if (!replyDraft.trim()) return
+    ensureNickname((nickname) => void doSubmitReply(parentId, nickname))
   }
 
   const remove = async (c: DiaryComment) => {
@@ -160,7 +172,7 @@ export default function DiaryComments({
           />
           <button
             type="button"
-            onClick={() => void submitReply(c.id)}
+            onClick={() => submitReply(c.id)}
             disabled={replySaving || !replyDraft.trim()}
             className="shrink-0 px-3 py-1.5 rounded-control bg-ink text-paper text-[12px] font-semibold disabled:opacity-40"
           >
@@ -204,13 +216,15 @@ export default function DiaryComments({
         />
         <button
           type="button"
-          onClick={() => void submit()}
+          onClick={submit}
           disabled={saving || !draft.trim()}
           className="shrink-0 px-3.5 py-2 rounded-control bg-ink text-paper text-[12.5px] font-semibold disabled:opacity-40"
         >
           {saving ? '…' : '남기기'}
         </button>
       </div>
+
+      <NicknameModal open={modalOpen} onDone={handleDone} onClose={closeModal} />
     </div>
   )
 }

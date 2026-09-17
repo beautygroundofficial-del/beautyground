@@ -7,6 +7,8 @@ import { supabase } from '../lib/supabase'
 import { useIsAdmin } from '../lib/useIsAdmin'
 import { BOARD_CATEGORIES, createBoardPost, getBoardPost, updateBoardPost, type BoardCategory } from '../lib/board'
 import { uploadCommunityImages, uploadCommunityVideo } from '../lib/diaries'
+import { useNicknameGate } from '../hooks/useNicknameGate'
+import NicknameModal from '../components/community/NicknameModal'
 
 // 속 이야기 쓰기·고쳐 쓰기 — 제목 없이 본문만. (2026-09-10 → 2026-09-11 공용 글쓰기 환경 + 영상 + 고쳐 쓰기)
 // "뭐라고 제목을 붙이지" 하는 망설임 자체를 없앤다. 카테고리 하나만 고르고 바로 쓴다.
@@ -23,8 +25,8 @@ export default function AppBoardWrite() {
   const [sp] = useSearchParams()
   const editId = sp.get('id')
   const { isAdmin, loading: adminLoading } = useIsAdmin()
+  const { modalOpen, ensureNickname, handleDone, closeModal } = useNicknameGate()
 
-  const [myName, setMyName] = useState<string | null>(null)
   const [category, setCategory] = useState<BoardCategory | null>(null)
   const [content, setContent] = useState('')
   const [files, setFiles] = useState<File[]>([])
@@ -42,8 +44,6 @@ export default function AppBoardWrite() {
     void (async () => {
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) { navigate('/app/login', { replace: true, state: { from: '/app/board/write' } }); return }
-      const meta = session.user.user_metadata as { name?: string } | undefined
-      setMyName(meta?.name || session.user.email?.split('@')[0] || null)
 
       if (editId) {
         const row = await getBoardPost(editId)
@@ -63,7 +63,7 @@ export default function AppBoardWrite() {
 
   useEffect(() => { if (ready && !editId) saveDraft(DRAFT_KEY, { content, category }) }, [ready, editId, content, category])
 
-  const submit = async () => {
+  const doSubmit = async (nickname: string | null) => {
     if (!category) { showToast('어떤 이야기인지 하나만 골라주세요'); return }
     if (content.trim().length < MIN_LEN) { showToast(`${MIN_LEN}자 이상 적어주세요`); return }
     setSaving(true)
@@ -86,7 +86,7 @@ export default function AppBoardWrite() {
       return
     }
 
-    const res = await createBoardPost(category, content, images, myName, videoUrl)
+    const res = await createBoardPost(category, content, images, nickname, videoUrl)
     setSaving(false)
     if (!res || !res.post_id) { showToast(res?.message || '올리지 못했어요'); return }
     clearDraft(DRAFT_KEY)
@@ -94,6 +94,12 @@ export default function AppBoardWrite() {
       replace: true,
       state: { toast: res.awarded > 0 ? `${res.awarded}P를 받았어요` : '이야기를 꺼내놓았어요' },
     })
+  }
+
+  // 새 글 작성만 애칭이 필요하다 — 고쳐 쓰기는 닉네임을 새로 남기지 않으므로 그대로 진행
+  const submit = () => {
+    if (editId) { void doSubmit(null); return }
+    ensureNickname((nickname) => void doSubmit(nickname))
   }
 
   const canSubmit = ready && !!category && content.trim().length >= MIN_LEN && !saving
@@ -171,6 +177,8 @@ export default function AppBoardWrite() {
           {toast}
         </div>
       )}
+
+      <NicknameModal open={modalOpen} onDone={handleDone} onClose={closeModal} />
     </AppFrame>
   )
 }

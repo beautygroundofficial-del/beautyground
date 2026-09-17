@@ -71,7 +71,6 @@ export default function AppDiary() {
   const location = useLocation()
 
   const [loggedIn, setLoggedIn] = useState<boolean | null>(null)
-  const [myName, setMyName] = useState<string | null>(null)
   const [sort, setSort] = useState<FeedView>('recent')
   const [feed, setFeed] = useState<Diary[]>([])
   // 글쓴이별 친구 관계 — 없으면 'none'
@@ -110,11 +109,6 @@ export default function AppDiary() {
   const load = useCallback(async (s: FeedView) => {
     const { data: { session } } = await supabase.auth.getSession()
     setLoggedIn(!!session)
-    if (session) {
-      // 마이페이지와 같은 규칙 — 닉네임이 없으면 이메일 앞부분을 쓴다.
-      const meta = session.user.user_metadata as { name?: string } | undefined
-      setMyName(meta?.name || session.user.email?.split('@')[0] || null)
-    }
     const [rows, bests] = await Promise.all([
       s === 'friends' ? getFriendDiaryFeed(30) : getDiaryFeed(s, 30),
       getMonthlyBestDiaries(3),
@@ -212,7 +206,6 @@ export default function AppDiary() {
                       open
                       count={0}
                       loggedIn={!!loggedIn}
-                      myName={myName}
                       onCountChange={() => {}}
                       onAward={(p) => showToast(`${p}P를 받았어요`)}
                       onNotice={showToast}
@@ -384,7 +377,6 @@ export default function AppDiary() {
                       open={openComments.has(d.id)}
                       count={d.comment_count}
                       loggedIn={!!loggedIn}
-                      myName={myName}
                       onCountChange={(n) => setFeed((prev) => prev.map((x) =>
                         (x.id === d.id ? { ...x, comment_count: n } : x)))}
                       onAward={(p) => showToast(`${p}P를 받았어요`)}
