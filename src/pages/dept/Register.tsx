@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { DEPT_NAMES } from '../../lib/deptAccount'
-import type { DeptAccount } from '../../lib/types'
 
 const PASSWORD_RE = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/
 
@@ -13,13 +12,23 @@ const label: React.CSSProperties = {
   display: 'block', fontSize: 13, fontWeight: 600, color: '#666', marginBottom: 6,
 }
 
+interface SignupPreview {
+  id: string
+  dept_key: 'hyundai' | 'ak'
+  display_name: string
+}
+
 // 백화점 담당자 셀프 가입 — 지점 전용 링크(/dept/register/:id)로만 가입 가능. 어느 백화점·지점인지는
 // 링크 자체가 이미 정해서 담당자는 이메일·비밀번호만 입력한다(2026-08-15, 대표님 지시:
 // 브랜드/지점명을 담당자가 직접 고를 여지 없이 링크=신원 보증 방식으로).
+//
+// 2026-09-18: partners와 동일한 문제로 미리보기를 get_dept_signup_preview(p_id) RPC로만 조회한다 —
+// dept_accounts_select_unclaimed 정책이 미연결 행을 필터 없이 통째로 노출해서, 이 링크의 보안
+// 전제(id를 아는 사람만 가입 가능)가 깨져 있었다.
 export default function DeptRegister() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const [slot, setSlot] = useState<DeptAccount | null>(null)
+  const [slot, setSlot] = useState<SignupPreview | null>(null)
   const [loadingSlot, setLoadingSlot] = useState(true)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -29,9 +38,10 @@ export default function DeptRegister() {
   useEffect(() => {
     if (!id) { setLoadingSlot(false); return }
     let active = true
-    supabase.from('dept_accounts').select('*').eq('id', id).is('user_id', null).maybeSingle().then(({ data }) => {
+    supabase.rpc('get_dept_signup_preview', { p_id: id }).then(({ data }) => {
       if (!active) return
-      setSlot((data as DeptAccount | null) ?? null)
+      const rows = (data ?? []) as SignupPreview[]
+      setSlot(rows[0] ?? null)
       setLoadingSlot(false)
     })
     return () => { active = false }
