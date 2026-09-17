@@ -4,19 +4,28 @@ import GNB from '../../components/layout/GNB'
 import Footer from '../../components/layout/Footer'
 import Button from '../../components/common/Button'
 import { supabase } from '../../lib/supabase'
-import type { Partner } from '../../lib/types'
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const PASSWORD_RE = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/
 
-// 브랜드 셀프가입 견본(2026-08-15) — 백화점 담당자의 "지점 전용 링크" 방식과 동일한 개념을
-// 브랜드에 적용: 관리자가 /admin/partners에서 링크를 발급하면, 그 링크를 여는 브랜드는
-// 자기 로고(BI)를 바로 확인하고 이메일·비밀번호만 입력해 가입한다. 아직 실제 운영에 연결하지
-// 않은 예시 화면 — 브랜드 포털을 정식으로 열 때 이 흐름을 그대로 쓰면 된다.
+interface SignupPreview {
+  id: string
+  brand_name: string
+  export_logo_url: string | null
+}
+
+// 브랜드 셀프가입(2026-08-15) — 관리자가 /admin/partners에서 링크를 발급하면, 그 링크를 여는
+// 브랜드는 자기 로고(BI)를 바로 확인하고 이메일·비밀번호만 입력해 가입한다.
+//
+// 2026-09-18: 미리보기를 get_partner_signup_preview(p_id) RPC로만 조회한다 — 예전엔
+// partners 테이블을 user_id is null 조건으로 직접 읽는 RLS 정책이 있어서 "미연결 브랜드
+// 통째 목록"이 로그인 없이도 조회됐다(수수료율 등 대외비 포함). 이 링크의 보안은 "이 id를
+// 아는 사람만 가입 가능"이 전제인데, id 자체가 공개 목록으로 새고 있었던 것 — 지금은 id를
+// 정확히 아는 사람에게 이름·로고만 단건으로 돌려주는 함수로 막았다.
 export default function BrandRegister() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const [slot, setSlot] = useState<Partner | null>(null)
+  const [slot, setSlot] = useState<SignupPreview | null>(null)
   const [loadingSlot, setLoadingSlot] = useState(true)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -26,9 +35,10 @@ export default function BrandRegister() {
   useEffect(() => {
     if (!id) { setLoadingSlot(false); return }
     let active = true
-    supabase.from('partners').select('*').eq('id', id).is('user_id', null).maybeSingle().then(({ data }) => {
+    supabase.rpc('get_partner_signup_preview', { p_id: id }).then(({ data }) => {
       if (!active) return
-      setSlot((data as Partner | null) ?? null)
+      const rows = (data ?? []) as SignupPreview[]
+      setSlot(rows[0] ?? null)
       setLoadingSlot(false)
     })
     return () => { active = false }
