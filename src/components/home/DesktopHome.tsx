@@ -50,10 +50,10 @@ export default function DesktopHome(_: Props) {
 
         <button
           onClick={() => navigate('/app/diary/write')}
-          className="w-full rounded-card bg-ink text-paper px-6 py-5 text-left focus:outline-none focus-visible:shadow-ring"
+          className="w-full rounded-card border border-rule bg-paper px-6 py-5 text-left focus:outline-none focus-visible:shadow-ring"
         >
-          <span className="block text-[18px] font-bold leading-tight">오늘 어떤 하루였나요?</span>
-          <span className="block text-[13.5px] opacity-75 mt-1.5">사소한 하루도 누군가에겐 위로가 됩니다</span>
+          <span className="block text-[18px] font-bold leading-tight text-ink">오늘 어떤 하루였나요?</span>
+          <span className="block text-[13.5px] text-ink-soft mt-1.5">사소한 하루도 누군가에겐 위로가 됩니다</span>
         </button>
 
         {/* 속 이야기 — 모바일(HomeBody.tsx)과 같은 컴포넌트. 한쪽만 고치지 말 것. */}
