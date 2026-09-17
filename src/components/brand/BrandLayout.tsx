@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom'
+import { Link, NavLink, Outlet, useNavigate, useSearchParams } from 'react-router-dom'
 import {
   IconLayoutDashboard,
   IconVideo,
@@ -54,6 +54,11 @@ const navShadowActive = { boxShadow: '0 10px 24px rgba(30,40,90,.28), inset 0 2p
 
 export default function BrandLayout() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  // 관리자가 /admin/partners에서 "이 브랜드로 보기"를 누르면 붙는 파라미터(2026-09-18).
+  // 메뉴를 옮겨다녀도 계속 그 브랜드로 보이도록 모든 NavLink에 그대로 이어 붙인다.
+  const asPartnerId = searchParams.get('as') ?? undefined
+  const asQuery = asPartnerId ? `?as=${asPartnerId}` : ''
   const [partner, setPartner] = useState<Partner | null>(null)
   const [isExportOnly, setIsExportOnly] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
@@ -61,7 +66,7 @@ export default function BrandLayout() {
   const [pendingCount, setPendingCount] = useState(0)
 
   useEffect(() => {
-    getMyBrandAccess().then(({ partner: p, isExportOnly: exportOnly }) => {
+    getMyBrandAccess(asPartnerId).then(({ partner: p, isExportOnly: exportOnly }) => {
       setPartner(p)
       setIsExportOnly(exportOnly)
       if (!p || exportOnly) return
@@ -72,7 +77,7 @@ export default function BrandLayout() {
         .eq('status', 'pending')
         .then(({ data }) => setPendingCount(((data ?? []) as Pick<Settlement, 'id' | 'status'>[]).length))
     })
-  }, [])
+  }, [asPartnerId])
 
   // 대시보드·판매내역·정산내역은 온라인 쇼핑몰(라이브 판매) 채널 메뉴 — 셀프 가입 수출 브랜드(pending)에게는
   // 채널 콘텐츠 격리 원칙(2026-08-17)에 따라 수출 소개만 노출한다.
@@ -128,7 +133,7 @@ export default function BrandLayout() {
           {navItems.map(({ label, to, icon: Icon }) => (
             <NavLink
               key={to}
-              to={to}
+              to={`${to}${asQuery}`}
               onClick={() => setMenuOpen(false)}
               className={({ isActive }) =>
                 `flex items-center justify-center gap-2 px-4 py-3 rounded-full text-[13.5px] font-semibold transition-transform border relative hover:-translate-y-0.5 ${
@@ -164,6 +169,12 @@ export default function BrandLayout() {
       </aside>
 
       <div className="flex-1 ml-0 lg:ml-[240px] flex flex-col min-h-screen">
+        {asPartnerId && (
+          <div className="bg-[#111] text-white text-[12.5px] px-4 py-2 flex items-center justify-between gap-3">
+            <span>관리자 보기 · {partner?.brand_name ?? '-'} 판매자 센터를 확인하는 중입니다</span>
+            <a href="/admin/partners" className="underline underline-offset-2 shrink-0">관리자로 돌아가기</a>
+          </div>
+        )}
         <header className="h-[60px] bg-white border-b border-[#eee] flex items-center justify-between px-4 lg:px-8 sticky top-0 z-20">
           <div className="flex items-center gap-3 min-w-0">
             <button

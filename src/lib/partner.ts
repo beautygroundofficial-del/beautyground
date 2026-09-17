@@ -4,7 +4,17 @@ import type { Partner } from './types'
 // 현재 로그인한 사용자의 브랜드(partner) 레코드 조회 (없으면 null)
 // user id 는 getSession()(로컬 세션, 네트워크 없음)으로 얻는다 — getUser()는 매번 네트워크
 // 검증이라 동시 호출 시 일시적으로 null이 떨어지는 문제가 있다(host.ts의 getMyHost()와 동일 이유).
-export async function getMyPartner(): Promise<Partner | null> {
+//
+// overridePartnerId — 관리자가 "이 브랜드로 보기"를 눌러 다른 브랜드의 판매자 센터를 조회할 때만
+// 쓴다(2026-09-18). partners RLS가 이미 is_admin()이면 아무 행이나 SELECT 허용하므로(admin_ops.sql),
+// 관리자가 아닌 사람이 남의 id를 넘겨도 RLS가 빈 결과로 막아준다 — 여기서 별도 권한 체크 불필요.
+export async function getMyPartner(overridePartnerId?: string): Promise<Partner | null> {
+  if (overridePartnerId) {
+    const { data } = await supabase.from('partners').select('*').eq('id', overridePartnerId).maybeSingle()
+    if (data) return data as Partner
+    // 권한 없거나 존재하지 않는 id면 본인 브랜드로 폴백
+  }
+
   const {
     data: { session },
   } = await supabase.auth.getSession()
@@ -24,7 +34,12 @@ export async function getMyPartner(): Promise<Partner | null> {
 // supabase/export_contacts.sql) 둘 다 지원. 판매 파트너면 기존처럼 partners 테이블을 직접
 // 읽고(빠름), 아니라면 get_my_export_partner() RPC로 export_contacts를 경유해 조회한다.
 // 대시보드/판매내역/정산내역은 여전히 getMyPartner()만 쓰므로 수출 전용 계정에서는 열리지 않는다.
-export async function getMyBrandAccess(): Promise<{ partner: Partner | null; isExportOnly: boolean }> {
+export async function getMyBrandAccess(overridePartnerId?: string): Promise<{ partner: Partner | null; isExportOnly: boolean }> {
+  if (overridePartnerId) {
+    const { data } = await supabase.from('partners').select('*').eq('id', overridePartnerId).maybeSingle()
+    if (data) return { partner: data as Partner, isExportOnly: false }
+  }
+
   const {
     data: { session },
   } = await supabase.auth.getSession()

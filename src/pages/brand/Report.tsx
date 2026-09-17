@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { IconChartBar } from '@tabler/icons-react'
 import { supabase } from '../../lib/supabase'
 import { getMyPartner } from '../../lib/partner'
@@ -35,6 +36,8 @@ function dateKey(iso: string) {
 }
 
 export default function BrandReport() {
+  const [searchParams] = useSearchParams()
+  const asPartnerId = searchParams.get('as') ?? undefined
   const [loading, setLoading] = useState(true)
   const [partner, setPartner] = useState<Partner | null>(null)
   const [orders, setOrders] = useState<MyOrderRow[]>([])
@@ -44,18 +47,18 @@ export default function BrandReport() {
   useEffect(() => {
     let active = true
     ;(async () => {
-      const p = await getMyPartner()
+      const p = await getMyPartner(asPartnerId)
       if (!active) return
       setPartner(p)
       if (!p) { setLoading(false); return }
-      const { data, error } = await supabase.rpc('get_my_orders')
+      const { data, error } = await supabase.rpc('get_my_orders', { p_partner_id: asPartnerId ?? null })
       if (!active) return
       if (error) setErr(error.message)
       setOrders((data ?? []) as MyOrderRow[])
       setLoading(false)
     })()
     return () => { active = false }
-  }, [])
+  }, [asPartnerId])
 
   const filtered = useMemo(() => {
     const settled = orders.filter((o) => SETTLED_STATUSES.includes(o.status))

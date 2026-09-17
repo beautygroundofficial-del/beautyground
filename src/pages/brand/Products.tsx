@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { IconLink, IconPhoto, IconTrash } from '@tabler/icons-react'
 import { supabase } from '../../lib/supabase'
 import { getMyPartner } from '../../lib/partner'
@@ -65,6 +66,8 @@ const STATUS_LABEL: Record<string, { text: string; cls: string }> = {
 }
 
 export default function BrandProducts() {
+  const [searchParams] = useSearchParams()
+  const asPartnerId = searchParams.get('as') ?? undefined
   const [partner, setPartner] = useState<Partner | null>(null)
   const [loading, setLoading] = useState(true)
   const [items, setItems] = useState<Product[]>([])
@@ -93,14 +96,14 @@ export default function BrandProducts() {
   useEffect(() => {
     let active = true
     ;(async () => {
-      const p = await getMyPartner()
+      const p = await getMyPartner(asPartnerId)
       if (!active) return
       setPartner(p)
       if (p) await loadItems(p.id)
       setLoading(false)
     })()
     return () => { active = false }
-  }, [])
+  }, [asPartnerId])
 
   // URL → 상품 정보 가져오기
   const fetchFromUrl = async () => {

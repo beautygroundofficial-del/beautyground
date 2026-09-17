@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { getMyPartner } from '../../lib/partner'
 import type { Partner, Settlement } from '../../lib/types'
@@ -22,6 +23,8 @@ function prevMonthKey() {
 }
 
 export default function BrandSettlement() {
+  const [searchParams] = useSearchParams()
+  const asPartnerId = searchParams.get('as') ?? undefined
   const [loading, setLoading] = useState(true)
   const [partner, setPartner] = useState<Partner | null>(null)
   const [settlements, setSettlements] = useState<Settlement[]>([])
@@ -29,7 +32,7 @@ export default function BrandSettlement() {
   useEffect(() => {
     let active = true
     const load = async () => {
-      const p = await getMyPartner()
+      const p = await getMyPartner(asPartnerId)
       if (!active) return
       if (!p) { setPartner(null); setLoading(false); return }
       setPartner(p)
@@ -46,7 +49,7 @@ export default function BrandSettlement() {
     }
     load()
     return () => { active = false }
-  }, [])
+  }, [asPartnerId])
 
   if (loading) {
     return (

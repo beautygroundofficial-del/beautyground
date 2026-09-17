@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { getMyPartner } from '../../lib/partner'
 import type { Partner, PartnerSaleRow } from '../../lib/types'
@@ -18,6 +19,8 @@ interface LiveSalesGroup {
 
 // 브랜드가 "이 방송에서 몇 개/얼마 팔렸는지"를 라이브 방송별로 확인하는 화면.
 export default function BrandLiveSales() {
+  const [searchParams] = useSearchParams()
+  const asPartnerId = searchParams.get('as') ?? undefined
   const [loading, setLoading] = useState(true)
   const [partner, setPartner] = useState<Partner | null>(null)
   const [rows, setRows] = useState<PartnerSaleRow[]>([])
@@ -29,15 +32,14 @@ export default function BrandLiveSales() {
   useEffect(() => {
     let active = true
     const load = async () => {
-      const p = await getMyPartner()
+      const p = await getMyPartner(asPartnerId)
       if (!active) return
       if (!p) { setPartner(null); setLoading(false); return }
       setPartner(p)
 
-      const { data } = await supabase
-        .from('partner_live_sales_view')
-        .select('*')
-        .order('live_scheduled_at', { ascending: false })
+      const { data } = asPartnerId
+        ? await supabase.rpc('get_partner_live_sales', { p_partner_id: asPartnerId }).order('live_scheduled_at', { ascending: false })
+        : await supabase.from('partner_live_sales_view').select('*').order('live_scheduled_at', { ascending: false })
       if (!active) return
 
       setRows(((data ?? []) as PartnerSaleRow[]).filter((r) => SETTLED_STATUSES.includes(r.status) && r.live_id))
@@ -45,7 +47,7 @@ export default function BrandLiveSales() {
     }
     load()
     return () => { active = false }
-  }, [])
+  }, [asPartnerId])
 
   const groups = useMemo(() => {
     const range = computePeriodRange(periodKey, customStart, customEnd)

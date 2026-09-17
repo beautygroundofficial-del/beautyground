@@ -128,6 +128,7 @@ export default function AdminPartners() {
               <thead>
                 <tr className="border-b border-rule text-ink-soft">
                   <th className="px-4 py-3 font-medium whitespace-nowrap">브랜드</th>
+                  <th className="px-4 py-3 font-medium whitespace-nowrap">판매자 센터</th>
                   <th className="px-4 py-3 font-medium whitespace-nowrap">상태</th>
                   <th className="px-4 py-3 font-medium whitespace-nowrap">수수료율</th>
                   <th className="px-4 py-3 font-medium whitespace-nowrap">백화점 입점</th>
@@ -147,6 +148,17 @@ export default function AdminPartners() {
                         )}
                         {p.brand_name}
                       </div>
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <a
+                        href={`/brand/dashboard?as=${p.id}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-[11px] font-medium text-signal-blue hover:underline"
+                        title="이 브랜드의 판매자 센터를 새 탭에서 봅니다(수정/저장 등록은 브랜드 계정으로만 가능)"
+                      >
+                        이 브랜드로 보기
+                      </a>
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap">
                       <span
