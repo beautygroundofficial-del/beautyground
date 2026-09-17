@@ -2,7 +2,6 @@ import { useCallback, useEffect, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import BackHeader from '../components/layout/BackHeader'
 import AppFrame from '../components/layout/AppFrame'
-import BottomNav from '../components/layout/BottomNav'
 import { supabase } from '../lib/supabase'
 import {
   getDiaryFeed, getMonthlyBestDiaries, deleteDiary, toggleDiaryLike,
@@ -406,8 +405,6 @@ export default function AppDiary() {
       )}
 
       {viewer && <Lightbox images={viewer.images} index={viewer.index} onClose={() => setViewer(null)} />}
-
-      <BottomNav />
     </AppFrame>
   )
 }

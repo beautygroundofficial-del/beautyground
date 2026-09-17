@@ -21,6 +21,34 @@ import { revalidateOrderItems, buildOrderRows, type OrderItem } from '../lib/ord
 
 type Status = 'idle' | 'paying' | 'verifying' | 'done' | 'error'
 
+// 새로고침하면 location.state(장바구니에서 넘어온 상품·직전 입력)가 전부 날아가
+// "주문할 상품이 없습니다"로 초기화되던 문제(2026-09-17 QA 발견) — sessionStorage에
+// 초안을 같이 남겨서, state가 없을 때(새로고침 등)는 이걸로 복원한다.
+// 결제 완료·리다이렉트 복귀(paymentId 있음)까지 마쳤을 때는 지운다.
+const DRAFT_KEY = 'bg_order_draft'
+interface OrderDraft {
+  items: OrderItem[]
+  liveId: string | null
+  name: string
+  phone: string
+  email: string
+  address: string
+  addressDetail: string
+  deliveryMemo: string
+}
+function loadOrderDraft(): OrderDraft | null {
+  try {
+    const raw = sessionStorage.getItem(DRAFT_KEY)
+    return raw ? (JSON.parse(raw) as OrderDraft) : null
+  } catch { return null }
+}
+function saveOrderDraft(d: OrderDraft) {
+  try { sessionStorage.setItem(DRAFT_KEY, JSON.stringify(d)) } catch { /* 저장 못 해도 주문 자체는 진행 */ }
+}
+function clearOrderDraft() {
+  try { sessionStorage.removeItem(DRAFT_KEY) } catch { /* 위와 같음 */ }
+}
+
 const field =
   'w-full rounded-control bg-paper border border-rule px-3.5 py-3 text-[14px] text-ink placeholder:text-ink-faint focus:outline-none focus-visible:shadow-ring'
 
@@ -44,9 +72,11 @@ export default function AppOrder() {
   const [params, setParams] = useSearchParams()
 
   const navState = location.state as { items?: OrderItem[]; liveId?: string } | null
-  const initialItems: OrderItem[] = navState?.items ?? []
+  // 새로고침 등으로 navState가 없으면(location.state는 하드 리로드에서 유실됨) sessionStorage 초안으로 복원
+  const draft = navState?.items ? null : loadOrderDraft()
+  const initialItems: OrderItem[] = navState?.items ?? draft?.items ?? []
   // 라이브 방송 중 구매면 어느 방송에서 나온 주문인지 태깅(방송 통계·파트너 정산용)
-  const liveId = navState?.liveId ?? null
+  const liveId = navState?.liveId ?? draft?.liveId ?? null
   // 서버 재검증(가격/재고/판매상태) 결과가 반영되는 실제 주문 목록
   const [items, setItems] = useState<OrderItem[]>(initialItems)
   const [itemNotices, setItemNotices] = useState<string[]>([]) // 가격변경/수량조정 등 안내
@@ -54,17 +84,17 @@ export default function AppOrder() {
   const [checkedAuth, setCheckedAuth] = useState(false)
   // 비회원 주문(2026-08-18): 로그인 없이 배송지 입력만으로 구매 — 적립금·쿠폰·배송지저장은 회원 전용
   const [isGuest, setIsGuest] = useState(false)
-  const [name, setName] = useState('')
-  const [phone, setPhone] = useState('')
+  const [name, setName] = useState(draft?.name ?? '')
+  const [phone, setPhone] = useState(draft?.phone ?? '')
   // 비회원 주문 이메일(2026-09-01): KG이니시스 V2 일반결제는 구매자 이메일이 필수 —
   // 없으면 prepare 단계에서 400으로 막혀 결제창 자체가 안 뜬다. 회원은 가입 이메일을 그대로 쓴다.
-  const [email, setEmail] = useState('')
-  const [address, setAddress] = useState('')
-  const [addressDetail, setAddressDetail] = useState('')
+  const [email, setEmail] = useState(draft?.email ?? '')
+  const [address, setAddress] = useState(draft?.address ?? '')
+  const [addressDetail, setAddressDetail] = useState(draft?.addressDetail ?? '')
   const [savedAddresses, setSavedAddresses] = useState<Address[]>([])
   const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null)
   const [saveNewAddress, setSaveNewAddress] = useState(true)
-  const [deliveryMemo, setDeliveryMemo] = useState('')
+  const [deliveryMemo, setDeliveryMemo] = useState(draft?.deliveryMemo ?? '')
 
   // 배송지 입력칸 수정 시: 저장된 배송지를 그대로 쓰는 게 아니게 되므로 선택상태 해제(다시 "저장" 체크박스 노출)
   const editField = (setter: (v: string) => void) => (v: string) => {
@@ -170,8 +200,17 @@ export default function AppOrder() {
       setSavedAddresses(addrs)
       setPointsBalance(balance)
       setMyCoupons(coupons)
+      // 새로고침으로 복원한 초안(draft)이 있으면 입력해둔 배송지를 기본 배송지로 덮어쓰지 않는다
       const def = addrs.find((a) => a.is_default) ?? addrs[0]
-      if (def) {
+      if (draft) {
+        // 아무것도 안 남아있으면(초안이 상품만 있었던 경우 등) 그때만 기본 배송지로 채운다
+        if (def && !name && !phone && !address) {
+          setName(def.recipient_name)
+          setPhone(def.phone)
+          setAddress(def.address)
+          setSelectedAddressId(def.id)
+        }
+      } else if (def) {
         setName(def.recipient_name)
         setPhone(def.phone)
         setAddress(def.address)
@@ -200,6 +239,17 @@ export default function AppOrder() {
       })
     return () => { active = false }
   }, [liveId])
+
+  // 새로고침 대비 초안 저장 — 상품·배송지를 입력하는 동안 계속 sessionStorage에 반영해둔다
+  useEffect(() => {
+    if (items.length === 0) return
+    saveOrderDraft({ items, liveId, name, phone, email, address, addressDetail, deliveryMemo })
+  }, [items, liveId, name, phone, email, address, addressDetail, deliveryMemo])
+
+  // 결제가 끝나면(성공/검증완료) 이전 주문 초안이 다음 주문에 잘못 이어붙지 않게 지운다
+  useEffect(() => {
+    if (status === 'done') clearOrderDraft()
+  }, [status])
 
   // 결제창 리다이렉트 복귀(모바일 간편결제 등) 처리 — location.state 는 유실될 수 있어 DB에서 재조회
   useEffect(() => {

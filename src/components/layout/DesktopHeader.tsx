@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { IconHeart, IconCart, IconMenu, IconLive } from '../common/Icon'
+import { IconHeart, IconCart, IconMenu } from '../common/Icon'
 import CartCountBadge from '../common/CartCountBadge'
 import { CATEGORIES } from '../../constants'
 import { supabase } from '../../lib/supabase'
@@ -129,13 +129,9 @@ export default function DesktopHeader({ promoBarAbove = false }: Props) {
       <div className="border-t border-rule">
         <div className="max-w-[1280px] mx-auto px-6 h-11 flex items-center justify-between">
           <nav className="flex items-center gap-6" aria-label="카테고리">
-            <Link
-              to="/live"
-              className="flex items-center gap-1 text-[13px] font-bold text-brand-pink hover:opacity-80 transition-opacity"
-            >
-              <IconLive className="w-[15px] h-[15px]" />
-              라이브
-            </Link>
+            {/* 2026-09-17 대표님 지시: 라이브가 완전히 활성화되기 전까지 카테고리 노출 숨김
+                (BottomNav.tsx의 라이브 탭과 동일 조치) — 라우트·화면은 그대로 두고 진입 링크만 뺌.
+                재노출 시 이 Link를 되살리면 됨. */}
             <Link to="/app/category/all" className="text-[13px] font-bold text-ink-soft hover:text-ink transition-colors">
               전체
             </Link>

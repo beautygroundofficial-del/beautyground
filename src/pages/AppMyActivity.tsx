@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import BackHeader from '../components/layout/BackHeader'
 import AppFrame from '../components/layout/AppFrame'
-import BottomNav from '../components/layout/BottomNav'
 import { supabase } from '../lib/supabase'
 import { getMyPointsBalance } from '../lib/rewards'
 import { getMyActivityByDate, getPointsRecommendedProducts, type ActivityDayItem, type PointsProduct } from '../lib/myActivity'
@@ -186,8 +185,6 @@ export default function AppMyActivity() {
           </ul>
         </section>
       )}
-
-      <BottomNav />
     </AppFrame>
   )
 }
