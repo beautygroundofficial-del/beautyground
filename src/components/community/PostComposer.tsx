@@ -11,6 +11,10 @@ import { probeVideo, shouldCompress, compressVideo, canCompressVideo } from '../
 //   · 쓰다 만 글은 임시저장된다(loadDraft/saveDraft) — 화면을 나갔다 와도 남아 있게
 // 이 컴포넌트는 입력만 맡는다. 올리기 버튼·검증·업로드는 부르는 화면이 한다.
 
+// 이모지 — 캡처 리서치에서 40~60대가 하트·꽃·해 계열을 실제로 자주 씀(♡♡♡, 🧡, 💕 등).
+// 폰 키보드로도 되지만 찾기 번거로워하는 분들이 있어 자주 쓰는 것만 눌러 넣게.
+const EMOJIS = ['❤️', '🧡', '💕', '😊', '🥰', '😢', '😭', '🙏', '👏', '💪', '🌸', '☀️', '🍀', '✨', '😅', '🤗', '😔', '👍', '🎉', '🫶']
+
 export const MAX_IMAGES = 4
 export const MAX_VIDEO_MB = 50          // 줄인 뒤 최종 크기 상한
 export const MAX_VIDEO_SOURCE_MB = 100  // 고르는 원본 상한(줄이기 전)
@@ -47,6 +51,20 @@ export default function PostComposer({
   const textRef = useRef<HTMLTextAreaElement>(null)
   const [checkingVideo, setCheckingVideo] = useState(false)
   const [compressPct, setCompressPct] = useState<number | null>(null)
+  const [showEmoji, setShowEmoji] = useState(false)
+
+  const insertEmoji = (emoji: string) => {
+    const el = textRef.current
+    const start = el?.selectionStart ?? content.length
+    const end = el?.selectionEnd ?? content.length
+    const next = (content.slice(0, start) + emoji + content.slice(end)).slice(0, maxLen)
+    onContentChange(next)
+    requestAnimationFrame(() => {
+      el?.focus()
+      const pos = start + emoji.length
+      el?.setSelectionRange(pos, pos)
+    })
+  }
 
   // 미리보기 URL — files 가 바뀔 때만 다시 만들고, 이전 것은 반드시 지운다(메모리)
   const previews = useMemo(() => files.map((f) => URL.createObjectURL(f)), [files])
@@ -166,10 +184,28 @@ export default function PostComposer({
             <span aria-hidden="true">🎬</span>
             {compressPct !== null ? `가볍게 줄이는 중 ${compressPct}%` : checkingVideo ? '확인 중…' : '영상'}
           </button>
+          <button type="button" onClick={() => setShowEmoji((v) => !v)} aria-pressed={showEmoji} className={btn}>
+            <span aria-hidden="true">😊</span> 이모지
+          </button>
           <span className="text-[11.5px] text-ink-faint tabular-nums">사진 {totalImages}/{maxImages}{hasVideo ? ' · 영상 1' : ''}</span>
         </div>
         <span className="text-[11.5px] text-ink-faint tabular-nums">{content.length}/{maxLen}</span>
       </div>
+      {showEmoji && (
+        <div className="flex flex-wrap gap-1.5 mt-2.5 pt-2.5 border-t border-rule">
+          {EMOJIS.map((e) => (
+            <button
+              key={e}
+              type="button"
+              onClick={() => insertEmoji(e)}
+              aria-label={`이모지 ${e} 넣기`}
+              className="w-9 h-9 rounded-control text-[18px] leading-none hover:bg-quiet focus:outline-none focus-visible:shadow-ring"
+            >
+              {e}
+            </button>
+          ))}
+        </div>
+      )}
       <p className="text-[11px] text-ink-faint mt-2">영상은 1개, {MAX_VIDEO_SEC}초 안으로 짧게 — 큰 영상은 올리기 전에 자동으로 가볍게 줄여요</p>
 
       <input ref={albumRef} type="file" accept="image/*" multiple hidden onChange={pick} />
