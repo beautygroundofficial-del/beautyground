@@ -109,16 +109,6 @@ export default function AppBoardWrite() {
       <BackHeader
         title={editId ? '고쳐 쓰기' : '털어놓기'}
         onBack={() => navigate(editId ? `/app/board/${editId}` : '/app/board')}
-        rightElement={
-          <button
-            type="button"
-            onClick={() => void submit()}
-            disabled={!canSubmit}
-            className="px-3.5 py-1.5 rounded-control bg-ink text-paper text-[13px] font-semibold disabled:opacity-40"
-          >
-            {saving ? '올리는 중…' : editId ? '고치기' : '올리기'}
-          </button>
-        }
       />
 
       <section className="px-5 pt-5">
@@ -150,8 +140,21 @@ export default function AppBoardWrite() {
       </section>
 
       <section className="px-5 pt-7 pb-28">
-        <p className="text-[11.5px] text-ink-faint leading-none mb-1.5">천천히, 하고 싶은 만큼만</p>
-        <h2 className="text-[15px] font-bold text-ink leading-tight mb-3">무슨 일이 있었나요</h2>
+        {/* 올리기 버튼을 본문 제목 옆에 — 키보드가 올라와도 쓰던 자리 바로 위에서 올릴 수 있게 (2026-09-21 대표님 지시) */}
+        <div className="flex items-end justify-between gap-3 mb-3">
+          <div>
+            <p className="text-[11.5px] text-ink-faint leading-none mb-1.5">천천히, 하고 싶은 만큼만</p>
+            <h2 className="text-[15px] font-bold text-ink leading-tight">무슨 일이 있었나요</h2>
+          </div>
+          <button
+            type="button"
+            onClick={() => void submit()}
+            disabled={!canSubmit}
+            className="shrink-0 px-3.5 py-1.5 rounded-control bg-ink text-paper text-[13px] font-semibold disabled:opacity-40"
+          >
+            {saving ? '올리는 중…' : editId ? '고치기' : '올리기'}
+          </button>
+        </div>
         <PostComposer
           content={content}
           onContentChange={setContent}
