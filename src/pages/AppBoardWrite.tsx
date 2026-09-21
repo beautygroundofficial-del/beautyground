@@ -98,11 +98,16 @@ export default function AppBoardWrite() {
 
   // 새 글 작성만 애칭이 필요하다 — 고쳐 쓰기는 닉네임을 새로 남기지 않으므로 그대로 진행
   const submit = () => {
+    // 버튼이 일찍 켜지므로 빠진 것(종류·글자 수) 안내를 애칭 창보다 먼저 보여준다
+    if (!category) { showToast('어떤 이야기인지 하나만 골라주세요'); return }
+    if (content.trim().length < MIN_LEN) { showToast(`${MIN_LEN}자 이상 적어주세요`); return }
     if (editId) { void doSubmit(null); return }
     ensureNickname((nickname) => void doSubmit(nickname))
   }
 
-  const canSubmit = ready && !!category && content.trim().length >= MIN_LEN && !saving
+  // 입력칸에 커서만 올려도 버튼을 켠다 — 흐린 버튼은 "왜 안 눌리지" 헷갈림. 종류·글자 수는 누를 때 안내 (2026-09-21 대표님 지시)
+  const [touched, setTouched] = useState(false)
+  const canSubmit = ready && !saving && (touched || content.trim().length > 0)
 
   return (
     <AppFrame>
@@ -139,7 +144,7 @@ export default function AppBoardWrite() {
         )}
       </section>
 
-      <section className="px-5 pt-7 pb-28">
+      <section className="px-5 pt-7 pb-28" onFocusCapture={() => setTouched(true)}>
         {/* 올리기 버튼을 본문 제목 옆에 — 키보드가 올라와도 쓰던 자리 바로 위에서 올릴 수 있게 (2026-09-21 대표님 지시) */}
         <div className="flex items-end justify-between gap-3 mb-3">
           <div>
