@@ -1,6 +1,6 @@
 import { supabase } from './supabase'
 
-// 링크 셀러(개인 제휴 판매자) — supabase/affiliates.sql 과 짝.
+// 파트너스(개인 제휴 판매자) — supabase/affiliates.sql 과 짝.
 // 진행자(host.ts)와 같은 결: 본인 레코드 조회는 getSession()(로컬)으로, 쓰기는 RLS/함수에 맡긴다.
 
 export interface Affiliate {

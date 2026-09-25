@@ -130,7 +130,7 @@ declare
   v_try int := 0;
 begin
   select * into v_aff from public.affiliates where user_id = auth.uid();
-  if v_aff.id is null then raise exception '링크 셀러 가입이 먼저 필요합니다.'; end if;
+  if v_aff.id is null then raise exception '파트너스 정보 등록이 먼저 필요합니다.'; end if;
   if v_aff.status <> 'active' then raise exception '정지된 계정입니다.'; end if;
   if not exists (select 1 from public.products where id = p_product_id and status = 'on_sale') then
     raise exception '판매 중인 상품이 아닙니다.';

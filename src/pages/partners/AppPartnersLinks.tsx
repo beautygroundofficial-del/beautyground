@@ -2,13 +2,13 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import AppFrame from '../../components/layout/AppFrame'
 import BackHeader from '../../components/layout/BackHeader'
-import SellerGate from '../../components/seller/SellerGate'
+import PartnersGate from '../../components/partners/PartnersGate'
 import { won } from '../../lib/format'
 import { affiliateLinkUrl, listMyLinks, type AffiliateLink } from '../../lib/affiliate'
-import { copyText } from './AppSeller'
+import { copyText } from './AppPartnersHome'
 
 // 내 링크 전체 — 클릭 수와 함께. 복사/공유만(삭제는 두지 않는다 — 이미 퍼진 링크가 죽으면 손님이 당황).
-export default function AppSellerLinks() {
+export default function AppPartnersLinks() {
   const navigate = useNavigate()
   const [links, setLinks] = useState<AffiliateLink[]>([])
   const [toast, setToast] = useState('')
@@ -16,10 +16,10 @@ export default function AppSellerLinks() {
   useEffect(() => { void listMyLinks().then(setLinks) }, [])
 
   return (
-    <SellerGate title="내 링크">
+    <PartnersGate title="내 링크">
       {() => (
         <AppFrame>
-          <BackHeader title="내 링크" onBack={() => navigate('/app/seller')} />
+          <BackHeader title="내 링크" onBack={() => navigate('/app/partners/home')} />
           <section className="px-5 pt-4 pb-10">
             {links.length === 0 ? (
               <p className="text-[13px] text-ink-faint py-6 text-center">아직 만든 링크가 없어요.</p>
@@ -51,6 +51,6 @@ export default function AppSellerLinks() {
           {toast && <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 rounded-full bg-ink text-paper text-[13px] shadow-lg">{toast}</div>}
         </AppFrame>
       )}
-    </SellerGate>
+    </PartnersGate>
   )
 }
