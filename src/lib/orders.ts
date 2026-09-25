@@ -29,6 +29,7 @@ export interface OrderRow {
   recipient_phone: string
   ship_address: string
   option_label: string | null
+  affiliate_code: string | null   // 링크 셀러 추적 코드(/go/{code}로 들어온 손님, supabase/affiliates.sql)
 }
 
 // 주문 상품 서버 재검증 — 장바구니에 담아둔 사이 가격·재고·판매상태가 바뀔 수 있으므로
@@ -97,11 +98,12 @@ export function buildOrderRows(params: {
   signupCouponPreview: number
   selectedCouponLabel: string | null
   userId: string | null
+  affiliateCode?: string | null
 }): OrderRow[] {
   const {
     items, paymentId, orderName, partnerOf, liveId, buyerName, buyerPhone, buyerEmail,
     memo, fullAddress, deliveryFee, couponDiscount, redeemedPoints, redeemedCouponId,
-    signupCouponPreview, selectedCouponLabel, userId,
+    signupCouponPreview, selectedCouponLabel, userId, affiliateCode = null,
   } = params
 
   const base = {
@@ -116,6 +118,7 @@ export function buildOrderRows(params: {
     recipient_name: buyerName,
     recipient_phone: buyerPhone,
     ship_address: fullAddress,
+    affiliate_code: affiliateCode,
   }
 
   const rows: OrderRow[] = items.map((i) => ({

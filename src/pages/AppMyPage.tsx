@@ -39,6 +39,8 @@ function buildShoppingItems(user: RealUser): MenuItem[] {
     { label: '리뷰 관리', path: '/app/my-reviews' },
     { label: '내 문의·리뷰 답변', path: '/app/my-inquiries' },
     { label: '혜택', value: `쿠폰 ${user.coupons}장 · ${user.points.toLocaleString()}P`, path: '/app/benefits' },
+    // 링크 셀러 — 내 링크로 소개하고 판매수수료 받기(2026-09-26 대표님 지시)
+    { label: '링크 셀러', value: '내 링크로 소개하고 5%', path: '/app/seller' },
   ]
 }
 

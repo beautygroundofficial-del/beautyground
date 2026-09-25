@@ -18,6 +18,7 @@ import {
   redeemSignupCoupon, releaseSignupCoupon, type ValidCoupon,
 } from '../lib/rewards'
 import { revalidateOrderItems, buildOrderRows, type OrderItem } from '../lib/orders'
+import { getAffiliateCode } from '../lib/affiliate'
 
 type Status = 'idle' | 'paying' | 'verifying' | 'done' | 'error'
 
@@ -442,9 +443,15 @@ export default function AppOrder() {
       deliveryFee, couponDiscount, redeemedPoints, redeemedCouponId,
       signupCouponPreview, selectedCouponLabel: selectedCoupon?.label ?? null,
       userId: user?.id ?? null,
+      affiliateCode: getAffiliateCode(),
     })
 
     let { error: insErr } = await supabase.from('orders').insert(rows)
+    if (insErr && /affiliate_code/i.test(insErr.message)) {
+      // affiliates.sql 미실행 환경 폴백 — 링크 셀러 귀속 없이라도 주문은 진행
+      const fallbackRows = rows.map(({ affiliate_code: _a, ...rest }) => rest)
+      ;({ error: insErr } = await supabase.from('orders').insert(fallbackRows))
+    }
     if (insErr && /delivery_memo/i.test(insErr.message)) {
       // orders_customer_flow.sql 미실행 환경 폴백 — 요청사항 없이라도 주문은 진행
       const fallbackRows = rows.map(({ delivery_memo: _m, ...rest }) => rest)
