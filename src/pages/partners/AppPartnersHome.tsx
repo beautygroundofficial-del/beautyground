@@ -119,8 +119,8 @@ function Home({ affiliate }: { affiliate: Affiliate }) {
             <thead>
               <tr className="text-[11.5px] text-ink-faint border-b border-rule">
                 <th className="text-left font-normal py-2">제품</th>
-                <th className="text-right font-normal py-2 w-14">클릭</th>
-                <th className="text-right font-normal py-2 w-16"></th>
+                <th className="text-right font-normal py-2 w-12 whitespace-nowrap">클릭</th>
+                <th className="text-right font-normal py-2 w-14"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-rule">
@@ -135,9 +135,9 @@ function Home({ affiliate }: { affiliate: Affiliate }) {
                       </div>
                     </div>
                   </td>
-                  <td className="py-2.5 text-right tabular-nums text-ink-soft">{l.clicks}</td>
+                  <td className="py-2.5 text-right tabular-nums text-ink-soft whitespace-nowrap">{l.clicks}</td>
                   <td className="py-2.5 text-right">
-                    <button type="button" onClick={async () => { if (await copyText(affiliateLinkUrl(l.code))) showToast('링크를 복사했어요') }} className="text-[12px] font-semibold text-ink border border-rule rounded-control px-2.5 py-1">복사</button>
+                    <button type="button" onClick={async () => { if (await copyText(affiliateLinkUrl(l.code))) showToast('링크를 복사했어요') }} className="text-[12px] font-semibold text-ink border border-rule rounded-control px-2.5 py-1 whitespace-nowrap">복사</button>
                   </td>
                 </tr>
               ))}
