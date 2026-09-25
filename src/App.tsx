@@ -32,13 +32,14 @@ const AppOrders = lazy(() => import('./pages/AppOrders'))
 const StaffPurchase = lazy(() => import('./pages/StaffPurchase'))
 const AppGuestOrder = lazy(() => import('./pages/AppGuestOrder'))
 const AppLogin = lazy(() => import('./pages/AppLogin'))
-// 링크 셀러(개인 제휴 판매자) — 2026-09-26
+// 파트너스(개인 제휴 판매자, 쿠팡파트너스식) — 2026-09-26. 입구→파트너스 회원가입→개인정보·계좌→개인 파트너스 페이지
 const AppGo = lazy(() => import('./pages/AppGo'))
-const AppSeller = lazy(() => import('./pages/seller/AppSeller'))
-const AppSellerJoin = lazy(() => import('./pages/seller/AppSellerJoin'))
-const AppSellerLinks = lazy(() => import('./pages/seller/AppSellerLinks'))
-const AppSellerSettlement = lazy(() => import('./pages/seller/AppSellerSettlement'))
-const AppSellerProfile = lazy(() => import('./pages/seller/AppSellerProfile'))
+const AppPartners = lazy(() => import('./pages/partners/AppPartners'))
+const AppPartnersSignup = lazy(() => import('./pages/partners/AppPartnersSignup'))
+const AppPartnersInfo = lazy(() => import('./pages/partners/AppPartnersInfo'))
+const AppPartnersHome = lazy(() => import('./pages/partners/AppPartnersHome'))
+const AppPartnersLinks = lazy(() => import('./pages/partners/AppPartnersLinks'))
+const AppPartnersSettlement = lazy(() => import('./pages/partners/AppPartnersSettlement'))
 const AppSignup = lazy(() => import('./pages/AppSignup'))
 const AppNaverCallback = lazy(() => import('./pages/AppNaverCallback'))
 const AppKakaoGate = lazy(() => import('./pages/AppKakaoGate'))
@@ -347,13 +348,15 @@ export default function App() {
         <Route path="/app/product/:id" element={<AppProductDetail />} />
         <Route path="/app/product/:id/reviews" element={<AppProductReviews />} />
         <Route path="/app/mypage" element={<AppMyPage />} />
-        {/* 링크 셀러 — 쇼핑앱 계정으로 로그인해 상품 링크를 내 링크로 만들고 5% 수수료를 정산받는 개인 판매자(2026-09-26) */}
+        {/* 파트너스 — 쇼핑앱 계정으로 파트너스 회원가입 → 개인정보·계좌 등록 → 개인 파트너스 페이지에서 제품 링크를 개인 링크로(2026-09-26) */}
         <Route path="/go/:code" element={<AppGo />} />
-        <Route path="/app/seller" element={<AppSeller />} />
-        <Route path="/app/seller/join" element={<AppSellerJoin />} />
-        <Route path="/app/seller/links" element={<AppSellerLinks />} />
-        <Route path="/app/seller/settlement" element={<AppSellerSettlement />} />
-        <Route path="/app/seller/profile" element={<AppSellerProfile />} />
+        <Route path="/app/partners" element={<AppPartners />} />
+        <Route path="/app/partners/signup" element={<AppPartnersSignup />} />
+        <Route path="/app/partners/info" element={<AppPartnersInfo />} />
+        <Route path="/app/partners/home" element={<AppPartnersHome />} />
+        <Route path="/app/partners/links" element={<AppPartnersLinks />} />
+        <Route path="/app/partners/settlement" element={<AppPartnersSettlement />} />
+        <Route path="/app/seller/*" element={<Navigate to="/app/partners" replace />} />
         <Route path="/app/cart" element={<AppCart />} />
         <Route path="/app/order" element={<AppOrder />} />
         <Route path="/app/orders" element={<AppOrders />} />

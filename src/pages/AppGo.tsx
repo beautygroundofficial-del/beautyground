@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { storeAffiliateCode, trackAffiliateClick } from '../lib/affiliate'
 
-// 링크 셀러 추적 링크 — /go/{code}
+// 파트너스 개인 링크 — /go/{code}
 // 클릭을 기록하고 브라우저에 코드를 7일간 기억시킨 뒤 해당 상품 페이지로 보낸다.
 // 코드가 없거나 정지된 셀러면 홈으로. (로그인 불필요)
 export default function AppGo() {
