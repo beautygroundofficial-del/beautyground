@@ -141,7 +141,8 @@ begin
 
   loop
     -- 셀러코드 + 랜덤 4자 → 사람이 읽기 쉬운 짧은 코드(예: k3m9-a7x2)
-    v_code := v_aff.code || '-' || lower(substr(encode(gen_random_bytes(3), 'hex'), 1, 4));
+    -- ⚠️ Supabase는 pgcrypto가 extensions 스키마에 있어 search_path=public 에서 gen_random_bytes 를 못 찾는다(2026-09-26 운영 테스트에서 42883) → md5(random()) 사용
+    v_code := v_aff.code || '-' || substr(md5(random()::text || clock_timestamp()::text), 1, 4);
     exit when not exists (select 1 from public.affiliate_links where code = v_code);
     v_try := v_try + 1;
     if v_try > 10 then raise exception '코드 생성 실패, 다시 시도해 주세요.'; end if;
@@ -299,6 +300,8 @@ grant execute on function public.admin_mark_affiliate_settlement_paid(uuid) to a
 create or replace function public.my_affiliate_summary(p_period text default to_char(now(), 'YYYY-MM'))
 returns table (period text, total_sales bigint, order_count bigint, tier_name text, commission_rate numeric, estimated_commission bigint, next_tier_name text, next_tier_min_sales bigint, link_count bigint, click_count bigint)
 language plpgsql security definer set search_path = public as $$
+#variable_conflict use_column
+-- ↑ returns table 의 열 이름(commission_rate 등)이 affiliate_tiers 열과 겹쳐 "ambiguous" 오류(2026-09-26 운영 테스트) — 본문에서는 항상 테이블 열로 해석
 declare
   v_aff_id uuid; v_start timestamptz := to_date(p_period || '-01', 'YYYY-MM-DD'); v_end timestamptz;
 begin
