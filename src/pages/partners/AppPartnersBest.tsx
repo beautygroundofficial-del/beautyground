@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import AppFrame from '../../components/layout/AppFrame'
 import BackHeader from '../../components/layout/BackHeader'
@@ -14,16 +14,22 @@ export default function AppPartnersBest() {
   const [items, setItems] = useState<BestProduct[]>([])
   const [done, setDone] = useState(false)
   const [loading, setLoading] = useState(false)
+  const busy = useRef(false) // 개발모드 이중 실행·연타로 같은 페이지가 두 번 붙는 것 방지
   const [toast, setToast] = useState('')
   const showToast = (m: string) => { setToast(m); setTimeout(() => setToast(''), 2200) }
 
   const loadMore = async () => {
-    if (loading || done) return
+    if (busy.current || done) return
+    busy.current = true
     setLoading(true)
     const next = await listBestProducts(PAGE, items.length)
-    setItems((prev) => [...prev, ...next])
+    setItems((prev) => {
+      const seen = new Set(prev.map((x) => x.id))
+      return [...prev, ...next.filter((x) => !seen.has(x.id))]
+    })
     if (next.length < PAGE) setDone(true)
     setLoading(false)
+    busy.current = false
   }
   useEffect(() => { void loadMore() }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
