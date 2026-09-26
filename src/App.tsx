@@ -40,6 +40,7 @@ const AppPartnersInfo = lazy(() => import('./pages/partners/AppPartnersInfo'))
 const AppPartnersHome = lazy(() => import('./pages/partners/AppPartnersHome'))
 const AppPartnersLinks = lazy(() => import('./pages/partners/AppPartnersLinks'))
 const AppPartnersSettlement = lazy(() => import('./pages/partners/AppPartnersSettlement'))
+const AppPartnersBest = lazy(() => import('./pages/partners/AppPartnersBest'))
 const AppSignup = lazy(() => import('./pages/AppSignup'))
 const AppNaverCallback = lazy(() => import('./pages/AppNaverCallback'))
 const AppKakaoGate = lazy(() => import('./pages/AppKakaoGate'))
@@ -356,6 +357,7 @@ export default function App() {
         <Route path="/app/partners/home" element={<AppPartnersHome />} />
         <Route path="/app/partners/links" element={<AppPartnersLinks />} />
         <Route path="/app/partners/settlement" element={<AppPartnersSettlement />} />
+        <Route path="/app/partners/best" element={<AppPartnersBest />} />
         <Route path="/app/seller/*" element={<Navigate to="/app/partners" replace />} />
         <Route path="/app/cart" element={<AppCart />} />
         <Route path="/app/order" element={<AppOrder />} />

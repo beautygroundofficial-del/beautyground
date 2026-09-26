@@ -3,10 +3,11 @@ import { Link, useNavigate } from 'react-router-dom'
 import AppFrame from '../../components/layout/AppFrame'
 import BackHeader from '../../components/layout/BackHeader'
 import PartnersGate from '../../components/partners/PartnersGate'
+import BestProductRow from '../../components/partners/BestProductRow'
 import { won } from '../../lib/format'
 import {
-  affiliateLinkUrl, createAffiliateLink, getMySummary, listMyLinks, parseProductIdFromUrl,
-  type Affiliate, type AffiliateLink, type AffiliateSummary,
+  affiliateLinkUrl, createAffiliateLink, getMySummary, listBestProducts, listMyLinks, parseProductIdFromUrl,
+  type Affiliate, type AffiliateLink, type AffiliateSummary, type BestProduct,
 } from '../../lib/affiliate'
 
 // 개인 파트너스 페이지 — 정보 등록이 끝난 파트너의 내 페이지.
@@ -32,6 +33,8 @@ function Home({ affiliate }: { affiliate: Affiliate }) {
   const navigate = useNavigate()
   const [summary, setSummary] = useState<AffiliateSummary | null>(null)
   const [links, setLinks] = useState<AffiliateLink[]>([])
+  const [best, setBest] = useState<BestProduct[]>([])
+  const [aboutOpen, setAboutOpen] = useState(false)
   const [input, setInput] = useState('')
   const [making, setMaking] = useState(false)
   const [made, setMade] = useState<AffiliateLink | null>(null)
@@ -40,8 +43,8 @@ function Home({ affiliate }: { affiliate: Affiliate }) {
   const showToast = (m: string) => { setToast(m); setTimeout(() => setToast(''), 2200) }
 
   const load = async () => {
-    const [s, l] = await Promise.all([getMySummary(), listMyLinks()])
-    setSummary(s); setLinks(l)
+    const [s, l, b] = await Promise.all([getMySummary(), listMyLinks(), listBestProducts(10)])
+    setSummary(s); setLinks(l); setBest(b)
   }
   useEffect(() => { void load() }, [])
 
@@ -71,6 +74,27 @@ function Home({ affiliate }: { affiliate: Affiliate }) {
 
       <section className="px-5 pt-5">
         <p className="text-[12.5px] text-ink-soft">{affiliate.name} 파트너 · 코드 <b className="text-ink">{affiliate.code}</b></p>
+      </section>
+
+      {/* 파트너스란? — 상단 간단 설명(2026-09-26 대표님). 기본은 한 줄, 누르면 펼침 */}
+      <section className="px-5 pt-4">
+        <div className="rounded-control bg-quiet px-4 py-3.5">
+          <button type="button" onClick={() => setAboutOpen((v) => !v)} aria-expanded={aboutOpen} className="w-full flex items-center justify-between text-left focus:outline-none focus-visible:shadow-ring">
+            <span className="text-[14px] font-bold text-ink">파트너스란?</span>
+            <span className={`text-ink-faint text-[12px] transition-transform ${aboutOpen ? 'rotate-180' : ''}`} aria-hidden="true">⌄</span>
+          </button>
+          <p className="text-[13px] text-ink-soft mt-1.5 leading-relaxed">
+            앱 제품을 <b className="text-ink">내 링크</b>로 소개하고, 그 링크로 구매가 생기면 판매금액의 <b className="text-ink">{rate}%</b>를 받는 제도예요.
+          </p>
+          {aboutOpen && (
+            <ul className="mt-2 space-y-1 text-[12.5px] text-ink-soft leading-relaxed list-disc pl-4">
+              <li>제품 링크를 붙여넣거나 아래 잘 팔리는 제품에서 [내 링크]를 누르면 바로 만들어져요.</li>
+              <li>내 링크로 들어온 손님이 7일 안에 구매하면 내 판매로 잡혀요. 취소·환불은 제외.</li>
+              <li>매월 정산해 등록한 계좌로 보내드려요. 재고·배송·비용 부담이 없어요.</li>
+              <li>다른 파트너를 모집하거나 하위 판매 수당을 받는 방식은 아니에요.</li>
+            </ul>
+          )}
+        </div>
       </section>
 
       {/* 개인 링크 만들기 — 이 페이지의 핵심 */}
@@ -105,6 +129,20 @@ function Home({ affiliate }: { affiliate: Affiliate }) {
           </div>
         )}
       </section>
+
+      {/* 잘 팔리는 제품 TOP 10 — 링크 붙이는 곳 바로 아래(2026-09-26 대표님). [내 링크]로 한 번에 생성·복사 */}
+      {best.length > 0 && (
+        <section className="px-5 pt-7">
+          <div className="flex items-center justify-between mb-1">
+            <h2 className="text-[15px] font-bold text-ink">잘 팔리는 제품 TOP 10</h2>
+            <Link to="/app/partners/best" className="text-[12.5px] text-ink-soft underline underline-offset-2">더보기</Link>
+          </div>
+          <p className="text-[12px] text-ink-faint mb-1">앱에서 잘 팔리는 순 · 추천 제품으로 내 링크를 만들어 보세요</p>
+          <ul className="divide-y divide-rule">
+            {best.map((p) => <BestProductRow key={p.id} p={p} onToast={showToast} onMade={() => void load()} />)}
+          </ul>
+        </section>
+      )}
 
       {/* 내 링크 표 */}
       <section className="px-5 pt-7">

@@ -190,3 +190,20 @@ export async function getTiers(): Promise<AffiliateTier[]> {
 export const ORDER_STATUS_LABEL: Record<string, string> = {
   pending: '결제 대기', paid: '결제 완료', shipped: '배송 중', done: '구매 확정', cancelled: '취소', refunded: '환불',
 }
+
+// 잘 팔리는 제품(파트너스 추천) — supabase partner_best_products(): 최근 90일 결제완료 이상 판매 수량 순
+export interface BestProduct {
+  id: string
+  name: string
+  thumbnail_url: string | null
+  price: number
+  sale_price: number | null
+  sold_qty: number
+  rank: number
+}
+
+export async function listBestProducts(limit = 10, offset = 0): Promise<BestProduct[]> {
+  const { data, error } = await supabase.rpc('partner_best_products', { p_limit: limit, p_offset: offset })
+  if (error) return []
+  return (data as BestProduct[] | null) ?? []
+}
