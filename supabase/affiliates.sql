@@ -327,3 +327,43 @@ revoke all on function public.my_affiliate_summary(text) from public;
 grant execute on function public.my_affiliate_summary(text) to authenticated;
 
 notify pgrst, 'reload schema';
+
+-- 11) 파트너스 추천 — 앱에서 잘 팔리는 제품 순(2026-09-26 대표님: "탑10 추천, 더보기는 판매 순 전체").
+--     기준: 결제완료 이상(paid/shipped/done) 주문의 판매 수량 합, 최근 90일. 판매 0인 제품은 리뷰 수 → 최신 등록 순으로 뒤에 붙여
+--     초기(주문이 적을 때)에도 목록이 비지 않게 한다. 판매중(on_sale) 제품만.
+create or replace function public.partner_best_products(p_limit integer default 10, p_offset integer default 0)
+returns table (id uuid, name text, thumbnail_url text, price integer, sale_price integer, sold_qty bigint, rank bigint)
+language sql
+security definer
+set search_path = public
+stable
+as $$
+  with sold as (
+    select o.product_id, sum(o.quantity)::bigint as qty
+    from public.orders o
+    where o.product_id is not null
+      and o.status in ('paid', 'shipped', 'done')
+      and o.created_at >= now() - interval '90 days'
+    group by o.product_id
+  ),
+  ranked as (
+    select p.id, p.name, p.thumbnail_url, p.price, p.sale_price,
+           coalesce(s.qty, 0)::bigint as sold_qty,
+           row_number() over (
+             order by coalesce(s.qty, 0) desc,
+                      coalesce((p.review_summary->>'count')::int, 0) desc,
+                      p.created_at desc
+           ) as rank
+    from public.products p
+    left join sold s on s.product_id = p.id
+    where p.status = 'on_sale'
+  )
+  select id, name, thumbnail_url, price, sale_price, sold_qty, rank
+  from ranked
+  order by rank
+  limit greatest(p_limit, 1) offset greatest(p_offset, 0);
+$$;
+revoke all on function public.partner_best_products(integer, integer) from public;
+grant execute on function public.partner_best_products(integer, integer) to authenticated;
+
+notify pgrst, 'reload schema';
