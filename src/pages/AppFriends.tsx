@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { IconRefresh, IconUser, IconUsers } from '@tabler/icons-react'
 import BackHeader from '../components/layout/BackHeader'
 import AppFrame from '../components/layout/AppFrame'
 import { supabase } from '../lib/supabase'
@@ -26,13 +27,19 @@ function timeAgo(iso: string) {
 
 function Section({ title, count, children }: { title: string; count?: number; children: React.ReactNode }) {
   return (
-    <section className="mb-6">
-      <h2 className="text-[18px] font-bold leading-snug text-ink mb-3">
-        {title}{count !== undefined && count > 0 && <span className="ml-2 text-[13px] text-ink-soft tabular-nums font-normal">{count}</span>}
+    <section className="mb-8">
+      <h2 className="mb-3 flex items-center gap-2 text-[18px] font-bold leading-snug text-ink">
+        {title}{count !== undefined && count > 0 && <span className="inline-flex min-h-6 min-w-6 items-center justify-center rounded-full bg-quiet px-1.5 text-[12px] text-ink tabular-nums">{count}</span>}
       </h2>
       {children}
     </section>
   )
+}
+
+function FriendMark({ name, pending = false }: { name: string | null; pending?: boolean }) {
+  return <span aria-hidden="true" className={`mt-1 flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-[17px] font-bold ${pending ? 'bg-ink text-paper' : 'bg-quiet text-ink'}`}>
+    {name?.trim().slice(0, 1) || <IconUser size={21} stroke={1.5} />}
+  </span>
 }
 
 export default function AppFriends() {
@@ -137,7 +144,7 @@ export default function AppFriends() {
     return act(f.user_id, () => removeFriend(f.user_id), '친구를 끊었어요')
   }
 
-  const row = 'flex items-center justify-between gap-3 rounded-card border border-rule bg-paper p-4'
+  const row = 'flex items-start gap-3 border-b border-solid border-rule py-4'
   const nameCls = 'text-[15px] font-bold leading-[1.7] text-ink break-words'
   const subCls = 'text-[12px] leading-[1.7] text-ink-soft mt-1 break-keep'
   const ghost = 'min-h-11 min-w-12 shrink-0 rounded-control text-[13px] text-ink-soft px-3 py-2 focus:outline-none focus-visible:shadow-ring'
@@ -151,7 +158,8 @@ export default function AppFriends() {
         {loggedIn && (
           <div className="flex justify-end mb-4">
             <button type="button" onClick={() => void load()} disabled={loading || busyUserId !== null}
-              className="min-h-11 text-[13px] text-ink-soft px-2 py-2 underline underline-offset-4 disabled:opacity-50">
+              className="inline-flex min-h-11 items-center gap-2 text-[13px] text-ink-soft px-2 py-2 disabled:opacity-50">
+              <IconRefresh size={16} stroke={1.6} aria-hidden="true" />
               {loading ? '새로 불러오는 중…' : '새로고침'}
             </button>
           </div>
@@ -173,16 +181,17 @@ export default function AppFriends() {
           <>
             {received.length > 0 && (
               <Section title="받은 신청" count={received.length}>
-                <ul className="space-y-3">
+                <ul className="-mx-5 border-t border-solid border-rule bg-quiet px-5">
                   {received.map((r) => (
                     <li key={`r-${r.user_id}`} className={row}>
+                      <FriendMark name={r.nickname} pending />
                       <div className="min-w-0 flex-1">
-                        <Link to={`/app/people/${r.user_id}`} className={nameCls + ' flex min-h-11 items-center hover:underline focus:outline-none focus-visible:shadow-ring'}>{r.nickname ?? '익명'}</Link>
+                        <Link to={`/app/people/${r.user_id}`} className={nameCls + ' block min-h-11 py-2 hover:underline focus:outline-none focus-visible:shadow-ring'}>{r.nickname ?? '익명'}</Link>
                         <p className={subCls}>{timeAgo(r.created_at)}에 친구 신청</p>
-                      </div>
-                      <div className="flex items-center gap-1 shrink-0">
-                        <button type="button" disabled={busyUserId !== null} onClick={() => void decline(r)} className={ghost + ' disabled:opacity-50'}>거절</button>
-                        <button type="button" disabled={busyUserId !== null} onClick={() => void accept(r)} className={solid + ' disabled:opacity-50'}>수락</button>
+                        <div className="mt-4 grid grid-cols-2 gap-2">
+                          <button type="button" disabled={busyUserId !== null} onClick={() => void decline(r)} className={ghost + ' border border-solid border-rule bg-paper disabled:opacity-50'}>거절</button>
+                          <button type="button" disabled={busyUserId !== null} onClick={() => void accept(r)} className={solid + ' disabled:opacity-50'}>수락</button>
+                        </div>
                       </div>
                     </li>
                   ))}
@@ -194,20 +203,22 @@ export default function AppFriends() {
               {friends.length === 0 ? (
                 <button
                   onClick={() => navigate('/app/diary')}
-                  className="w-full rounded-card bg-quiet px-5 py-10 text-center focus:outline-none focus-visible:shadow-ring"
+                  className="w-full border-y border-solid border-rule px-5 py-10 text-center focus:outline-none focus-visible:shadow-ring"
                 >
+                  <span className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-quiet text-ink"><IconUsers size={26} stroke={1.5} aria-hidden="true" /></span>
                   <p className="text-[16px] font-bold leading-[1.7] text-ink">아직 친구가 없어요</p>
                   <p className="text-[14px] leading-[1.7] text-ink-soft mt-2 break-keep">사람들의 이야기에서 이름 옆 '친구 신청'을 눌러보세요</p>
                 </button>
               ) : (
-                <ul className="space-y-3">
+                <ul className="border-t border-solid border-rule">
                   {friends.map((f) => (
                     <li key={f.user_id} className={row}>
+                      <FriendMark name={f.nickname} />
                       <div className="min-w-0 flex-1">
-                        <Link to={`/app/people/${f.user_id}`} className={nameCls + ' flex min-h-11 items-center hover:underline focus:outline-none focus-visible:shadow-ring'}>{f.nickname ?? '익명'}</Link>
+                        <Link to={`/app/people/${f.user_id}`} className={nameCls + ' block min-h-11 py-2 hover:underline focus:outline-none focus-visible:shadow-ring'}>{f.nickname ?? '익명'}</Link>
                         <p className={subCls}>{timeAgo(f.since)}부터 친구</p>
                       </div>
-                      <button type="button" disabled={busyUserId !== null} onClick={() => void unfriend(f)} className={ghost + ' disabled:opacity-50'}>끊기</button>
+                      <button type="button" disabled={busyUserId !== null} onClick={() => void unfriend(f)} className={ghost + ' self-center disabled:opacity-50'}>끊기</button>
                     </li>
                   ))}
                 </ul>
@@ -216,14 +227,15 @@ export default function AppFriends() {
 
             {sent.length > 0 && (
               <Section title="보낸 신청" count={sent.length}>
-                <ul className="space-y-3">
+                <ul className="border-t border-solid border-rule">
                   {sent.map((r) => (
                     <li key={`s-${r.user_id}`} className={row}>
+                      <FriendMark name={r.nickname} />
                       <div className="min-w-0 flex-1">
                         <p className={nameCls}>{r.nickname ?? '익명'}</p>
                         <p className={subCls}>{timeAgo(r.created_at)} · 답을 기다리는 중</p>
                       </div>
-                      <button type="button" disabled={busyUserId !== null} onClick={() => void cancel(r)} className={ghost + ' disabled:opacity-50'}>취소</button>
+                      <button type="button" disabled={busyUserId !== null} onClick={() => void cancel(r)} className={ghost + ' self-center disabled:opacity-50'}>취소</button>
                     </li>
                   ))}
                 </ul>

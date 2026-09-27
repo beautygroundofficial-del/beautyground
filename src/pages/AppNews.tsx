@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { IconBell, IconHeart, IconMessageCircle, IconRefresh, IconUserCheck, IconUserPlus } from '@tabler/icons-react'
 import BackHeader from '../components/layout/BackHeader'
 import AppFrame from '../components/layout/AppFrame'
 import { supabase } from '../lib/supabase'
@@ -104,7 +105,7 @@ export default function AppNews() {
       <BackHeader title="새 소식" onBack={() => navigate('/app/home')} rightElement={<button type="button" onClick={() => navigate('/app/friends')} className="min-h-11 px-2 text-[13px] font-bold text-ink">친구 신청</button>} />
 
       <section className="px-5 pt-6 pb-28">
-        {loggedIn && <div className="mb-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-1"><button type="button" disabled={loading || marking} onClick={() => void load()} className="min-h-11 text-[13px] text-ink-soft underline underline-offset-4 disabled:opacity-50">{loading ? '확인 중…' : '새로 확인'}</button>{items?.some(item => item.is_new) && <button type="button" disabled={marking || loading} onClick={() => void markSeen()} className="min-h-11 text-[13px] text-ink-soft underline underline-offset-4 disabled:opacity-50">{marking ? '저장 중…' : '모두 확인했어요'}</button>}</div>}
+        {loggedIn && <div className="mb-2 flex flex-wrap items-center justify-between gap-x-4 gap-y-1"><button type="button" disabled={loading || marking} onClick={() => void load()} className="inline-flex min-h-11 items-center gap-2 text-[13px] text-ink-soft disabled:opacity-50"><IconRefresh size={16} stroke={1.6} aria-hidden="true" />{loading ? '확인 중…' : '새로 확인'}</button>{items?.some(item => item.is_new) && <button type="button" disabled={marking || loading} onClick={() => void markSeen()} className="min-h-11 text-[13px] font-bold text-ink disabled:opacity-50">{marking ? '저장 중…' : '모두 확인했어요'}</button>}</div>}
         {error && <div role="alert" className="mb-6 rounded-card bg-quiet p-4 text-[15px] leading-[1.7] text-ink-soft"><p>{error}</p><button type="button" onClick={() => void load()} className="mt-2 min-h-11 text-[13px] underline underline-offset-4">다시 불러오기</button></div>}
         {loggedIn === false ? (
           <div className="text-center py-16">
@@ -119,42 +120,49 @@ export default function AppNews() {
         ) : items === null && !error ? (
           <p className="py-16 text-center text-[15px] leading-[1.7] text-ink-soft">불러오는 중…</p>
         ) : items?.length === 0 && !error ? (
-          <div className="rounded-card bg-quiet px-5 py-10 text-center">
+          <div className="border-t border-solid border-rule px-5 py-12 text-center">
+            <span className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-quiet text-ink"><IconBell size={26} stroke={1.5} aria-hidden="true" /></span>
             <p className="text-[16px] font-bold leading-[1.7] text-ink mb-2">아직 온 소식이 없어요</p>
             <p className="text-[14px] leading-[1.7] text-ink-soft break-keep">이야기를 남기면 누군가의 마음이 여기로 와요</p>
           </div>
         ) : (
-          <ul className="space-y-3">
+          <ul className="-mx-5 border-t border-solid border-rule">
             {(items ?? []).map((n, i) => (
-              <li key={`${n.kind}-${n.target_id}-${n.created_at}-${i}`}>
+              <li key={`${n.kind}-${n.target_id}-${n.created_at}-${i}`} className="border-b border-solid border-rule">
                 <button
                   type="button"
                   onClick={() => open(n)}
-                  className={`w-full text-left rounded-card border border-solid border-rule p-4 focus:outline-none focus-visible:shadow-ring ${
+                  className={`flex w-full items-start gap-3 px-5 py-5 text-left focus:outline-none focus-visible:shadow-ring ${
                     n.is_new ? 'bg-quiet' : 'bg-paper'
                   }`}
                 >
-                  <div className="flex items-start gap-2">
-                    {n.is_new && <span className="mt-2.5 w-1.5 h-1.5 rounded-full bg-brand-pink shrink-0" aria-label="새 소식" />}
-                    <p className="min-w-0 flex-1 text-[15px] font-bold text-ink leading-[1.7] break-words">
+                  <span className={`relative mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${n.is_new ? 'bg-ink text-paper' : 'bg-quiet text-ink-soft'}`}>
+                    {n.kind === 'friend_request' ? <IconUserPlus size={20} stroke={1.6} aria-hidden="true" />
+                      : n.kind === 'friend_accept' ? <IconUserCheck size={20} stroke={1.6} aria-hidden="true" />
+                      : n.kind.endsWith('_comment') || n.kind === 'diary_reply' ? <IconMessageCircle size={20} stroke={1.6} aria-hidden="true" />
+                      : <IconHeart size={20} stroke={1.6} aria-hidden="true" />}
+                    {n.is_new && <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full border-2 border-solid border-paper bg-ink" aria-label="새 소식" />}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[15px] text-ink leading-[1.7] break-words">
                       {(() => { const h = headline(n); return h.linkable ? (
                         <>
-                          <span role="link" tabIndex={0} className="underline underline-offset-2 decoration-rule"
+                          <span role="link" tabIndex={0} className="font-bold underline underline-offset-4 decoration-rule"
                             onClick={(e) => { e.stopPropagation(); navigate(`/app/people/${n.actor_user_id}`) }}
                             onKeyDown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); navigate(`/app/people/${n.actor_user_id}`) } }}>{h.who}</span>{h.rest}
                         </>
                       ) : h.who + h.rest })()}
                     </p>
-                    <span className="pt-1 shrink-0 text-[12px] leading-5 text-ink-soft tabular-nums">{timeAgo(n.created_at)}</span>
+                    {n.comment_text && (
+                      <p className="mt-3 border-l-2 border-solid border-rule pl-3 text-[16px] leading-[1.8] text-ink line-clamp-2 break-words">"{n.comment_text}"</p>
+                    )}
+                    {n.excerpt && (
+                      <p className="mt-3 text-[13px] leading-[1.7] text-ink-soft line-clamp-2 break-words">
+                        {sourceLabel(n.target_type)} · {n.excerpt}
+                      </p>
+                    )}
+                    <span className="mt-2 block text-[12px] leading-5 text-ink-soft tabular-nums">{timeAgo(n.created_at)}</span>
                   </div>
-                  {n.comment_text && (
-                    <p className="text-[15px] leading-[1.8] text-ink mt-3 line-clamp-2 break-words">"{n.comment_text}"</p>
-                  )}
-                  {n.excerpt && (
-                    <p className="text-[13px] leading-[1.7] text-ink-soft mt-2 line-clamp-2 break-words">
-                      {sourceLabel(n.target_type)} · {n.excerpt}
-                    </p>
-                  )}
                 </button>
               </li>
             ))}

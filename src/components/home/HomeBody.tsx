@@ -59,9 +59,9 @@ export default function HomeBody({ marqueeItems, promoBarAbove = false }: HomeBo
       <section className="px-5 pt-2 pb-2">
         <button
           onClick={() => navigate('/app/diary/write')}
-          className="flex w-full items-center gap-4 rounded-card border border-solid border-rule bg-paper p-5 text-left transition-colors hover:bg-quiet/50 focus:outline-none focus-visible:shadow-ring"
+          className="flex w-full items-center gap-4 rounded-card bg-quiet p-5 text-left transition-colors hover:bg-rule/50 focus:outline-none focus-visible:shadow-ring"
         >
-          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-quiet text-ink" aria-hidden="true"><IconPencil size={20} stroke={1.6} /></span>
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-ink text-paper" aria-hidden="true"><IconPencil size={20} stroke={1.6} /></span>
           <span className="min-w-0">
             <span className="block text-[16px] font-bold leading-relaxed text-ink">오늘 어떤 하루였나요?</span>
             <span className="block text-[13px] leading-relaxed text-ink-soft mt-1">사소한 하루도 누군가에겐 위로가 됩니다</span>

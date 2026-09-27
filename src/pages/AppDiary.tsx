@@ -185,9 +185,9 @@ export default function AppDiary() {
       <section className="px-5 pt-4">
         <button
           onClick={openComposer}
-          className="flex w-full items-center gap-4 rounded-card border border-solid border-rule bg-paper p-5 text-left transition-colors hover:bg-quiet/50 focus:outline-none focus-visible:shadow-ring"
+          className="flex w-full items-center gap-4 rounded-card bg-quiet p-5 text-left transition-colors hover:bg-rule/50 focus:outline-none focus-visible:shadow-ring"
         >
-          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-quiet text-ink" aria-hidden="true"><IconPencil size={20} stroke={1.6} /></span>
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-ink text-paper" aria-hidden="true"><IconPencil size={20} stroke={1.6} /></span>
           <span className="min-w-0">
             <span className="block text-[16px] font-bold leading-relaxed text-ink">오늘 어떤 하루였나요?</span>
             <span className="block text-[13px] leading-relaxed text-ink-soft mt-1">사소한 하루도 누군가에겐 위로가 됩니다 · 사진과 걸음 수도 함께</span>
@@ -288,14 +288,32 @@ export default function AppDiary() {
             <p className="text-[12.5px] text-ink-faint mt-1.5">첫 이야기의 주인공이 되어주세요</p>
           </button>
         ) : (
-          <ul className="space-y-5">
+          <ul className="divide-y divide-rule border-t border-rule">
             {feed.map((d) => {
               const imgs = d.images ?? []
               return (
-                <li key={d.id} id={`diary-${d.id}`} className={`scroll-mt-20 rounded-card border bg-paper overflow-hidden transition-colors ${focusId === d.id ? 'border-ink' : 'border-rule'}`}>
-                  {/* 사진이 있으면 사진이 주인공 — 카드 맨 위에 크게 */}
+                <li key={d.id} id={`diary-${d.id}`} className={`scroll-mt-20 py-5 transition-colors ${focusId === d.id ? 'bg-quiet/40' : 'bg-paper'}`}>
+                  <div className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-2">
+                    <span aria-hidden="true" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-quiet text-[16px] font-bold text-ink">{maskName(d.nickname)[0]}</span>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        {/* 친구끼리는 이름을 그대로 보고, 이름을 누르면 그 사람의 이야기로 간다. */}
+                        <button type="button" onClick={() => navigate(`/app/people/${d.user_id}`)}
+                          className="min-h-11 min-w-0 truncate text-left text-[14px] font-bold text-ink focus-visible:shadow-ring">
+                          {friendOf[d.user_id] === 'friends' ? (d.nickname ?? '익명') : maskName(d.nickname)}
+                        </button>
+                        <PetAvatars pets={d.pets} />
+                      </div>
+                      <p className="-mt-1 text-[12px] text-ink-soft">{timeAgo(d.created_at)}</p>
+                    </div>
+                    {!d.is_mine && loggedIn && (
+                      <FriendButton userId={d.user_id} status={friendOf[d.user_id] ?? 'none'} loggedIn={!!loggedIn}
+                        onChange={(next) => setFriendOf((prev) => ({ ...prev, [d.user_id]: next }))} onNotice={showToast} />
+                    )}
+                  </div>
+                  {/* 사진은 작성자 아래, 본문 앞에 놓는다. */}
                   {imgs.length > 0 && (
-                    <div className={`grid gap-0.5 ${imgs.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
+                    <div className={`mb-4 grid gap-0.5 overflow-hidden rounded-xl ${imgs.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
                       {imgs.slice(0, 4).map((src, i) => (
                         <button
                           type="button"
@@ -317,31 +335,14 @@ export default function AppDiary() {
                     <video src={d.video_url} controls playsInline preload="metadata" className="w-full max-h-[420px] bg-ink" />
                   )}
 
-                  <div className="p-5">
+                  <div>
                     <p className={`text-[16px] text-ink whitespace-pre-wrap break-words leading-[1.8] ${expanded.has(d.id) ? '' : 'line-clamp-4'}`}>
                       {d.content}
                     </p>
                     <button type="button" aria-expanded={expanded.has(d.id)} onClick={() => setExpanded(prev => { const next = new Set(prev); if (next.has(d.id)) next.delete(d.id); else next.add(d.id); return next })} className="min-h-11 text-[13px] text-ink-soft underline underline-offset-4">{expanded.has(d.id) ? '접기' : '이야기 전체 읽기'}</button>
 
-                    <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 mt-3 pt-2 border-t border-rule">
+                    <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 mt-1">
                       <div className="flex flex-wrap items-center gap-x-2 gap-y-1 min-w-0 max-w-full">
-                        {/* 친구면 이름을 가리지 않는다 — 친구끼리는 누가 누군지 알아야 이야기가 이어진다 */}
-                        {/* 닉네임 → 그 사람의 이야기(2026-09-12 A1) */}
-                        <button type="button" onClick={() => navigate(`/app/people/${d.user_id}`)}
-                          className="min-h-11 max-w-[10rem] text-[13px] font-bold text-ink truncate focus:outline-none focus-visible:shadow-ring">
-                          {friendOf[d.user_id] === 'friends' ? (d.nickname ?? '익명') : maskName(d.nickname)}
-                        </button>
-                        <PetAvatars pets={d.pets} />
-                        {!d.is_mine && loggedIn && (
-                          <FriendButton
-                            userId={d.user_id}
-                            status={friendOf[d.user_id] ?? 'none'}
-                            loggedIn={!!loggedIn}
-                            onChange={(next) => setFriendOf((prev) => ({ ...prev, [d.user_id]: next }))}
-                            onNotice={showToast}
-                          />
-                        )}
-                        <span className="text-[12px] text-ink-soft shrink-0">{timeAgo(d.created_at)}</span>
                         {petWalkLabel(d.pets, d.steps) ? (
                           <span className="text-[12px] text-ink-soft tabular-nums">🐾 {petWalkLabel(d.pets, d.steps)}</span>
                         ) : d.steps != null && d.steps > 0 && (
