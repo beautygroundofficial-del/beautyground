@@ -42,17 +42,17 @@ export default function HomeBody({ marqueeItems, promoBarAbove = false }: HomeBo
       <MarqueeBar items={marqueeItems} />
       <AppHeader promoBarAbove={promoBarAbove} />
 
-      {/* 오늘 할 수 있는 일 — 관리자가 미션을 켜야 나타난다 */}
-      <MissionBanner />
+      <div className="px-5 pt-4 flex items-center justify-between gap-3">
+        <p className="text-[14px] text-ink-soft">오늘은 읽기만 해도 괜찮아요.</p>
+        <button type="button" onClick={() => navigate('/app/friends')} className="min-h-11 shrink-0 text-[13px] font-semibold text-ink underline underline-offset-4">내 친구</button>
+      </div>
+
+      {/* 회원의 이야기를 먼저 만나고, 원하는 만큼 대화에 참여한다. */}
+      <DiaryHomeFeed limit={3} />
 
       {/* 전화번호 인증 배너 제거(2026-09-16) — claim_mission()에서 전화인증 게이트를
           없애 포인트가 인증 없이도 지급되므로, "인증해야 포인트"라는 이 배너 문구가
           더는 사실이 아니게 됐다. */}
-
-      {/* 오늘의 질문 — 한 줄만 답하면 되는 자리. 오늘 걸린 질문이 없으면 스스로 감춘다 */}
-      <div className="px-5 pt-4">
-        <TodayQuestion />
-      </div>
 
       {/* 오늘의 이야기 쓰기 */}
       <section className="px-5 pt-4">
@@ -65,14 +65,17 @@ export default function HomeBody({ marqueeItems, promoBarAbove = false }: HomeBo
         </button>
       </section>
 
+      <div className="px-5 pt-4">
+        <TodayQuestion />
+      </div>
+
       {/* 카테고리 그리드 — 레퍼런스(소모임류 앱) UI 크기·구조 참고, 우리 카테고리로 대입(2026-09-13) */}
       <BoardCategoryGrid />
 
       {/* 속 이야기 — 주제별로 속마음을 꺼내놓는 곳. 최신 3개만 얇게(2026-09-10) */}
       <BoardHomeFeed />
 
-      {/* 사람들의 이야기 — 홈의 주인공 */}
-      <DiaryHomeFeed />
+      <MissionBanner />
     </>
   )
 }

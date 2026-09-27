@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import {
   getTodayQuestion, getQuestionAnswers, answerTodayQuestion,
@@ -13,6 +13,7 @@ import LikeButton from './LikeButton'
 import { CommentToggle } from './DiaryComments'
 import CommentThread, { type CommentApi } from './CommentThread'
 import Lightbox from './Lightbox'
+import { getAnswerConversation } from '../../lib/communityConversations'
 
 // 오늘의 질문 — 하루 한 개, 한 줄로 답하는 자리. (2026-09-07)
 //
@@ -39,7 +40,7 @@ function maskName(name: string | null) {
 const MAX_LEN = 200
 
 const answerCommentApi: CommentApi = {
-  list: (id) => getAnswerComments(id),
+  list: (id, limit, offset) => getAnswerComments(id, limit, offset),
   create: (id, text, name) => createAnswerComment(id, text, name),
   remove: (id) => deleteAnswerComment(id),
 }
@@ -63,10 +64,17 @@ function AnswerImages({ images, onOpen }: { images: string[]; onOpen: (i: number
 
 export default function TodayQuestion() {
   const navigate = useNavigate()
+  const location = useLocation()
+  const search = new URLSearchParams(location.search)
+  const focusAnswer = search.get('answer')
+  const focusComment = search.get('comment') || undefined
+  const returnTo = location.pathname + location.search
+  const requestVersion = useRef(0)
 
   const [question, setQuestion] = useState<Question | null>(null)
   const [answers, setAnswers] = useState<QuestionAnswer[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState('')
   const [loggedIn, setLoggedIn] = useState(false)
   const [myName, setMyName] = useState<string | null>(null)
 
@@ -89,7 +97,11 @@ export default function TodayQuestion() {
   }
 
   const load = useCallback(async () => {
+    const version = ++requestVersion.current
+    setLoading(true); setLoadError('')
+    try {
     const { data: { session } } = await supabase.auth.getSession()
+    if (version !== requestVersion.current) return
     setLoggedIn(!!session)
     if (session) {
       // 마이페이지·이야기와 같은 규칙 — 닉네임이 없으면 이메일 앞부분을 쓴다.
@@ -97,17 +109,33 @@ export default function TodayQuestion() {
       setMyName(meta?.name || session.user.email?.split('@')[0] || null)
     }
 
+    if (focusAnswer) {
+      const answer = await getAnswerConversation(focusAnswer)
+      if (version !== requestVersion.current) return
+      if (!answer) { setQuestion(null); setAnswers([]); setLoadError('이 답은 삭제되었거나 지금은 볼 수 없어요.'); return }
+      setQuestion({ id: answer.question_id, ask_date: answer.ask_date, question: answer.question, hint: answer.hint, answer_count: 1, my_answer: null, my_answer_id: null, my_images: [] })
+      setAnswers([answer]); setOpenComments(new Set([answer.id]))
+      return
+    }
     const q = await getTodayQuestion()
+    if (version !== requestVersion.current) return
     setQuestion(q)
     if (q) {
       setDraft(q.my_answer ?? '')
       setKeptImages(q.my_images ?? [])
-      setAnswers(await getQuestionAnswers(q.id, 20))
+      const rows = await getQuestionAnswers(q.id, 20)
+      if (version === requestVersion.current) setAnswers(rows)
     }
-    setLoading(false)
-  }, [])
+    } catch { if (version === requestVersion.current) setLoadError('대화를 불러오지 못했어요. 다시 시도해 주세요.') }
+    finally { if (version === requestVersion.current) setLoading(false) }
+  }, [focusAnswer])
 
-  useEffect(() => { void load() }, [load])
+  useEffect(() => { void load(); return () => { requestVersion.current++ } }, [load])
+  useEffect(() => {
+    if (!focusAnswer || focusComment || loading) return
+    const frame = requestAnimationFrame(() => document.getElementById('question-conversation')?.scrollIntoView({ block: 'start' }))
+    return () => cancelAnimationFrame(frame)
+  }, [focusAnswer, focusComment, loading])
 
   const toggleComments = (id: string) => setOpenComments((prev) => {
     const next = new Set(prev)
@@ -125,7 +153,7 @@ export default function TodayQuestion() {
 
   const submit = async () => {
     if (!question) return
-    if (!loggedIn) { navigate('/app/login'); return }
+    if (!loggedIn) { navigate('/app/login', { state: { from: returnTo } }); return }
     const text = draft.trim()
     if (!text && files.length === 0 && keptImages.length === 0) { flash('한 줄만 적어주세요'); return }
 
@@ -162,19 +190,21 @@ export default function TodayQuestion() {
     setFiles([])
   }
 
-  if (loading || !question) return null
+  if (loading) return focusAnswer ? <p className="py-8 text-[14px] text-ink-soft">대화를 불러오는 중…</p> : null
+  if (loadError) return <section id="question-conversation" role="alert" className="rounded-card border border-rule p-5"><p className="text-[14px] text-ink-soft">{loadError}</p><button type="button" onClick={() => void load()} className="min-h-11 underline text-[13px]">다시 불러오기</button><button type="button" onClick={() => navigate('/app/home')} className="min-h-11 ml-4 underline text-[13px]">오늘 이야기로</button></section>
+  if (!question) return null
 
   const answered = !!question.my_answer_id || !!question.my_answer
-  const showComposer = !answered || editing
+  const showComposer = !focusAnswer && (!answered || editing)
   const composerImages = keptImages.length + previews.length
   const btn = 'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-rule text-[12px] text-ink-soft disabled:opacity-40 focus:outline-none focus-visible:shadow-ring'
 
   return (
-    <section className="pt-4">
+    <section className="pt-4 scroll-mt-20" id="question-conversation">
       <div className="rounded-card border border-rule bg-paper overflow-hidden">
         {/* 질문 */}
         <div className="px-5 pt-4 pb-3">
-          <p className="text-[11.5px] text-ink-faint leading-none mb-1.5">오늘의 질문</p>
+          <div className="flex items-center justify-between gap-2"><p className="text-[11.5px] text-ink-faint leading-none mb-1.5">{focusAnswer ? `${question.ask_date}의 질문 · 이어지는 대화` : '오늘의 질문'}</p>{focusAnswer && <button type="button" onClick={() => navigate('/app/home')} className="min-h-11 text-[12px] underline">오늘 이야기로</button>}</div>
           <h2 className="text-[17px] font-bold text-ink leading-snug">{question.question}</h2>
           {question.hint && (
             <p className="text-[12.5px] text-ink-soft mt-1 leading-relaxed">{question.hint}</p>
@@ -184,13 +214,13 @@ export default function TodayQuestion() {
         {/* 내 답 — 아직 안 했으면 입력칸, 했으면 내가 쓴 것.
             2026-09-13 대표님 지시("우리 앱이 너무 뚱뚱하다") — 이 안에 또 테두리 박스를 두는
             겹박스 구조를 없앴다. 바깥 카드 하나로 충분하고, 입력칸 아래 얇은 구분선 하나면 된다. */}
-        <div className="px-5 pb-3">
+        {!focusAnswer && <div className="px-5 pb-3">
           {showComposer ? (
             <div>
               <textarea
                 value={draft}
                 onChange={(e) => setDraft(e.target.value)}
-                onFocus={() => { if (!loggedIn) navigate('/app/login') }}
+                onFocus={() => { if (!loggedIn) navigate('/app/login', { state: { from: returnTo } }) }}
                 rows={1}
                 maxLength={MAX_LEN}
                 placeholder={question.hint ? '여기에 남겨주세요' : '한 줄이면 충분해요'}
@@ -219,7 +249,7 @@ export default function TodayQuestion() {
 
               <div className="flex items-center justify-between pt-1 mt-1 border-t border-rule">
                 <div className="flex items-center gap-2">
-                  <button type="button" onClick={() => { if (!loggedIn) { navigate('/app/login'); return } albumRef.current?.click() }}
+                  <button type="button" onClick={() => { if (!loggedIn) { navigate('/app/login', { state: { from: returnTo } }); return } albumRef.current?.click() }}
                     disabled={composerImages >= MAX_ANSWER_IMAGES} className={btn}>
                     <span aria-hidden="true">🖼️</span> 사진
                   </button>
@@ -257,13 +287,13 @@ export default function TodayQuestion() {
               </button>
             </div>
           )}
-        </div>
+        </div>}
 
         {/* 다른 사람들의 답 — 답하지 않아도 보인다 */}
         {answers.length > 0 && (
           <div className="border-t border-rule bg-quiet/20 px-5 py-3.5">
             <p className="text-[11.5px] text-ink-faint mb-2.5">
-              {question.answer_count}명이 오늘을 이렇게 지나고 있어요
+              {focusAnswer ? '이 답에 이어서 이야기해요' : `${question.answer_count}명이 오늘을 이렇게 지나고 있어요`}
             </p>
             <ul className="space-y-3">
               {answers.map((a) => {
@@ -307,6 +337,8 @@ export default function TodayQuestion() {
                     )}
                     <CommentThread
                       targetId={a.id}
+                      focusCommentId={focusAnswer === a.id ? focusComment : undefined}
+                      returnTo={`/app/home?answer=${a.id}${focusComment ? `&comment=${focusComment}` : ''}`}
                       api={answerCommentApi}
                       open={openComments.has(a.id)}
                       count={a.comment_count ?? 0}

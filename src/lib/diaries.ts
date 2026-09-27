@@ -116,6 +116,7 @@ export async function deleteDiary(diaryId: string): Promise<boolean> {
 // 남의 글에 처음 댓글을 달 때만 comment_give 미션이 적립된다(자기 글·5자 미만·재작성은 0P).
 export interface DiaryComment {
   id: string
+  user_id?: string | null
   nickname: string | null
   content: string
   created_at: string
@@ -123,11 +124,16 @@ export interface DiaryComment {
   parent_comment_id: string | null
 }
 
-export async function getDiaryComments(diaryId: string, limit = 50): Promise<DiaryComment[]> {
-  const { data, error } = await supabase.rpc('get_diary_comments', {
-    p_diary_id: diaryId, p_limit: limit, p_offset: 0,
-  })
-  if (error) return []
+export async function getDiaryComments(diaryId: string, limit = 50, offset = 0): Promise<DiaryComment[] | null> {
+  const args = { p_diary_id: diaryId, p_limit: limit, p_offset: offset }
+  let { data, error } = await supabase.rpc('get_diary_comment_thread', args)
+  // 새 읽기 RPC 배포 전에는 기존 목록을 사용한다. 통신·권한 오류를 빈 목록으로 숨기지 않는다.
+  if (error?.code === 'PGRST202' || error?.code === '42883') {
+    const legacy = await supabase.rpc('get_diary_comments', args)
+    data = legacy.data
+    error = legacy.error
+  }
+  if (error) return null
   return (data ?? []) as DiaryComment[]
 }
 
@@ -152,8 +158,8 @@ export async function createDiaryComment(
 
 // 본인 댓글만 지워진다(RLS). 실패하면 false.
 export async function deleteDiaryComment(commentId: string): Promise<boolean> {
-  const { error } = await supabase.from('diary_comments').delete().eq('id', commentId)
-  return !error
+  const { data, error } = await supabase.from('diary_comments').delete().eq('id', commentId).select('id')
+  return !error && !!data?.some((row) => row.id === commentId)
 }
 
 // ── 사진 업로드 ────────────────────────────────────────────────────────────

@@ -98,9 +98,9 @@ export interface AnswerComment {
   is_mine: boolean
 }
 
-export async function getAnswerComments(answerId: string, limit = 50): Promise<AnswerComment[]> {
-  const { data, error } = await supabase.rpc('get_answer_comments', { p_answer_id: answerId, p_limit: limit, p_offset: 0 })
-  if (error) return []
+export async function getAnswerComments(answerId: string, limit = 50, offset = 0): Promise<AnswerComment[] | null> {
+  const { data, error } = await supabase.rpc('get_answer_comments', { p_answer_id: answerId, p_limit: limit, p_offset: offset })
+  if (error) return null
   return (data ?? []) as AnswerComment[]
 }
 
@@ -117,8 +117,8 @@ export async function createAnswerComment(
 }
 
 export async function deleteAnswerComment(commentId: string): Promise<boolean> {
-  const { error } = await supabase.from('answer_comments').delete().eq('id', commentId)
-  return !error
+  const { data, error } = await supabase.from('answer_comments').delete().eq('id', commentId).select('id')
+  return !error && !!data?.some((row) => row.id === commentId)
 }
 
 export async function getQuestionAnswers(

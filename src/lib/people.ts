@@ -16,13 +16,13 @@ export interface PersonProfile {
 
 export async function getUserProfile(userId: string): Promise<PersonProfile | null> {
   const { data, error } = await supabase.rpc('get_user_profile', { p_user_id: userId })
-  if (error) return null
+  if (error) throw error
   const row = Array.isArray(data) ? data[0] : data
   return (row ?? null) as PersonProfile | null
 }
 
 export async function getUserDiaries(userId: string, limit = 30, offset = 0): Promise<Diary[]> {
   const { data, error } = await supabase.rpc('get_user_diary_feed', { p_user_id: userId, p_limit: limit, p_offset: offset })
-  if (error) return []
+  if (error) throw error
   return (data ?? []) as Diary[]
 }
