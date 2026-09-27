@@ -127,20 +127,19 @@ export default function StaffPurchase() {
     setSubmitting(true)
     setMessage('')
 
-    const items = cartItems.map((c) => ({
-      product_id: c.product.id,
-      partner_id: c.product.partner_id,
-      name: c.product.name,
-      brand_name: c.product.brand_name,
-      qty: c.qty,
-      employee_price: c.product.employee_price,
-      normal_price: c.product.sale_price ?? c.product.price,
-    }))
+    // 상품 id·수량만 보낸다 — 가격·브랜드는 서버(api/staff-order)가 DB 에서 다시 읽는다(2026-09-27)
+    const items = cartItems.map((c) => ({ product_id: c.product.id, qty: c.qty }))
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) {
+      setSubmitting(false)
+      setMessage('로그인이 만료되었습니다. 다시 로그인해 주세요.')
+      return
+    }
 
     try {
       const res = await fetch('/api/staff-order', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
         body: JSON.stringify({ items, name: name.trim(), phone: phone.trim(), address: address.trim(), addressDetail, memo }),
       })
       const json = await res.json()

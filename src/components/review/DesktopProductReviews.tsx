@@ -79,7 +79,7 @@ export default function DesktopProductReviews({
           </div>
           <div className="text-[13px] text-ink-soft">
             <p className="font-bold text-ink text-[16px]">리뷰 {count.toLocaleString('ko-KR')}개</p>
-            <p className="mt-0.5 text-ink-faint">실제 구매 후기</p>
+            <p className="mt-0.5 text-ink-faint">브랜드 공식몰 구매 후기</p>
           </div>
         </div>
 

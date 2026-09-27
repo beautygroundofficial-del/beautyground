@@ -330,6 +330,32 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   if (webhookType && webhookType !== 'Transaction.Paid') {
     const isCancel = WEBHOOK_CANCELLED.includes(webhookType)
+    // 웹훅 본문은 서명 검증을 하지 않으므로 그대로 믿으면 안 된다 — 주문확인 메일에 적힌 paymentId 만 알면
+    // 누구나 {type:'Transaction.Cancelled', data:{paymentId}} 를 보내 남의 주문을 취소·재고복구·메일발송시킬 수 있었다(2026-09-27 점검).
+    // 포트원 API 로 실제 결제 상태를 재조회해, 정말 취소/실패된 결제일 때만 처리한다.
+    let pgStatus = ''
+    try {
+      const pr = await fetch(`https://api.portone.io/payments/${encodeURIComponent(paymentId)}`, {
+        headers: { Authorization: `PortOne ${PORTONE_SECRET}` },
+      })
+      if (pr.ok) {
+        pgStatus = ((await pr.json()) as { status?: string })?.status ?? ''
+      } else if (pr.status === 404) {
+        // 포트원에 결제 자체가 없음 — 결제창을 열기 전 이탈한 주문(pending 만 failed 로 내리는 아래 경로만 허용)
+        pgStatus = 'NOT_FOUND'
+      }
+    } catch (e) {
+      console.error('[payment-complete] webhook verify lookup error', e)
+    }
+    const verified = isCancel
+      ? ['CANCELLED', 'PARTIAL_CANCELLED'].includes(pgStatus)
+      : ['FAILED', 'NOT_FOUND'].includes(pgStatus)
+    if (!verified) {
+      // 포트원 상태와 웹훅 내용이 다르다(위조 또는 순서 뒤바뀜) — 아무것도 바꾸지 않고 200 으로만 응답
+      console.warn('[payment-complete] webhook not verified', webhookType, paymentId, pgStatus || 'lookup_failed')
+      res.status(200).json({ ok: true, skipped: 'unverified', pgStatus: pgStatus || null })
+      return
+    }
     const { data: rows } = await supabase
       .from('orders')
       .select('id, product_id, partner_id, quantity, status, order_name, buyer_name, buyer_email, amount')
@@ -429,7 +455,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   // 1) 이 결제(payment_id)에 속한 주문행 전부 조회 (장바구니 다건 주문은 상품별로 여러 행)
   const { data: orderRows, error: selErr } = await supabase
     .from('orders')
-    .select('id, product_id, partner_id, quantity, amount, status, order_name, buyer_name, buyer_email, buyer_phone, live_id, user_id, products(name, price, sale_price)')
+    .select('id, product_id, partner_id, quantity, amount, status, order_name, buyer_name, buyer_email, buyer_phone, live_id, user_id, option_label, products(name, price, sale_price, status, stock)')
     .eq('payment_id', paymentId)
 
   if (selErr || !orderRows || orderRows.length === 0) {
@@ -488,9 +514,31 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     live_id?: string | null
     user_id?: string | null
     buyer_email?: string | null
-    products?: { price?: number; sale_price?: number | null } | null
+    option_label?: string | null
+    products?: { name?: string; price?: number; sale_price?: number | null; status?: string; stock?: number } | null
   }
   const rows = orderRows as unknown as JoinedRow[]
+
+  // 0) 판매 가능 여부 서버 검증 — 숨김(hidden)·품절 상품, 재고 초과 수량, 품절 옵션은 화면에서만 막고 있었다(2026-09-27 점검).
+  //    주문 행을 직접 만들어 결제하면 그대로 확정되던 것을 여기서 잡는다. 위반이면 아래 금액불일치와 같은 경로(즉시 환불)로 보낸다.
+  const saleProblems: string[] = []
+  for (const r of rows) {
+    if (!r.product_id) continue
+    const p = r.products
+    const pname = p?.name ?? r.product_id
+    if (!p) { saleProblems.push(`${pname}: 상품 없음`); continue }
+    if (p.status !== 'on_sale') saleProblems.push(`${pname}: 판매중 아님(${p.status ?? '-'})`)
+    if (typeof p.stock === 'number' && p.stock < (r.quantity as number)) saleProblems.push(`${pname}: 재고 ${p.stock} < 수량 ${r.quantity}`)
+    if (r.option_label) {
+      const { data: opt } = await supabase
+        .from('product_options')
+        .select('in_stock')
+        .eq('product_id', r.product_id)
+        .eq('label', r.option_label)
+        .maybeSingle()
+      if (opt && (opt as { in_stock: boolean }).in_stock === false) saleProblems.push(`${pname}: 옵션 "${r.option_label}" 품절`)
+    }
+  }
 
   // VVIP 할인(백화점 입점 20% / 온라인 전용 30%, 적립 없음) — src/lib/vvip.ts와 동일 공식을 유지할 것
   // (클라이언트 AppOrder.tsx가 요청한 결제금액과 여기서 재산출한 금액이 같아야 결제가 통과됨).
@@ -642,16 +690,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     res.status(200).json({ ok: false, reason: `결제 상태가 PAID 가 아닙니다. (${paidStatus ?? '알수없음'})` })
     return
   }
-  if (paidAmount !== expectedAmount) {
+  if (paidAmount !== expectedAmount || saleProblems.length > 0) {
     // 여기는 PG 가 PAID 라고 답한 상태다 — 즉 손님 카드에서 돈이 이미 빠져나갔다.
     // 예전엔 주문만 failed 로 내리고 끝나서, 돈은 우리가 들고 있는데 주문은 없는 상태가 됐다.
-    // 금액이 안 맞으면 그 결제는 성립시킬 수 없으므로 즉시 전액 환불한다(2026-09-09).
+    // 금액이 안 맞으면(또는 숨김·품절 상품이 섞여 있으면) 그 결제는 성립시킬 수 없으므로 즉시 전액 환불한다(2026-09-09).
+    const problemText = saleProblems.length > 0 ? `판매 불가 상품 포함: ${saleProblems.join(' / ')}` : `결제금액 불일치 (기대 ${expectedAmount}, 실제 ${paidAmount})`
     let refunded = false
     try {
       const cr = await fetch(`https://api.portone.io/payments/${encodeURIComponent(paymentId)}/cancel`, {
         method: 'POST',
         headers: { Authorization: `PortOne ${PORTONE_SECRET}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ reason: `결제금액 불일치 자동취소 (기대 ${expectedAmount}, 실제 ${paidAmount})` }),
+        body: JSON.stringify({ reason: `자동취소 — ${problemText}` }),
       })
       refunded = cr.ok
       if (!cr.ok) console.error('[payment-complete] 금액불일치 자동환불 실패', cr.status, await cr.text())
@@ -663,15 +712,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // 자동환불까지 실패하면 사람이 손으로 처리해야 한다 — 반드시 알린다
     await sendMail(
       ADMIN_MAIL,
-      `[뷰티그라운드] ${refunded ? '금액불일치 자동환불' : '🚨 금액불일치 환불실패 — 수동처리 필요'} ${paymentId}`,
-      `<div style="font-family:sans-serif"><h3>결제 금액이 서버 재계산값과 다릅니다</h3>
-       <ul><li>주문번호: ${paymentId}</li><li>서버 기대금액: ${won(expectedAmount)}</li>
+      `[뷰티그라운드] ${refunded ? '결제 자동환불' : '🚨 결제 환불실패 — 수동처리 필요'} ${paymentId}`,
+      `<div style="font-family:sans-serif"><h3>결제를 성립시킬 수 없어 환불 처리했습니다</h3>
+       <ul><li>주문번호: ${paymentId}</li><li>사유: ${problemText}</li><li>서버 기대금액: ${won(expectedAmount)}</li>
        <li>실제 결제금액: ${won(paidAmount ?? 0)}</li>
        <li>자동환불: ${refunded ? '성공 (주문 cancelled)' : '❌ 실패 — 포트원 콘솔에서 직접 취소하세요'}</li></ul></div>`
     )
     res
       .status(200)
-      .json({ ok: false, reason: `결제 금액 불일치 (기대 ${expectedAmount}, 실제 ${paidAmount})`, refunded })
+      .json({ ok: false, reason: problemText, refunded })
     return
   }
 

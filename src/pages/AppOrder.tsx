@@ -49,6 +49,20 @@ function saveOrderDraft(d: OrderDraft) {
 function clearOrderDraft() {
   try { sessionStorage.removeItem(DRAFT_KEY) } catch { /* 위와 같음 */ }
 }
+// 라이브 쿠폰 소진 토큰 — 결제 1회마다 새로 만들고, 결제 실패 시 "내가 소진한 것"만 되돌리는 데 쓴다(release_live_coupon p_token).
+// 리다이렉트 복귀 경로에서도 되돌릴 수 있게 sessionStorage 에 둔다.
+const COUPON_TOKEN_KEY = 'bg_order_coupon_token'
+function newCouponToken(): string {
+  const t = crypto.randomUUID()
+  try { sessionStorage.setItem(COUPON_TOKEN_KEY, t) } catch { /* 없어도 결제는 진행 */ }
+  return t
+}
+function loadCouponToken(): string | null {
+  try { return sessionStorage.getItem(COUPON_TOKEN_KEY) } catch { return null }
+}
+function clearCouponToken() {
+  try { sessionStorage.removeItem(COUPON_TOKEN_KEY) } catch { /* 위와 같음 */ }
+}
 
 const field =
   'w-full rounded-control bg-paper border border-rule px-3.5 py-3 text-[14px] text-ink placeholder:text-ink-faint focus:outline-none focus-visible:shadow-ring'
@@ -249,7 +263,7 @@ export default function AppOrder() {
 
   // 결제가 끝나면(성공/검증완료) 이전 주문 초안이 다음 주문에 잘못 이어붙지 않게 지운다
   useEffect(() => {
-    if (status === 'done') clearOrderDraft()
+    if (status === 'done') { clearOrderDraft(); clearCouponToken() }
   }, [status])
 
   // 결제창 리다이렉트 복귀(모바일 간편결제 등) 처리 — location.state 는 유실될 수 있어 DB에서 재조회
@@ -260,6 +274,20 @@ export default function AppOrder() {
     if (code) {
       setStatus('error')
       setMessage(params.get('message') || '결제가 취소되었거나 실패했습니다.')
+      // 결제가 안 됐는데 결제 직전 확정해 둔 적립금·가입 쿠폰·라이브 쿠폰이 그대로 소진돼 있었다(2026-09-27 점검).
+      // 리다이렉트로 돌아오면 handlePay 의 지역 상태는 사라지므로 paymentId·초안·토큰으로 되돌린다.
+      // (서버 api/payment-complete 는 결제 없음이 확인된 pending 주문만 failed 로 내린다)
+      void (async () => {
+        await markOrderFailed(paymentId)
+        await releasePoints(paymentId)
+        await releaseSignupCoupon(paymentId)
+        const draftLiveId = loadOrderDraft()?.liveId ?? liveId
+        const token = loadCouponToken()
+        if (draftLiveId && token) {
+          await supabase.rpc('release_live_coupon', { p_live_id: draftLiveId, p_token: token })
+          clearCouponToken()
+        }
+      })()
     } else {
       void verify(paymentId)
     }
@@ -390,10 +418,12 @@ export default function AppOrder() {
     // 라이브 쿠폰 결제 직전 확정 — 재고처럼 원자적으로 처리(동시 결제 시 선착순, redeem_live_coupon 이 조건 재검증)
     let couponDiscount = 0
     let redeemedCoupon = false
+    const couponToken = newCouponToken()
     if (liveId && liveCoupon && couponEligible(liveCoupon, subtotal)) {
       const { data: redeemed, error: redeemErr } = await supabase.rpc('redeem_live_coupon', {
         p_live_id: liveId,
         p_subtotal: subtotal,
+        p_token: couponToken,
       })
       if (redeemErr) {
         console.error('[order] coupon redeem failed', redeemErr.message)
@@ -485,7 +515,7 @@ export default function AppOrder() {
     } catch (err) {
       console.error('[order] PortOne.requestPayment threw', err)
       await markOrderFailed(paymentId)
-      if (redeemedCoupon && liveId) await supabase.rpc('release_live_coupon', { p_live_id: liveId })
+      if (redeemedCoupon && liveId) { await supabase.rpc('release_live_coupon', { p_live_id: liveId, p_token: couponToken }); clearCouponToken() }
       if (redeemedPoints > 0) await releasePoints(paymentId)
       if (redeemedCouponId) await releaseSignupCoupon(paymentId)
       setStatus('error')
@@ -496,7 +526,7 @@ export default function AppOrder() {
     if (res?.code != null) {
       await markOrderFailed(paymentId)
       // 결제창이 그 자리에서 닫힌 동기 실패 경로에 한해 쿠폰 반환(모바일 리다이렉트 흐름은 상태 유실로 반환 안 됨 — 알려진 한계)
-      if (redeemedCoupon && liveId) await supabase.rpc('release_live_coupon', { p_live_id: liveId })
+      if (redeemedCoupon && liveId) { await supabase.rpc('release_live_coupon', { p_live_id: liveId, p_token: couponToken }); clearCouponToken() }
       if (redeemedPoints > 0) await releasePoints(paymentId)
       if (redeemedCouponId) await releaseSignupCoupon(paymentId)
       setStatus('error')

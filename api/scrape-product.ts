@@ -174,24 +174,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
   const url = (body as { url?: string } | null)?.url?.trim()
 
+  // 모든 모드에서 로그인 필수 — 예전엔 미리보기(save 아닌) 모드가 인증 없이 열려 있어 아무 URL 이나 서버가 대신 fetch(SSRF)하고
+  // Gemini 비용을 무제한으로 태울 수 있었다(2026-09-27 점검). 셀러센터(브랜드)·관리자만 쓰는 기능이라 토큰을 요구한다.
+  if (!SERVICE_ROLE_SAVE) {
+    res.status(500).json({ ok: false, error: '서버 설정 오류(SUPABASE_SERVICE_ROLE_KEY 누락).' })
+    return
+  }
+  const token = (req.headers.authorization ?? '').replace(/^Bearer\s+/i, '')
+  if (!token) {
+    res.status(401).json({ ok: false, error: '로그인이 필요합니다.' })
+    return
+  }
+  const sb = createClient(SUPABASE_URL_SAVE, SERVICE_ROLE_SAVE)
+  const { data: userData } = await sb.auth.getUser(token)
+  const user = userData?.user
+  if (!user) {
+    res.status(401).json({ ok: false, error: '인증에 실패했습니다. 다시 로그인해 주세요.' })
+    return
+  }
+
   // ── 저장 모드: 브랜드 셀러센터가 미리보기에서 확인한 상품을 그대로 등록한다 ──
   if ((body as { mode?: string } | null)?.mode === 'save') {
-    if (!SERVICE_ROLE_SAVE) {
-      res.status(500).json({ ok: false, error: '서버 설정 오류(SUPABASE_SERVICE_ROLE_KEY 누락).' })
-      return
-    }
-    const token = (req.headers.authorization ?? '').replace(/^Bearer\s+/i, '')
-    if (!token) {
-      res.status(401).json({ ok: false, error: '로그인이 필요합니다.' })
-      return
-    }
-    const sb = createClient(SUPABASE_URL_SAVE, SERVICE_ROLE_SAVE)
-    const { data: userData } = await sb.auth.getUser(token)
-    const user = userData?.user
-    if (!user) {
-      res.status(401).json({ ok: false, error: '인증에 실패했습니다. 다시 로그인해 주세요.' })
-      return
-    }
     // partner_id 는 절대 요청값을 쓰지 않는다 — 토큰 주인의 브랜드로 강제
     const { data: partner } = await sb
       .from('partners')

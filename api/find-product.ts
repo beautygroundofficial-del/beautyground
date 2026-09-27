@@ -1,5 +1,9 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import * as cheerio from 'cheerio'
+import { createClient } from '@supabase/supabase-js'
+
+const SUPABASE_URL = process.env.SUPABASE_URL || 'https://bjqtuklkskrqzbuxdwxm.supabase.co'
+const SERVICE_ROLE = process.env.SUPABASE_SERVICE_ROLE_KEY
 
 const BROWSER_UA =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36'
@@ -147,6 +151,22 @@ function parseProducts(html: string, base: string): ParsedProduct[] {
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
     res.status(405).json({ ok: false, error: 'POST 요청만 허용됩니다.' })
+    return
+  }
+
+  // 로그인 필수 — 인증 없이 아무 사이트나 서버가 대신 fetch 하던 것을 막는다(2026-09-27 점검, scrape-product 와 동일 규칙)
+  if (!SERVICE_ROLE) {
+    res.status(500).json({ ok: false, error: '서버 설정 오류(SUPABASE_SERVICE_ROLE_KEY 누락).' })
+    return
+  }
+  const token = (req.headers.authorization ?? '').replace(/^Bearer\s+/i, '')
+  if (!token) {
+    res.status(401).json({ ok: false, error: '로그인이 필요합니다.' })
+    return
+  }
+  const { data: userData } = await createClient(SUPABASE_URL, SERVICE_ROLE).auth.getUser(token)
+  if (!userData?.user) {
+    res.status(401).json({ ok: false, error: '인증에 실패했습니다. 다시 로그인해 주세요.' })
     return
   }
 

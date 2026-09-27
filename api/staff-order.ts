@@ -11,6 +11,12 @@ const ERP_URL = process.env.ERP_SUPABASE_URL || 'https://ndhxicsfgaeqduxtqmmj.su
 const ERP_KEY = process.env.ERP_SUPABASE_SECRET_KEY
 const ERP_STORE = '광명'
 
+// 클라이언트는 상품 id 와 수량만 보낸다. 가격·브랜드·partner_id 는 서버가 DB 에서 다시 읽는다.
+// (예전엔 employee_price·normal_price 를 요청값 그대로 써서 누구나 임의 가격으로 주문·ERP 매출·재고차감을 만들 수 있었다 — 2026-09-27 점검)
+interface StaffOrderItemInput {
+  product_id: string
+  qty: number
+}
 interface StaffOrderItem {
   product_id: string
   partner_id: string | null
@@ -41,15 +47,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return
   }
 
-  const { items, name, phone, address, addressDetail, memo } = req.body as {
-    items: StaffOrderItem[]
+  const { items: rawItems, name, phone, address, addressDetail, memo } = req.body as {
+    items: StaffOrderItemInput[]
     name: string
     phone: string
     address: string
     addressDetail?: string
     memo?: string
   }
-  if (!Array.isArray(items) || items.length === 0) {
+  if (!Array.isArray(rawItems) || rawItems.length === 0) {
     res.status(400).json({ ok: false, reason: '품목이 없습니다.' })
     return
   }
@@ -60,6 +66,63 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const mall = createClient(MALL_URL, MALL_KEY)
   const erp = createClient(ERP_URL, ERP_KEY)
+
+  // 인증: 로그인 토큰의 주인이 직원(app_staff, supabase/staff_members.sql)이어야 한다.
+  // 화면(StaffPurchase.tsx)은 is_staff() 로 가리고 있었지만 이 API 자체는 누구나 호출할 수 있었다.
+  const token = (req.headers.authorization ?? '').replace(/^Bearer\s+/i, '')
+  if (!token) {
+    res.status(401).json({ ok: false, reason: '로그인이 필요합니다.' })
+    return
+  }
+  const { data: userData } = await mall.auth.getUser(token)
+  const staffEmail = userData?.user?.email?.toLowerCase().trim()
+  if (!staffEmail) {
+    res.status(401).json({ ok: false, reason: '인증에 실패했습니다. 다시 로그인해 주세요.' })
+    return
+  }
+  const { data: staffRow } = await mall.from('app_staff').select('email').ilike('email', staffEmail).maybeSingle()
+  if (!staffRow) {
+    res.status(403).json({ ok: false, reason: '직원 계정만 이용할 수 있습니다.' })
+    return
+  }
+
+  // 가격·브랜드는 DB 기준으로 재구성 — 직원가(employee_price)가 없는 상품·판매중 아닌 상품·재고 부족은 거절
+  const qtyById = new Map<string, number>()
+  for (const it of rawItems) {
+    const q = Math.floor(Number(it?.qty))
+    if (!it?.product_id || !Number.isFinite(q) || q <= 0) {
+      res.status(400).json({ ok: false, reason: '품목 정보가 올바르지 않습니다.' })
+      return
+    }
+    qtyById.set(it.product_id, (qtyById.get(it.product_id) ?? 0) + q)
+  }
+  const { data: productRows, error: prodErr } = await mall
+    .from('products')
+    .select('id, name, price, sale_price, employee_price, partner_id, stock, status, partners(brand_name)')
+    .in('id', [...qtyById.keys()])
+  if (prodErr) {
+    res.status(500).json({ ok: false, reason: `상품 조회 실패: ${prodErr.message}` })
+    return
+  }
+  type ProdRow = { id: string; name: string; price: number; sale_price: number | null; employee_price: number | null; partner_id: string | null; stock: number; status: string; partners?: { brand_name?: string } | { brand_name?: string }[] | null }
+  const items: StaffOrderItem[] = []
+  for (const [pid, qty] of qtyById) {
+    const p = ((productRows ?? []) as unknown as ProdRow[]).find((r) => r.id === pid)
+    if (!p) { res.status(400).json({ ok: false, reason: '존재하지 않는 상품이 있습니다.' }); return }
+    if (p.employee_price == null) { res.status(400).json({ ok: false, reason: `"${p.name}"은 직원가 상품이 아닙니다.` }); return }
+    if (p.status !== 'on_sale') { res.status(400).json({ ok: false, reason: `"${p.name}"은 현재 판매중이 아닙니다.` }); return }
+    if (typeof p.stock === 'number' && p.stock < qty) { res.status(400).json({ ok: false, reason: `"${p.name}" 재고가 부족합니다. (재고 ${p.stock})` }); return }
+    const partner = Array.isArray(p.partners) ? p.partners[0] : p.partners
+    items.push({
+      product_id: p.id,
+      partner_id: p.partner_id,
+      name: p.name,
+      brand_name: partner?.brand_name ?? '',
+      qty,
+      employee_price: Math.round(Number(p.employee_price)),
+      normal_price: Math.round(Number(p.sale_price ?? p.price)),
+    })
+  }
 
   const total = items.reduce((s, i) => s + i.employee_price * i.qty, 0)
   const paymentId = `staff_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`

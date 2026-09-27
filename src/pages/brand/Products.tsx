@@ -236,7 +236,7 @@ export default function BrandProducts() {
       rows[i] = { ...rows[i], state: 'run' }; setBulkRows([...rows])
       try {
         const r = await fetch('/api/scrape-product', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url: rows[i].url }),
+          method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` }, body: JSON.stringify({ url: rows[i].url }),
         })
         const json = await r.json()
         if (!json?.ok) {
@@ -296,11 +296,13 @@ export default function BrandProducts() {
   const fetchFromUrl = async () => {
     const u = url.trim()
     if (!u) { setMsg('상품 페이지 주소를 입력해 주세요.'); return }
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) { setMsg('로그인이 만료되었습니다. 다시 로그인해 주세요.'); return }
     setFetching(true); setMsg(''); setOk('')
     try {
       const r = await fetch('/api/scrape-product', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
         body: JSON.stringify({ url: u }),
       })
       const json = await r.json()
