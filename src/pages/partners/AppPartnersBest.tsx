@@ -8,7 +8,7 @@ import { listBestProducts, type BestProduct } from '../../lib/affiliate'
 
 const PAGE = 30
 
-// 잘 팔리는 제품 전체 — 판매 순. 개인 파트너스 페이지의 TOP 10 [더보기]에서 들어온다.
+// 인기 제품 전체 — 판매·찜·리뷰 점수 순, 브랜드별 대표 제품이 먼저. 개인 파트너스 페이지의 TOP 10 [더보기]에서 들어온다.
 export default function AppPartnersBest() {
   const navigate = useNavigate()
   const [items, setItems] = useState<BestProduct[]>([])
@@ -34,12 +34,12 @@ export default function AppPartnersBest() {
   useEffect(() => { void loadMore() }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <PartnersGate title="잘 팔리는 제품">
+    <PartnersGate title="인기 제품">
       {() => (
         <AppFrame>
-          <BackHeader title="잘 팔리는 제품" onBack={() => navigate('/app/partners/home')} />
+          <BackHeader title="인기 제품" onBack={() => navigate('/app/partners/home')} />
           <section className="px-5 pt-4 pb-10">
-            <p className="text-[12px] text-ink-faint mb-1">최근 90일 판매 순 · [내 링크]를 누르면 바로 만들어지고 복사돼요</p>
+            <p className="text-[12px] text-ink-faint mb-1">판매·찜·리뷰 기준 인기 순, 브랜드별 대표 제품이 먼저 · [내 링크]를 누르면 바로 만들어지고 복사돼요</p>
             <ul className="divide-y divide-rule">
               {items.map((p) => <BestProductRow key={p.id} p={p} onToast={showToast} />)}
             </ul>
