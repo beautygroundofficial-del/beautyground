@@ -29,15 +29,15 @@ export default function BoardCategoryGrid() {
   const go = (key: BoardCategory) => navigate('/app/board', { state: { category: key } })
 
   return (
-    <section className="px-5 pt-8">
-      <h2 className="text-[16px] font-bold text-ink mb-3">관심 있는 이야기부터</h2>
-      <div className="grid grid-cols-5 gap-y-4">
+    <section className="px-5 pt-6">
+      <h2 className="text-[18px] font-bold text-ink leading-[1.6] mb-4">관심 있는 이야기부터</h2>
+      <div className="grid grid-cols-5 gap-y-5">
         {GRID_ITEMS.map((c, i) => (
           <button
             key={c.key}
             type="button"
             onClick={() => go(c.key)}
-            className="flex flex-col items-center gap-1.5 focus:outline-none focus-visible:shadow-ring"
+            className="flex min-h-11 min-w-11 flex-col items-center gap-2 rounded-control focus:outline-none focus-visible:shadow-ring"
           >
             <span
               className="w-14 h-14 rounded-full flex items-center justify-center text-[22px]"
@@ -46,7 +46,7 @@ export default function BoardCategoryGrid() {
             >
               {c.emoji}
             </span>
-            <span className="text-[12px] font-medium text-ink-soft leading-none">{c.short}</span>
+            <span className="text-[13px] font-medium text-ink leading-relaxed">{c.short}</span>
           </button>
         ))}
       </div>

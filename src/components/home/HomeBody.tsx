@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom'
+import { IconPencil } from '@tabler/icons-react'
 import AppHeader from '../layout/AppHeader'
 import MarqueeBar from './MarqueeBar'
 import MissionBanner from './MissionBanner'
@@ -42,9 +43,9 @@ export default function HomeBody({ marqueeItems, promoBarAbove = false }: HomeBo
       <MarqueeBar items={marqueeItems} />
       <AppHeader promoBarAbove={promoBarAbove} />
 
-      <div className="px-5 pt-4 flex items-center justify-between gap-3">
-        <p className="text-[14px] text-ink-soft">오늘은 읽기만 해도 괜찮아요.</p>
-        <button type="button" onClick={() => navigate('/app/friends')} className="min-h-11 shrink-0 text-[13px] font-semibold text-ink underline underline-offset-4">내 친구</button>
+      <div className="px-5 pt-5 flex items-center justify-between gap-3">
+        <p className="text-[14px] leading-relaxed text-ink-soft">오늘은 읽기만 해도 괜찮아요.</p>
+        <button type="button" onClick={() => navigate('/app/friends')} className="min-h-11 shrink-0 rounded-full border border-solid border-rule px-3 text-[13px] font-bold text-ink focus-visible:shadow-ring">내 친구</button>
       </div>
 
       {/* 회원의 이야기를 먼저 만나고, 원하는 만큼 대화에 참여한다. */}
@@ -55,17 +56,20 @@ export default function HomeBody({ marqueeItems, promoBarAbove = false }: HomeBo
           더는 사실이 아니게 됐다. */}
 
       {/* 오늘의 이야기 쓰기 */}
-      <section className="px-5 pt-4">
+      <section className="px-5 pt-2 pb-2">
         <button
           onClick={() => navigate('/app/diary/write')}
-          className="w-full rounded-card border border-rule bg-paper px-5 py-3 text-left focus:outline-none focus-visible:shadow-ring"
+          className="flex w-full items-center gap-4 rounded-card border border-solid border-rule bg-paper p-5 text-left transition-colors hover:bg-quiet/50 focus:outline-none focus-visible:shadow-ring"
         >
-          <span className="block text-[15px] font-bold leading-tight text-ink">오늘 어떤 하루였나요?</span>
-          <span className="block text-[12.5px] text-ink-soft mt-0.5">사소한 하루도 누군가에겐 위로가 됩니다</span>
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-quiet text-ink" aria-hidden="true"><IconPencil size={20} stroke={1.6} /></span>
+          <span className="min-w-0">
+            <span className="block text-[16px] font-bold leading-relaxed text-ink">오늘 어떤 하루였나요?</span>
+            <span className="block text-[13px] leading-relaxed text-ink-soft mt-1">사소한 하루도 누군가에겐 위로가 됩니다</span>
+          </span>
         </button>
       </section>
 
-      <div className="px-5 pt-4">
+      <div className="px-5 pt-6">
         <TodayQuestion />
       </div>
 

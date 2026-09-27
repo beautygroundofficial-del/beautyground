@@ -10,7 +10,7 @@ const TABS = [
 export default function StoryTabs({ current }: { current: '/app/diary' | '/app/board' }) {
   return (
     <div className="px-5 pt-4">
-      <div className="flex rounded-full bg-quiet p-1">
+      <div className="flex gap-1 rounded-full bg-quiet p-1">
         {TABS.map((t) => {
           const on = t.to === current
           return (
@@ -18,8 +18,8 @@ export default function StoryTabs({ current }: { current: '/app/diary' | '/app/b
               key={t.to}
               to={t.to}
               aria-current={on ? 'page' : undefined}
-              className={`flex-1 text-center py-2 rounded-full text-[13px] transition focus:outline-none focus-visible:shadow-ring ${
-                on ? 'bg-paper text-ink font-bold shadow-sm' : 'text-ink-faint'
+              className={`flex min-h-11 flex-1 items-center justify-center border text-center px-3 py-2 rounded-full text-[15px] leading-relaxed transition focus:outline-none focus-visible:shadow-ring ${
+                on ? 'border-rule bg-paper text-ink font-bold' : 'border-transparent text-ink-soft font-medium'
               }`}
             >
               {t.label}
