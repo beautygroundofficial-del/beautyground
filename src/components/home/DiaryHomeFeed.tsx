@@ -110,18 +110,28 @@ export default function DiaryHomeFeed({ limit = 6 }: { limit?: number }) {
             <p className="text-[12.5px] text-ink-faint mt-1.5">첫 이야기의 주인공이 되어주세요</p>
           </button>
         ) : (
-          <ul className="space-y-5">
+          <ul className="divide-y divide-rule border-t border-rule">
             {feed.map((d) => {
               const imgs = d.images ?? []
               return (
-                <li key={d.id} className="rounded-card border border-rule bg-paper overflow-hidden">
+                <li key={d.id} className="bg-paper py-5">
+                  <div className="mb-4 flex items-center gap-3">
+                    <span aria-hidden="true" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-quiet text-[16px] font-bold text-ink">{maskName(d.nickname)[0]}</span>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <button type="button" onClick={() => navigate(`/app/people/${d.user_id}`)} className="min-h-11 max-w-full truncate text-left text-[14px] font-bold text-ink focus-visible:shadow-ring">{maskName(d.nickname)}</button>
+                        <PetAvatars pets={d.pets} />
+                      </div>
+                      <p className="-mt-1 text-[12px] text-ink-soft">{timeAgo(d.created_at)}</p>
+                    </div>
+                  </div>
                   {/* 사진·글은 누르면 이야기 화면으로. 아래 줄(하트·말풍선)은 버튼이라 따로 둔다 — 버튼 안에 버튼을 넣을 수 없다 */}
                   <button
                     onClick={() => goPost(d.id)}
                     className="w-full text-left focus:outline-none focus-visible:shadow-ring"
                   >
                     {imgs.length > 0 && (
-                      <div className={`grid gap-0.5 ${imgs.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
+                      <div className={`mb-4 grid gap-0.5 overflow-hidden rounded-xl ${imgs.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
                         {imgs.slice(0, 4).map((src, i) => (
                           <div
                             key={`${src}-${i}`}
@@ -137,17 +147,14 @@ export default function DiaryHomeFeed({ limit = 6 }: { limit?: number }) {
                     {d.video_url && (
                       <video src={d.video_url} controls playsInline preload="metadata" muted className="w-full max-h-[360px] bg-ink" />
                     )}
-                    <div className="px-5 pt-5">
+                    <div>
                       <p className="text-[16px] text-ink whitespace-pre-wrap break-words leading-[1.8] line-clamp-4">{d.content}</p>
                     </div>
                   </button>
-                  {/* 이야기 화면과 같은 줄 — [이름 · 시간] ····· [♡][💬] (2026-09-11 대표님 "게시판 모두 하트·말풍선") */}
-                  <div className="px-5 pb-3">
-                    <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 mt-4 pt-2 border-t border-rule">
+                  {/* 작성자는 위에서, 공감과 댓글은 본문 아래에서 만난다. */}
+                  <div>
+                    <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 mt-3">
                       <div className="flex flex-wrap items-center gap-x-2 gap-y-1 min-w-0 max-w-full">
-                        <button type="button" onClick={() => navigate(`/app/people/${d.user_id}`)} className="min-h-11 max-w-[10rem] text-[13px] font-bold text-ink truncate focus:outline-none focus-visible:shadow-ring">{maskName(d.nickname)}</button>
-                        <PetAvatars pets={d.pets} />
-                        <span className="text-[12px] text-ink-soft shrink-0">{timeAgo(d.created_at)}</span>
                         {petWalkLabel(d.pets, d.steps) ? (
                           <span className="text-[12px] text-ink-soft tabular-nums">🐾 {petWalkLabel(d.pets, d.steps)}</span>
                         ) : d.steps != null && d.steps > 0 && (

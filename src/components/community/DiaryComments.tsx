@@ -9,6 +9,7 @@ export function CommentToggle({ count, open, onClick }: { count: number; open: b
       aria-expanded={open}
       className={`inline-flex min-h-11 min-w-11 items-center justify-center gap-1.5 rounded-full px-2.5 py-2 text-[13px] transition-colors focus:outline-none focus-visible:shadow-ring ${open ? 'bg-quiet text-ink' : 'text-ink-soft hover:bg-quiet'}`}>
       <BubbleIcon size={18} />
+      <span>댓글</span>
       {count > 0 && <span className="tabular-nums">{count}</span>}
     </button>
   )

@@ -308,10 +308,10 @@ function CommentPanel({
     const name = comment.is_mine ? '나' : maskName(comment.nickname)
     const canVisit = profileLinks && !!comment.user_id && !!comment.nickname?.trim() && !comment.is_mine
     return <div key={comment.id} id={`comment-${namespace}-${targetId}-${comment.id}`}
-      className={`scroll-mt-20 ${reply ? 'ml-3 pl-4 border-l-2 border-rule' : ''} ${selectedId === comment.id ? 'rounded-md bg-quiet p-3' : ''}`}>
-      <p className="text-[15px] text-ink leading-[1.8] whitespace-pre-wrap break-words">{comment.content}</p>
-      <div className="mt-1 flex flex-wrap items-center justify-between gap-x-3">
+      className={`scroll-mt-20 ${reply ? 'ml-3 pl-4 border-l-2 border-rule' : ''} ${selectedId === comment.id ? 'rounded-xl bg-paper p-3 ring-1 ring-rule' : ''}`}>
+      <div className="mb-1 flex flex-wrap items-center justify-between gap-x-3">
         <div className="min-h-11 text-[12.5px] text-ink-soft flex flex-wrap items-center gap-1.5">
+          <span aria-hidden="true" className="mr-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-paper text-[13px] font-bold text-ink">{name[0]}</span>
           {canVisit ? <button type="button" disabled={busy} onClick={() => visitProfile(comment)}
             aria-label={`${name}님의 이야기 보기`} className="min-h-11 min-w-11 text-left font-bold focus-visible:shadow-ring">{name}</button> : <span>{name}</span>}
           {spacious && <span>· {timeAgo(comment.created_at)}</span>}
@@ -326,6 +326,7 @@ function CommentPanel({
             className="min-h-11 min-w-11 rounded-control px-2 text-[13px] text-ink-soft hover:bg-quiet focus-visible:shadow-ring disabled:opacity-40">{pending === `delete:${comment.id}` ? '삭제 중…' : '삭제'}</button>}
         </div>
       </div>
+      <p className="text-[15px] text-ink leading-[1.8] whitespace-pre-wrap break-words">{comment.content}</p>
       {allowReplies && !comment.parent_comment_id && drafts.replyTarget === comment.id && <div className="mt-2 rounded-md bg-quiet p-3">
         <div className="flex items-center justify-between mb-1 text-[13px] text-ink-soft">
           <span>{name}님의 댓글에 답글</span>
@@ -343,7 +344,8 @@ function CommentPanel({
     </div>
   }
 
-  return <div className="mt-4 pt-5 border-t border-rule">
+  return <div className="mt-4 rounded-2xl bg-quiet p-4">
+    <h3 className="mb-3 text-[15px] font-bold text-ink">댓글 <span className="ml-1 tabular-nums text-ink-soft">{count}</span></h3>
     {loading && list === null && <p role="status" className="text-[14px] text-ink-soft mb-4">불러오는 중…</p>}
     {loadError && <div role="alert" className="text-[14px] leading-relaxed text-ink-soft mb-4">
       댓글을 불러오지 못했어요. <button type="button" disabled={loading || busy} onClick={() => void load(false, selectedId)} className="min-h-11 underline underline-offset-4 focus-visible:shadow-ring">다시 불러오기</button>
@@ -362,7 +364,7 @@ function CommentPanel({
       <button type="button" disabled={loading || busy} onClick={() => void load(false, selectedId)} className="min-h-11 underline">새로고침</button>
     </div>}
     {message && <p role="status" className="text-[14px] leading-relaxed text-ink-soft mb-3">{message}</p>}
-    {!loggedIn ? <button type="button" onClick={() => login()} className="min-h-11 text-[14px] text-ink underline underline-offset-4 py-2 focus-visible:shadow-ring">로그인하고 댓글 남기기</button> : <div className="flex flex-wrap items-end justify-end gap-2 rounded-md bg-quiet p-3">
+    {!loggedIn ? <button type="button" onClick={() => login()} className="min-h-11 text-[14px] text-ink underline underline-offset-4 py-2 focus-visible:shadow-ring">로그인하고 댓글 남기기</button> : <div className="flex flex-wrap items-end justify-end gap-2 border-t border-rule pt-4">
       <textarea value={drafts.main} disabled={busy || !draftReady}
         onChange={(event) => persistDrafts({ ...draftsRef.current, main: event.target.value })}
         aria-label="댓글 내용" rows={spacious ? 2 : 1} maxLength={500} placeholder="따뜻한 한마디를 남겨주세요"
