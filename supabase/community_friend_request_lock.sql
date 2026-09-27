@@ -43,7 +43,7 @@ begin
   return query select 'requested', '친구 신청을 보냈어요';
 end;
 $$;
-revoke all on function public.request_friend(uuid) from public;
+revoke all on function public.request_friend(uuid) from public, anon;
 grant execute on function public.request_friend(uuid) to authenticated;
 
 create or replace function public.respond_friend(p_user_id uuid, p_accept boolean)
@@ -71,7 +71,7 @@ begin
   return v_n > 0;
 end;
 $$;
-revoke all on function public.respond_friend(uuid, boolean) from public;
+revoke all on function public.respond_friend(uuid, boolean) from public, anon;
 grant execute on function public.respond_friend(uuid, boolean) to authenticated;
 
 create or replace function public.remove_friend(p_user_id uuid)
@@ -95,7 +95,7 @@ begin
   return v_n > 0;
 end;
 $$;
-revoke all on function public.remove_friend(uuid) from public;
+revoke all on function public.remove_friend(uuid) from public, anon;
 grant execute on function public.remove_friend(uuid) to authenticated;
 
 notify pgrst, 'reload schema';
