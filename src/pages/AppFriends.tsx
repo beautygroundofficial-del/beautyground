@@ -26,9 +26,9 @@ function timeAgo(iso: string) {
 
 function Section({ title, count, children }: { title: string; count?: number; children: React.ReactNode }) {
   return (
-    <section className="mb-7">
-      <h2 className="text-[13px] font-bold text-ink mb-2.5">
-        {title}{count !== undefined && count > 0 && <span className="ml-1.5 text-ink-faint tabular-nums font-semibold">{count}</span>}
+    <section className="mb-6">
+      <h2 className="text-[18px] font-bold leading-snug text-ink mb-3">
+        {title}{count !== undefined && count > 0 && <span className="ml-2 text-[13px] text-ink-soft tabular-nums font-normal">{count}</span>}
       </h2>
       {children}
     </section>
@@ -137,47 +137,47 @@ export default function AppFriends() {
     return act(f.user_id, () => removeFriend(f.user_id), '친구를 끊었어요')
   }
 
-  const row = 'flex items-center justify-between gap-3 rounded-card border border-rule bg-paper px-4 py-3'
-  const nameCls = 'text-[14px] font-semibold text-ink truncate'
-  const subCls = 'text-[11.5px] text-ink-faint mt-0.5'
-  const ghost = 'text-[12px] text-ink-faint px-2 py-1.5 focus:outline-none focus-visible:shadow-ring'
-  const solid = 'rounded-control bg-ink text-paper text-[12px] font-semibold px-3 py-1.5 focus:outline-none focus-visible:shadow-ring'
+  const row = 'flex items-center justify-between gap-3 rounded-card border border-rule bg-paper p-4'
+  const nameCls = 'text-[15px] font-bold leading-[1.7] text-ink break-words'
+  const subCls = 'text-[12px] leading-[1.7] text-ink-soft mt-1 break-keep'
+  const ghost = 'min-h-11 min-w-12 shrink-0 rounded-control text-[13px] text-ink-soft px-3 py-2 focus:outline-none focus-visible:shadow-ring'
+  const solid = 'min-h-11 min-w-12 rounded-control bg-ink text-paper text-[13px] font-bold px-3 py-2 focus:outline-none focus-visible:shadow-ring'
 
   return (
     <AppFrame>
       <BackHeader title="친구" onBack={() => navigate('/app/mypage')} />
 
-      <div className="px-5 pt-5 pb-28">
+      <div className="px-5 pt-6 pb-28">
         {loggedIn && (
-          <div className="flex justify-end mb-3">
+          <div className="flex justify-end mb-4">
             <button type="button" onClick={() => void load()} disabled={loading || busyUserId !== null}
-              className="text-[12px] text-ink-soft px-2 py-2 disabled:opacity-50">
+              className="min-h-11 text-[13px] text-ink-soft px-2 py-2 underline underline-offset-4 disabled:opacity-50">
               {loading ? '새로 불러오는 중…' : '새로고침'}
             </button>
           </div>
         )}
-        {error && <p role="alert" className="mb-4 rounded-control border border-rule bg-quiet px-4 py-3 text-[13px] text-ink-soft">{error}</p>}
+        {error && <p role="alert" className="mb-6 rounded-card bg-quiet p-4 text-[15px] leading-[1.7] text-ink-soft">{error}</p>}
         {loggedIn === false ? (
           <div className="text-center py-16">
-            <p className="text-[14px] text-ink-soft mb-4">로그인하면 친구를 맺을 수 있어요</p>
+            <p className="text-[15px] leading-[1.7] text-ink-soft mb-6 break-keep">로그인하면 친구를 맺을 수 있어요</p>
             <button
               onClick={() => navigate('/app/login', { state: { from: '/app/friends' } })}
-              className="rounded-control bg-ink text-paper font-bold text-[14px] px-6 py-3 focus:outline-none focus-visible:shadow-ring"
+              className="min-h-11 rounded-control bg-ink text-paper font-bold text-[14px] px-6 py-3 focus:outline-none focus-visible:shadow-ring"
             >
               로그인
             </button>
           </div>
         ) : friends === null && error ? null : friends === null ? (
-          <p className="py-16 text-center text-[13px] text-ink-faint">불러오는 중…</p>
+          <p className="py-16 text-center text-[15px] leading-[1.7] text-ink-soft">불러오는 중…</p>
         ) : (
           <>
             {received.length > 0 && (
               <Section title="받은 신청" count={received.length}>
-                <ul className="space-y-2">
+                <ul className="space-y-3">
                   {received.map((r) => (
                     <li key={`r-${r.user_id}`} className={row}>
-                      <div className="min-w-0">
-                        <Link to={`/app/people/${r.user_id}`} className={nameCls + ' block hover:underline'}>{r.nickname ?? '익명'}</Link>
+                      <div className="min-w-0 flex-1">
+                        <Link to={`/app/people/${r.user_id}`} className={nameCls + ' flex min-h-11 items-center hover:underline focus:outline-none focus-visible:shadow-ring'}>{r.nickname ?? '익명'}</Link>
                         <p className={subCls}>{timeAgo(r.created_at)}에 친구 신청</p>
                       </div>
                       <div className="flex items-center gap-1 shrink-0">
@@ -194,17 +194,17 @@ export default function AppFriends() {
               {friends.length === 0 ? (
                 <button
                   onClick={() => navigate('/app/diary')}
-                  className="w-full rounded-card border border-dashed border-rule bg-quiet/40 px-5 py-10 text-center focus:outline-none focus-visible:shadow-ring"
+                  className="w-full rounded-card bg-quiet px-5 py-10 text-center focus:outline-none focus-visible:shadow-ring"
                 >
-                  <p className="text-[14px] font-semibold text-ink">아직 친구가 없어요</p>
-                  <p className="text-[12.5px] text-ink-faint mt-1.5">사람들의 이야기에서 이름 옆 '친구 신청'을 눌러보세요</p>
+                  <p className="text-[16px] font-bold leading-[1.7] text-ink">아직 친구가 없어요</p>
+                  <p className="text-[14px] leading-[1.7] text-ink-soft mt-2 break-keep">사람들의 이야기에서 이름 옆 '친구 신청'을 눌러보세요</p>
                 </button>
               ) : (
-                <ul className="space-y-2">
+                <ul className="space-y-3">
                   {friends.map((f) => (
                     <li key={f.user_id} className={row}>
-                      <div className="min-w-0">
-                        <Link to={`/app/people/${f.user_id}`} className={nameCls + ' block hover:underline'}>{f.nickname ?? '익명'}</Link>
+                      <div className="min-w-0 flex-1">
+                        <Link to={`/app/people/${f.user_id}`} className={nameCls + ' flex min-h-11 items-center hover:underline focus:outline-none focus-visible:shadow-ring'}>{f.nickname ?? '익명'}</Link>
                         <p className={subCls}>{timeAgo(f.since)}부터 친구</p>
                       </div>
                       <button type="button" disabled={busyUserId !== null} onClick={() => void unfriend(f)} className={ghost + ' disabled:opacity-50'}>끊기</button>
@@ -216,10 +216,10 @@ export default function AppFriends() {
 
             {sent.length > 0 && (
               <Section title="보낸 신청" count={sent.length}>
-                <ul className="space-y-2">
+                <ul className="space-y-3">
                   {sent.map((r) => (
                     <li key={`s-${r.user_id}`} className={row}>
-                      <div className="min-w-0">
+                      <div className="min-w-0 flex-1">
                         <p className={nameCls}>{r.nickname ?? '익명'}</p>
                         <p className={subCls}>{timeAgo(r.created_at)} · 답을 기다리는 중</p>
                       </div>
@@ -234,7 +234,7 @@ export default function AppFriends() {
       </div>
 
       {toast && (
-        <div role="status" className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 rounded-full bg-ink text-paper text-[13px] shadow-lg">
+        <div role="status" className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 w-max max-w-[calc(100%-40px)] px-4 py-3 rounded-card bg-ink text-paper text-[14px] leading-[1.7] text-center break-keep">
           {toast}
         </div>
       )}

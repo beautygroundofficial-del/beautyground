@@ -82,8 +82,8 @@ export default function FriendButton({ userId, status, loggedIn, disabled = fals
   const tone =
     status === 'friends' ? 'bg-quiet text-ink border-transparent'
     : status === 'received' ? 'bg-ink text-paper border-transparent'
-    : status === 'requested' ? 'text-ink-faint border-rule'
-    : 'text-ink-soft border-rule'
+    : status === 'requested' ? 'bg-paper text-ink-soft border-rule'
+    : 'bg-paper text-ink-soft border-rule hover:bg-quiet'
 
   return (
     <>
@@ -93,7 +93,7 @@ export default function FriendButton({ userId, status, loggedIn, disabled = fals
       disabled={busy || disabled}
       aria-busy={busy}
       aria-label={status === 'friends' ? '친구 — 누르면 끊기' : status === 'requested' ? '친구 신청함 — 누르면 취소' : status === 'received' ? '친구 신청 수락' : '친구 신청'}
-      className={`shrink-0 rounded-full border px-2 py-0.5 text-[10.5px] font-semibold leading-tight transition-colors focus:outline-none focus-visible:shadow-ring disabled:opacity-50 ${tone}`}
+      className={`inline-flex min-h-11 shrink-0 items-center justify-center whitespace-nowrap rounded-full border border-solid px-3 text-[13px] font-bold leading-snug transition-colors focus:outline-none focus-visible:shadow-ring disabled:opacity-50 ${tone}`}
     >
       {label}
     </button>

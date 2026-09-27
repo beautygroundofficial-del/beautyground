@@ -144,19 +144,19 @@ export default function AppPerson() {
       }} />
 
       {loadError ? (
-        <div role="alert" className="py-16 px-5 text-center text-[14px] text-ink-soft"><p>{loadError}</p><button type="button" className="min-h-11 mt-2 underline" onClick={() => setRefreshVersion(v => v + 1)}>다시 불러오기</button></div>
+        <div role="alert" className="py-16 px-5 text-center text-[15px] leading-[1.7] text-ink-soft"><p>{loadError}</p><button type="button" className="min-h-11 mt-3 px-3 text-[13px] underline underline-offset-4" onClick={() => setRefreshVersion(v => v + 1)}>다시 불러오기</button></div>
       ) : profile === undefined || (profile !== null && profile.user_id !== id) ? (
-        <p className="py-16 text-center text-[13px] text-ink-faint">불러오는 중…</p>
+        <p className="py-16 px-5 text-center text-[15px] leading-[1.7] text-ink-soft">불러오는 중…</p>
       ) : profile === null ? (
-        <p className="py-16 text-center text-[13px] text-ink-faint">찾을 수 없는 사람이에요</p>
+        <p className="py-16 px-5 text-center text-[15px] leading-[1.7] text-ink-soft">찾을 수 없는 사람이에요</p>
       ) : (
         <>
           {/* 사람 */}
-          <section className="px-5 pt-6 pb-5 border-b border-rule">
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <h1 className="text-[20px] font-bold text-ink leading-tight truncate">{name}</h1>
-                <p className="text-[12.5px] text-ink-faint mt-1.5">
+          <section className="px-5 py-6 border-b border-rule">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div className="min-w-0 flex-1 basis-36">
+                <h1 className="text-[20px] font-bold text-ink leading-snug break-words">{name}</h1>
+                <p className="text-[13px] leading-[1.7] text-ink-soft mt-2 break-keep">
                   {[
                     sinceLabel(profile.since) ? `함께한 지 ${sinceLabel(profile.since)}` : null,
                     profile.diary_count > 0 ? `이야기 ${profile.diary_count}개` : null,
@@ -164,13 +164,13 @@ export default function AppPerson() {
                 </p>
               </div>
               {profile.is_me ? (
-                <button type="button" onClick={() => navigate('/app/mypage')} className="shrink-0 text-[12px] text-ink-soft rounded-control border border-rule px-3 py-1.5">마이페이지</button>
+                <button type="button" onClick={() => navigate('/app/mypage')} className="min-h-11 shrink-0 text-[13px] text-ink-soft rounded-control border border-solid border-rule px-3 py-2">마이페이지</button>
               ) : (
-                <div className="shrink-0 text-right">
+                <div className="max-w-full shrink-0 text-right">
                   <FriendButton key={id} userId={id} status={friend} loggedIn={loggedIn} disabled={friendLoading || !!friendError}
                     onChange={setFriend} onNotice={showToast} />
                   {friendError && (
-                    <button type="button" onClick={() => setRefreshVersion((v) => v + 1)} className="block mt-1 text-[11px] text-ink-soft">
+                    <button type="button" onClick={() => setRefreshVersion((v) => v + 1)} className="block min-h-11 max-w-full mt-1 text-[12px] leading-[1.7] text-ink-soft break-keep underline underline-offset-4">
                       {friendError} · 다시 시도
                     </button>
                   )}
@@ -180,13 +180,13 @@ export default function AppPerson() {
 
             {/* 펫 — 이 사람과 사는 친구들 */}
             {profile.pets.length > 0 && (
-              <div className="flex items-center gap-3 mt-4 overflow-x-auto scrollbar-hide">
+              <div className="flex items-center gap-4 mt-6 overflow-x-auto scrollbar-hide">
                 {profile.pets.map((p) => (
                   <div key={p.id} className="flex flex-col items-center shrink-0 w-14">
                     <span className="w-12 h-12 rounded-full bg-quiet overflow-hidden flex items-center justify-center">
                       {p.photo_url ? <img src={p.photo_url} alt="" className="w-full h-full object-cover" /> : <span className="text-[22px]" aria-hidden="true">{petEmoji(p.kind)}</span>}
                     </span>
-                    <span className="text-[11px] text-ink-soft mt-1 truncate w-full text-center">{p.name}</span>
+                    <span className="text-[12px] leading-5 text-ink-soft mt-2 truncate w-full text-center">{p.name}</span>
                   </div>
                 ))}
               </div>
@@ -194,11 +194,11 @@ export default function AppPerson() {
           </section>
 
           {/* 그 사람의 하루 이야기 */}
-          <section className="px-5 pt-5 pb-28">
+          <section className="px-5 pt-6 pb-28">
             {feed.length === 0 ? (
-              <p className="py-10 text-center text-[13px] text-ink-faint">아직 남긴 하루 이야기가 없어요</p>
+              <p className="rounded-card bg-quiet px-5 py-10 text-center text-[15px] leading-[1.7] text-ink-soft break-keep">아직 남긴 하루 이야기가 없어요</p>
             ) : (
-              <ul className="space-y-4">
+              <ul className="space-y-6">
                 {feed.map((d) => {
                   const imgs = d.images ?? []
                   const walk = petWalkLabel(d.pets, d.steps)
@@ -216,14 +216,14 @@ export default function AppPerson() {
                       )}
                       {d.video_url && <video src={d.video_url} controls playsInline preload="metadata" className="w-full max-h-[420px] bg-ink" />}
                       <div className="p-4">
-                        <p className="text-[14px] text-ink whitespace-pre-wrap leading-relaxed line-clamp-4">{d.content}</p>
-                        <div className="flex items-center justify-between mt-3.5 pt-3 border-t border-rule">
-                          <div className="flex items-center gap-2 min-w-0">
-                            <span className="text-[11.5px] text-ink-faint shrink-0">{timeAgo(d.created_at)}</span>
-                            {walk ? <span className="text-[11.5px] text-ink-soft shrink-0 tabular-nums">🐾 {walk}</span>
-                              : d.steps != null && d.steps > 0 && <span className="text-[11.5px] text-ink-soft shrink-0 tabular-nums">🚶 {d.steps.toLocaleString('ko-KR')}보</span>}
+                        <p className="text-[16px] text-ink whitespace-pre-wrap leading-[1.8] line-clamp-4 break-words">{d.content}</p>
+                        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 mt-4 pt-3 border-t border-rule">
+                          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 min-w-0">
+                            <span className="text-[12px] leading-5 text-ink-soft shrink-0">{timeAgo(d.created_at)}</span>
+                            {walk ? <span className="text-[12px] leading-5 text-ink-soft tabular-nums break-words">🐾 {walk}</span>
+                              : d.steps != null && d.steps > 0 && <span className="text-[12px] leading-5 text-ink-soft shrink-0 tabular-nums">🚶 {d.steps.toLocaleString('ko-KR')}보</span>}
                           </div>
-                          <div className="flex items-center gap-1 shrink-0 -mr-2">
+                          <div className="ml-auto flex items-center gap-1 shrink-0 -mr-2">
                             <LikeButton liked={d.liked_by_me} count={d.like_count} loggedIn={loggedIn} disabled={d.is_mine}
                               onToggle={async () => {
                                 const res = await toggleDiaryLike(d.id)
@@ -244,7 +244,7 @@ export default function AppPerson() {
         </>
       )}
 
-      {toast && <div role="status" className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 rounded-full bg-ink text-paper text-[13px] shadow-lg">{toast}</div>}
+      {toast && <div role="status" className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 w-max max-w-[calc(100%-40px)] px-4 py-3 rounded-card bg-ink text-paper text-[14px] leading-[1.7] text-center break-keep">{toast}</div>}
       {viewer && <Lightbox images={viewer.images} index={viewer.index} onClose={() => setViewer(null)} />}
     </AppFrame>
   )

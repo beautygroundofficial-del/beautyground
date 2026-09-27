@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
+import { IconPencil } from '@tabler/icons-react'
 import BackHeader from '../components/layout/BackHeader'
 import AppFrame from '../components/layout/AppFrame'
 import { supabase } from '../lib/supabase'
@@ -57,10 +58,10 @@ function maskName(name: string | null) {
 // 섹션 머리 — 작은 회색 라벨 위, 굵은 제목 아래. 훑기만 해도 구조가 잡히게.
 function SectionHead({ label, title, right }: { label: string; title: string; right?: React.ReactNode }) {
   return (
-    <div className="flex items-end justify-between gap-3 mb-3">
+    <div className="flex flex-col gap-4 mb-4">
       <div className="min-w-0">
-        <p className="text-[11.5px] text-ink-faint leading-none mb-1.5">{label}</p>
-        <h2 className="text-[17px] font-bold text-ink leading-tight">{title}</h2>
+        <p className="text-[13px] text-ink-soft leading-relaxed mb-1.5">{label}</p>
+        <h2 className="text-[20px] font-bold tracking-[-0.02em] text-ink leading-snug">{title}</h2>
       </div>
       {right}
     </div>
@@ -184,10 +185,13 @@ export default function AppDiary() {
       <section className="px-5 pt-4">
         <button
           onClick={openComposer}
-          className="w-full rounded-card border border-rule bg-paper px-5 py-3 text-left focus:outline-none focus-visible:shadow-ring"
+          className="flex w-full items-center gap-4 rounded-card border border-solid border-rule bg-paper p-5 text-left transition-colors hover:bg-quiet/50 focus:outline-none focus-visible:shadow-ring"
         >
-          <span className="block text-[15px] font-bold leading-tight text-ink">오늘 어떤 하루였나요?</span>
-          <span className="block text-[12.5px] text-ink-soft mt-0.5">사소한 하루도 누군가에겐 위로가 됩니다 · 사진과 걸음 수도 함께</span>
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-quiet text-ink" aria-hidden="true"><IconPencil size={20} stroke={1.6} /></span>
+          <span className="min-w-0">
+            <span className="block text-[16px] font-bold leading-relaxed text-ink">오늘 어떤 하루였나요?</span>
+            <span className="block text-[13px] leading-relaxed text-ink-soft mt-1">사소한 하루도 누군가에겐 위로가 됩니다 · 사진과 걸음 수도 함께</span>
+          </span>
         </button>
       </section>
 
@@ -197,13 +201,13 @@ export default function AppDiary() {
       {best.length > 0 && (
         <section className="px-5 pt-8">
           <SectionHead label="이번 달, 많은 분이 마음을 눌러준" title="이달의 이야기" />
-          <div className="flex items-start gap-2.5 overflow-x-auto scrollbar-hide -mx-1 px-1 snap-x">
+          <div className="flex items-start gap-3 overflow-x-auto scrollbar-hide -mx-1 px-1 pb-1 snap-x">
             {best.map((b, i) => {
               const open = openBest === b.id
               return (
                 <div
                   key={b.id}
-                  className={`shrink-0 snap-start rounded-card border bg-paper p-3 transition-[width] ${
+                  className={`shrink-0 snap-start rounded-card border bg-paper p-4 transition-[width] motion-reduce:transition-none ${
                     open ? 'w-[260px] border-ink' : 'w-[190px] border-rule'}`}
                 >
                   <button
@@ -214,11 +218,11 @@ export default function AppDiary() {
                     <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-ink text-paper text-[11px] font-bold mb-1.5">
                       {i + 1}
                     </span>
-                    <p className={`text-[13px] text-ink leading-snug min-h-[2.4em] ${open ? '' : 'line-clamp-2'}`}>
+                    <p className={`text-[15px] text-ink leading-[1.7] break-words min-h-[3.4em] ${open ? '' : 'line-clamp-2'}`}>
                       {b.content}
                     </p>
                     {b.reaction_count > 0 && (
-                      <p className="text-[11.5px] text-ink-faint mt-1.5">🤍 {b.reaction_count}</p>
+                      <p className="text-[12px] text-ink-soft mt-3">🤍 {b.reaction_count}</p>
                     )}
                   </button>
                   {open && (
@@ -237,15 +241,16 @@ export default function AppDiary() {
           label="오늘도 각자의 하루를 살아갑니다"
           title="사람들의 이야기"
           right={
-            <div className="flex items-center gap-1 shrink-0">
+            <div className="flex items-center gap-2" aria-label="이야기 정렬">
               {([['recent', '최신'], ['popular', '인기'], ['walk', '산책'], ['friends', '친구']] as const).map(([key, label]) => (
                 <button key={key}
                   onClick={() => {
                     if (key === 'friends' && !loggedIn) { navigate('/app/login', { state: { from: '/app/diary' } }); return }
                     setLoading(true); setSort(key)
                   }}
-                  className={`px-3 py-1.5 rounded-full text-[12px] font-semibold transition ${
-                    sort === key ? 'bg-ink text-paper' : 'text-ink-faint'}`}>
+                  aria-pressed={sort === key}
+                  className={`min-h-11 flex-1 rounded-full border border-solid px-3 py-2 text-[14px] font-bold transition-colors focus-visible:shadow-ring ${
+                    sort === key ? 'border-ink bg-ink text-paper' : 'border-rule bg-paper text-ink-soft hover:bg-quiet'}`}>
                   {label}
                 </button>
               ))}
@@ -283,11 +288,11 @@ export default function AppDiary() {
             <p className="text-[12.5px] text-ink-faint mt-1.5">첫 이야기의 주인공이 되어주세요</p>
           </button>
         ) : (
-          <ul className="space-y-4">
+          <ul className="space-y-5">
             {feed.map((d) => {
               const imgs = d.images ?? []
               return (
-                <li key={d.id} id={`diary-${d.id}`} className={`rounded-card border bg-paper overflow-hidden transition-shadow ${focusId === d.id ? 'border-ink shadow-ring' : 'border-rule'}`}>
+                <li key={d.id} id={`diary-${d.id}`} className={`scroll-mt-20 rounded-card border bg-paper overflow-hidden transition-colors ${focusId === d.id ? 'border-ink' : 'border-rule'}`}>
                   {/* 사진이 있으면 사진이 주인공 — 카드 맨 위에 크게 */}
                   {imgs.length > 0 && (
                     <div className={`grid gap-0.5 ${imgs.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
@@ -312,18 +317,18 @@ export default function AppDiary() {
                     <video src={d.video_url} controls playsInline preload="metadata" className="w-full max-h-[420px] bg-ink" />
                   )}
 
-                  <div className="p-3.5">
-                    <p className={`text-[16px] text-ink whitespace-pre-wrap leading-[1.8] ${expanded.has(d.id) ? '' : 'line-clamp-4'}`}>
+                  <div className="p-5">
+                    <p className={`text-[16px] text-ink whitespace-pre-wrap break-words leading-[1.8] ${expanded.has(d.id) ? '' : 'line-clamp-4'}`}>
                       {d.content}
                     </p>
                     <button type="button" aria-expanded={expanded.has(d.id)} onClick={() => setExpanded(prev => { const next = new Set(prev); if (next.has(d.id)) next.delete(d.id); else next.add(d.id); return next })} className="min-h-11 text-[13px] text-ink-soft underline underline-offset-4">{expanded.has(d.id) ? '접기' : '이야기 전체 읽기'}</button>
 
-                    <div className="flex items-center justify-between mt-2.5 pt-2.5 border-t border-rule">
-                      <div className="flex items-center gap-2 min-w-0">
+                    <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 mt-3 pt-2 border-t border-rule">
+                      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 min-w-0 max-w-full">
                         {/* 친구면 이름을 가리지 않는다 — 친구끼리는 누가 누군지 알아야 이야기가 이어진다 */}
                         {/* 닉네임 → 그 사람의 이야기(2026-09-12 A1) */}
                         <button type="button" onClick={() => navigate(`/app/people/${d.user_id}`)}
-                          className="text-[12px] font-semibold text-ink truncate focus:outline-none focus-visible:shadow-ring">
+                          className="min-h-11 max-w-[10rem] text-[13px] font-bold text-ink truncate focus:outline-none focus-visible:shadow-ring">
                           {friendOf[d.user_id] === 'friends' ? (d.nickname ?? '익명') : maskName(d.nickname)}
                         </button>
                         <PetAvatars pets={d.pets} />
@@ -336,15 +341,15 @@ export default function AppDiary() {
                             onNotice={showToast}
                           />
                         )}
-                        <span className="text-[11.5px] text-ink-faint shrink-0">{timeAgo(d.created_at)}</span>
+                        <span className="text-[12px] text-ink-soft shrink-0">{timeAgo(d.created_at)}</span>
                         {petWalkLabel(d.pets, d.steps) ? (
-                          <span className="text-[11.5px] text-ink-soft shrink-0 tabular-nums">🐾 {petWalkLabel(d.pets, d.steps)}</span>
+                          <span className="text-[12px] text-ink-soft tabular-nums">🐾 {petWalkLabel(d.pets, d.steps)}</span>
                         ) : d.steps != null && d.steps > 0 && (
-                          <span className="text-[11.5px] text-ink-soft shrink-0 tabular-nums">🚶 {d.steps.toLocaleString('ko-KR')}보</span>
+                          <span className="text-[12px] text-ink-soft tabular-nums">🚶 {d.steps.toLocaleString('ko-KR')}보</span>
                         )}
                       </div>
                       {/* 하트 · 말풍선 · (내 글이면) 수정 삭제 — 한 줄에 나란히(2026-09-11 대표님 "깔끔하게") */}
-                      <div className="flex items-center gap-1 shrink-0 -mr-2">
+                      <div className="ml-auto flex flex-wrap items-center gap-1 -mr-2">
                         <LikeButton
                           liked={d.liked_by_me}
                           count={d.like_count}
@@ -359,8 +364,8 @@ export default function AppDiary() {
                         <CommentToggle count={d.comment_count} open={openComments.has(d.id)} onClick={() => toggleComments(d.id)} />
                         {d.is_mine && (
                           <>
-                            <button onClick={() => navigate(`/app/diary/write?id=${d.id}`)} className="text-[11.5px] text-ink-faint px-1.5 py-1.5">수정</button>
-                            <button onClick={() => void onDelete(d)} className="text-[11.5px] text-ink-faint px-1.5 py-1.5">삭제</button>
+                            <button onClick={() => navigate(`/app/diary/write?id=${d.id}`)} className="min-h-11 min-w-11 rounded-control text-[13px] text-ink-soft px-2 focus-visible:shadow-ring">수정</button>
+                            <button onClick={() => void onDelete(d)} className="min-h-11 min-w-11 rounded-control text-[13px] text-ink-soft px-2 focus-visible:shadow-ring">삭제</button>
                           </>
                         )}
                       </div>
@@ -409,7 +414,7 @@ export default function AppDiary() {
       </section>
 
       {toast && (
-        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 rounded-full bg-ink text-paper text-[13px] shadow-lg">
+        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 max-w-[calc(100%-2.5rem)] px-5 py-3 rounded-full bg-ink text-paper text-[14px]">
           {toast}
         </div>
       )}

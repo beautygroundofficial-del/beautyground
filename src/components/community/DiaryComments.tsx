@@ -7,7 +7,7 @@ export function CommentToggle({ count, open, onClick }: { count: number; open: b
     <button type="button" onClick={onClick}
       aria-label={count > 0 ? `댓글 ${count}개 ${open ? '접기' : '보기'}` : '댓글 남기기'}
       aria-expanded={open}
-      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-[12px] transition-colors focus:outline-none focus-visible:shadow-ring ${open ? 'bg-quiet text-ink' : 'text-ink-soft hover:bg-quiet'}`}>
+      className={`inline-flex min-h-11 min-w-11 items-center justify-center gap-1.5 rounded-full px-2.5 py-2 text-[13px] transition-colors focus:outline-none focus-visible:shadow-ring ${open ? 'bg-quiet text-ink' : 'text-ink-soft hover:bg-quiet'}`}>
       <BubbleIcon size={18} />
       {count > 0 && <span className="tabular-nums">{count}</span>}
     </button>

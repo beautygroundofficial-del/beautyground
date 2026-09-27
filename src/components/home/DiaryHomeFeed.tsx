@@ -42,13 +42,13 @@ function maskName(name: string | null) {
 
 function SectionHead({ label, title, onMore }: { label: string; title: string; onMore?: () => void }) {
   return (
-    <div className="flex items-end justify-between gap-3 mb-2.5">
+    <div className="flex items-end justify-between gap-3 mb-4">
       <div className="min-w-0">
-        <p className="text-[11.5px] text-ink-faint leading-none mb-1">{label}</p>
-        <h2 className="text-[17px] font-bold text-ink leading-tight">{title}</h2>
+        <p className="text-[13px] text-ink-soft leading-relaxed mb-1.5">{label}</p>
+        <h2 className="text-[20px] font-bold tracking-[-0.02em] text-ink leading-snug">{title}</h2>
       </div>
       {onMore && (
-        <button onClick={onMore} className="shrink-0 text-[12px] text-ink-soft focus:outline-none focus-visible:shadow-ring">
+        <button onClick={onMore} className="min-h-11 shrink-0 rounded-control px-2 text-[13px] text-ink-soft focus:outline-none focus-visible:shadow-ring">
           더보기
         </button>
       )}
@@ -82,7 +82,7 @@ export default function DiaryHomeFeed({ limit = 6 }: { limit?: number }) {
   return (
     <>
       {/* 최근 이야기 */}
-      <section className="px-5 pt-6 pb-4">
+      <section className="px-5 pt-6 pb-6">
         <SectionHead
           label="오늘도 각자의 하루를 살아갑니다"
           title="사람들의 이야기"
@@ -110,7 +110,7 @@ export default function DiaryHomeFeed({ limit = 6 }: { limit?: number }) {
             <p className="text-[12.5px] text-ink-faint mt-1.5">첫 이야기의 주인공이 되어주세요</p>
           </button>
         ) : (
-          <ul className="space-y-4">
+          <ul className="space-y-5">
             {feed.map((d) => {
               const imgs = d.images ?? []
               return (
@@ -137,24 +137,24 @@ export default function DiaryHomeFeed({ limit = 6 }: { limit?: number }) {
                     {d.video_url && (
                       <video src={d.video_url} controls playsInline preload="metadata" muted className="w-full max-h-[360px] bg-ink" />
                     )}
-                    <div className="px-4 pt-3.5">
-                      <p className="text-[14px] text-ink whitespace-pre-wrap leading-relaxed line-clamp-4">{d.content}</p>
+                    <div className="px-5 pt-5">
+                      <p className="text-[16px] text-ink whitespace-pre-wrap break-words leading-[1.8] line-clamp-4">{d.content}</p>
                     </div>
                   </button>
                   {/* 이야기 화면과 같은 줄 — [이름 · 시간] ····· [♡][💬] (2026-09-11 대표님 "게시판 모두 하트·말풍선") */}
-                  <div className="px-4 pb-3.5">
-                    <div className="flex items-center justify-between mt-2.5 pt-2.5 border-t border-rule">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <button type="button" onClick={() => navigate(`/app/people/${d.user_id}`)} className="text-[12px] font-semibold text-ink truncate focus:outline-none focus-visible:shadow-ring">{maskName(d.nickname)}</button>
+                  <div className="px-5 pb-3">
+                    <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 mt-4 pt-2 border-t border-rule">
+                      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 min-w-0 max-w-full">
+                        <button type="button" onClick={() => navigate(`/app/people/${d.user_id}`)} className="min-h-11 max-w-[10rem] text-[13px] font-bold text-ink truncate focus:outline-none focus-visible:shadow-ring">{maskName(d.nickname)}</button>
                         <PetAvatars pets={d.pets} />
-                        <span className="text-[11.5px] text-ink-faint shrink-0">{timeAgo(d.created_at)}</span>
+                        <span className="text-[12px] text-ink-soft shrink-0">{timeAgo(d.created_at)}</span>
                         {petWalkLabel(d.pets, d.steps) ? (
-                          <span className="text-[11.5px] text-ink-soft shrink-0 tabular-nums">🐾 {petWalkLabel(d.pets, d.steps)}</span>
+                          <span className="text-[12px] text-ink-soft tabular-nums">🐾 {petWalkLabel(d.pets, d.steps)}</span>
                         ) : d.steps != null && d.steps > 0 && (
-                          <span className="text-[11.5px] text-ink-soft shrink-0 tabular-nums">🚶 {d.steps.toLocaleString('ko-KR')}보</span>
+                          <span className="text-[12px] text-ink-soft tabular-nums">🚶 {d.steps.toLocaleString('ko-KR')}보</span>
                         )}
                       </div>
-                      <div className="flex items-center gap-1 shrink-0 -mr-2">
+                      <div className="ml-auto flex items-center gap-1 shrink-0 -mr-2">
                         <LikeButton
                           liked={d.liked_by_me}
                           count={d.like_count}

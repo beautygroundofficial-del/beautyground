@@ -44,7 +44,7 @@ export default function LikeButton({ liked, count, loggedIn, disabled, onToggle,
       disabled={disabled}
       aria-pressed={view.liked}
       aria-label={view.liked ? '하트 취소' : '하트'}
-      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-[12px] transition-colors focus:outline-none focus-visible:shadow-ring ${
+      className={`inline-flex min-h-11 min-w-11 items-center justify-center gap-1.5 rounded-full px-2.5 py-2 text-[13px] transition-colors focus:outline-none focus-visible:shadow-ring ${
         view.liked ? 'text-brand-pink' : 'text-ink-soft'
       } ${disabled ? 'cursor-default' : 'hover:bg-quiet'}`}
     >

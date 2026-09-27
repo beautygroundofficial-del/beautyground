@@ -30,15 +30,15 @@ export default function BoardHomeFeed() {
 
   return (
     <section className="px-5 pt-6">
-      <div className="flex items-end justify-between gap-3 mb-2.5">
+      <div className="flex items-end justify-between gap-3 mb-4">
         <div className="min-w-0">
-          <p className="text-[11.5px] text-ink-faint leading-none mb-1.5">속마음을 꺼내놓는 곳</p>
-          <h2 className="text-[17px] font-bold text-ink leading-tight">속 이야기</h2>
+          <p className="text-[13px] text-ink-soft leading-relaxed mb-1.5">속마음을 꺼내놓는 곳</p>
+          <h2 className="text-[18px] font-bold text-ink leading-[1.6]">속 이야기</h2>
         </div>
         {feed && feed.length > 0 && (
           <button
             onClick={() => navigate('/app/board')}
-            className="shrink-0 text-[12px] text-ink-soft focus:outline-none focus-visible:shadow-ring"
+            className="min-h-11 min-w-11 shrink-0 text-[13px] font-medium text-ink-soft focus:outline-none focus-visible:shadow-ring"
           >
             더보기
           </button>
@@ -46,9 +46,9 @@ export default function BoardHomeFeed() {
       </div>
 
       {feed === null ? (
-        <div className="space-y-2">
+        <div className="space-y-3">
           {[0, 1].map((i) => (
-            <div key={i} className="rounded-card border border-rule p-4 space-y-2">
+            <div key={i} className="rounded-card border border-rule bg-paper p-5 space-y-3">
               <div className="h-3 w-1/3 bg-quiet rounded animate-pulse" />
               <div className="h-3 bg-quiet rounded animate-pulse" />
             </div>
@@ -59,25 +59,25 @@ export default function BoardHomeFeed() {
           onClick={() => navigate('/app/board')}
           className="w-full rounded-card border border-dashed border-rule bg-quiet/40 px-5 py-8 text-center focus:outline-none focus-visible:shadow-ring"
         >
-          <p className="text-[14px] font-semibold text-ink">말 못 하고 지나온 일이 있나요</p>
-          <p className="text-[12.5px] text-ink-faint mt-1.5">여기선 이름을 가리고 털어놓을 수 있어요</p>
+          <p className="text-[16px] font-semibold text-ink leading-[1.8]">말 못 하고 지나온 일이 있나요</p>
+          <p className="text-[15px] text-ink-soft leading-[1.8] mt-2">여기선 이름을 가리고 털어놓을 수 있어요</p>
         </button>
       ) : (
-        <ul className="space-y-2">
+        <ul className="space-y-3">
           {feed.map((p) => (
             <li key={p.id}>
               <Link
                 to={`/app/board/${p.id}`}
-                className="block rounded-card border border-rule bg-paper px-4 py-3 focus:outline-none focus-visible:shadow-ring"
+                className="block rounded-card border border-rule bg-paper px-5 py-4 focus:outline-none focus-visible:shadow-ring"
               >
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="text-[11px] font-semibold text-ink-soft bg-quiet rounded-full px-2 py-0.5">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-[12px] font-semibold text-ink-soft bg-quiet rounded-full px-2.5 py-1 leading-relaxed">
                     {categoryLabel(p.category)}
                   </span>
-                  <span className="text-[11px] text-ink-faint">{timeAgo(p.created_at)}</span>
+                  <span className="text-[12px] text-ink-soft">{timeAgo(p.created_at)}</span>
                   <span className="ml-auto"><MetaMarks likes={p.like_count ?? 0} comments={p.comment_count} size={15} /></span>
                 </div>
-                <p className="text-[13.5px] text-ink leading-relaxed line-clamp-2 whitespace-pre-wrap">{p.content}</p>
+                <p className="text-[15px] text-ink leading-[1.8] line-clamp-2 whitespace-pre-wrap">{p.content}</p>
               </Link>
             </li>
           ))}

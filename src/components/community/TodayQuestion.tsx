@@ -49,7 +49,7 @@ const answerCommentApi: CommentApi = {
 function AnswerImages({ images, onOpen }: { images: string[]; onOpen: (i: number) => void }) {
   if (images.length === 0) return null
   return (
-    <div className={`grid gap-1 mb-2 ${images.length === 1 ? 'grid-cols-2' : 'grid-cols-2'}`}>
+    <div className={`grid gap-2 mb-3 ${images.length === 1 ? 'grid-cols-2' : 'grid-cols-2'}`}>
       {images.slice(0, MAX_ANSWER_IMAGES).map((src, i) => (
         <button
           type="button" key={`${src}-${i}`} onClick={() => onOpen(i)} aria-label={`사진 ${i + 1} 크게 보기`}
@@ -190,31 +190,31 @@ export default function TodayQuestion() {
     setFiles([])
   }
 
-  if (loading) return focusAnswer ? <p className="py-8 text-[14px] text-ink-soft">대화를 불러오는 중…</p> : null
-  if (loadError) return <section id="question-conversation" role="alert" className="rounded-card border border-rule p-5"><p className="text-[14px] text-ink-soft">{loadError}</p><button type="button" onClick={() => void load()} className="min-h-11 underline text-[13px]">다시 불러오기</button><button type="button" onClick={() => navigate('/app/home')} className="min-h-11 ml-4 underline text-[13px]">오늘 이야기로</button></section>
+  if (loading) return focusAnswer ? <p className="py-8 text-[15px] leading-[1.8] text-ink-soft">대화를 불러오는 중…</p> : null
+  if (loadError) return <section id="question-conversation" role="alert" className="rounded-card border border-rule bg-paper p-5"><p className="text-[15px] leading-[1.8] text-ink-soft">{loadError}</p><button type="button" onClick={() => void load()} className="min-h-11 underline underline-offset-4 text-[14px]">다시 불러오기</button><button type="button" onClick={() => navigate('/app/home')} className="min-h-11 ml-4 underline underline-offset-4 text-[14px]">오늘 이야기로</button></section>
   if (!question) return null
 
   const answered = !!question.my_answer_id || !!question.my_answer
   const showComposer = !focusAnswer && (!answered || editing)
   const composerImages = keptImages.length + previews.length
-  const btn = 'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-rule text-[12px] text-ink-soft disabled:opacity-40 focus:outline-none focus-visible:shadow-ring'
+  const btn = 'inline-flex min-h-11 items-center gap-1.5 px-3 py-2 rounded-full border border-solid border-rule text-[13px] font-medium text-ink-soft disabled:opacity-40 focus:outline-none focus-visible:shadow-ring'
 
   return (
-    <section className="pt-4 scroll-mt-20" id="question-conversation">
+    <section className="pt-6 scroll-mt-20" id="question-conversation">
       <div className="rounded-card border border-rule bg-paper overflow-hidden">
         {/* 질문 */}
-        <div className="px-5 pt-4 pb-3">
-          <div className="flex items-center justify-between gap-2"><p className="text-[11.5px] text-ink-faint leading-none mb-1.5">{focusAnswer ? `${question.ask_date}의 질문 · 이어지는 대화` : '오늘의 질문'}</p>{focusAnswer && <button type="button" onClick={() => navigate('/app/home')} className="min-h-11 text-[12px] underline">오늘 이야기로</button>}</div>
-          <h2 className="text-[17px] font-bold text-ink leading-snug">{question.question}</h2>
+        <div className="px-5 pt-5 pb-4">
+          <div className="flex items-center justify-between gap-3 mb-2"><p className="text-[13px] text-ink-soft leading-relaxed">{focusAnswer ? `${question.ask_date}의 질문 · 이어지는 대화` : '오늘의 질문'}</p>{focusAnswer && <button type="button" onClick={() => navigate('/app/home')} className="min-h-11 shrink-0 text-[13px] text-ink-soft underline underline-offset-4">오늘 이야기로</button>}</div>
+          <h2 className="text-[18px] font-bold text-ink leading-[1.6]">{question.question}</h2>
           {question.hint && (
-            <p className="text-[12.5px] text-ink-soft mt-1 leading-relaxed">{question.hint}</p>
+            <p className="text-[15px] text-ink-soft mt-2 leading-[1.8]">{question.hint}</p>
           )}
         </div>
 
         {/* 내 답 — 아직 안 했으면 입력칸, 했으면 내가 쓴 것.
             2026-09-13 대표님 지시("우리 앱이 너무 뚱뚱하다") — 이 안에 또 테두리 박스를 두는
             겹박스 구조를 없앴다. 바깥 카드 하나로 충분하고, 입력칸 아래 얇은 구분선 하나면 된다. */}
-        {!focusAnswer && <div className="px-5 pb-3">
+        {!focusAnswer && <div className="px-5 pb-5">
           {showComposer ? (
             <div>
               <textarea
@@ -224,40 +224,40 @@ export default function TodayQuestion() {
                 rows={1}
                 maxLength={MAX_LEN}
                 placeholder={question.hint ? '여기에 남겨주세요' : '한 줄이면 충분해요'}
-                className="w-full resize-none bg-transparent text-[14px] text-ink placeholder:text-ink-faint focus:outline-none"
+                className="w-full min-h-11 resize-none bg-transparent py-2 text-[16px] leading-[1.8] text-ink placeholder:text-ink-soft focus:outline-none"
               />
 
               {/* 사진 미리보기 — 올려둔 것 + 새로 고른 것, 각각 뺄 수 있다 */}
               {composerImages > 0 && (
-                <div className="grid grid-cols-2 gap-1.5 mt-2">
+                <div className="grid grid-cols-2 gap-2 mt-3">
                   {keptImages.map((src) => (
                     <div key={src} className="relative bg-quiet rounded-lg overflow-hidden aspect-[4/3]">
                       <img src={src} alt="" className="w-full h-full object-cover" />
                       <button type="button" onClick={() => setKeptImages(keptImages.filter((x) => x !== src))} aria-label="올려둔 사진 빼기"
-                        className="absolute top-1.5 right-1.5 w-7 h-7 rounded-full bg-ink/80 text-paper text-[14px] leading-none focus:outline-none focus-visible:shadow-ring">×</button>
+                        className="absolute top-1.5 right-1.5 w-11 h-11 rounded-full bg-ink/80 text-paper text-[18px] leading-none focus:outline-none focus-visible:shadow-ring">×</button>
                     </div>
                   ))}
                   {previews.map((src, i) => (
                     <div key={`${src}-${i}`} className="relative bg-quiet rounded-lg overflow-hidden aspect-[4/3]">
                       <img src={src} alt="" className="w-full h-full object-cover" />
                       <button type="button" onClick={() => setFiles(files.filter((_, j) => j !== i))} aria-label={`${i + 1}번째 사진 빼기`}
-                        className="absolute top-1.5 right-1.5 w-7 h-7 rounded-full bg-ink/80 text-paper text-[14px] leading-none focus:outline-none focus-visible:shadow-ring">×</button>
+                        className="absolute top-1.5 right-1.5 w-11 h-11 rounded-full bg-ink/80 text-paper text-[18px] leading-none focus:outline-none focus-visible:shadow-ring">×</button>
                     </div>
                   ))}
                 </div>
               )}
 
-              <div className="flex items-center justify-between pt-1 mt-1 border-t border-rule">
+              <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 pt-3 mt-3 border-t border-rule">
                 <div className="flex items-center gap-2">
                   <button type="button" onClick={() => { if (!loggedIn) { navigate('/app/login', { state: { from: returnTo } }); return } albumRef.current?.click() }}
                     disabled={composerImages >= MAX_ANSWER_IMAGES} className={btn}>
                     <span aria-hidden="true">🖼️</span> 사진
                   </button>
-                  <span className="text-[11px] text-ink-faint tabular-nums">{draft.length}/{MAX_LEN}</span>
+                  <span className="text-[12px] text-ink-soft tabular-nums">{draft.length}/{MAX_LEN}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   {editing && (
-                    <button type="button" onClick={cancelEdit} className="px-3 py-1.5 rounded-control text-[12.5px] text-ink-soft">
+                    <button type="button" onClick={cancelEdit} className="min-h-11 px-3 py-2 rounded-control text-[14px] text-ink-soft">
                       취소
                     </button>
                   )}
@@ -265,7 +265,7 @@ export default function TodayQuestion() {
                     type="button"
                     onClick={() => void submit()}
                     disabled={saving}
-                    className="px-4 py-1.5 rounded-control bg-ink text-paper text-[12.5px] font-semibold disabled:opacity-50"
+                    className="min-h-11 px-4 py-2 rounded-control bg-ink text-paper text-[14px] font-semibold disabled:opacity-50"
                   >
                     {saving ? '남기는 중…' : '남기기'}
                   </button>
@@ -274,15 +274,15 @@ export default function TodayQuestion() {
               <input ref={albumRef} type="file" accept="image/*" multiple hidden onChange={pickFiles} />
             </div>
           ) : (
-            <div className="rounded-control bg-quiet/40 p-3">
-              <p className="text-[11.5px] text-ink-faint mb-1">내가 남긴 답</p>
+            <div className="rounded-control bg-quiet/40 p-4">
+              <p className="text-[13px] text-ink-soft mb-2">내가 남긴 답</p>
               {(question.my_images?.length ?? 0) > 0 && (
                 <AnswerImages images={question.my_images ?? []} onOpen={(i) => setViewer({ images: question.my_images ?? [], index: i })} />
               )}
               {question.my_answer && (
-                <p className="text-[14px] text-ink whitespace-pre-wrap leading-relaxed">{question.my_answer}</p>
+                <p className="text-[15px] text-ink whitespace-pre-wrap leading-[1.8]">{question.my_answer}</p>
               )}
-              <button type="button" onClick={startEdit} className="mt-2 text-[12px] text-ink-soft underline">
+              <button type="button" onClick={startEdit} className="min-h-11 mt-2 text-[13px] text-ink-soft underline underline-offset-4">
                 고쳐 쓰기
               </button>
             </div>
@@ -291,25 +291,25 @@ export default function TodayQuestion() {
 
         {/* 다른 사람들의 답 — 답하지 않아도 보인다 */}
         {answers.length > 0 && (
-          <div className="border-t border-rule bg-quiet/20 px-5 py-3.5">
-            <p className="text-[11.5px] text-ink-faint mb-2.5">
+          <div className="border-t border-rule bg-quiet/20 px-5 py-5">
+            <p className="text-[13px] text-ink-soft leading-relaxed mb-4">
               {focusAnswer ? '이 답에 이어서 이야기해요' : `${question.answer_count}명이 오늘을 이렇게 지나고 있어요`}
             </p>
-            <ul className="space-y-3">
+            <ul className="space-y-5 [&_button]:min-h-11 [&_button]:min-w-11">
               {answers.map((a) => {
                 const imgs = a.images ?? []
                 return (
                   <li key={a.id}>
                     <AnswerImages images={imgs} onOpen={(i) => setViewer({ images: imgs, index: i })} />
                     {a.content && (
-                      <p className="text-[13.5px] text-ink leading-relaxed whitespace-pre-wrap">{a.content}</p>
+                      <p className="text-[15px] text-ink leading-[1.8] whitespace-pre-wrap">{a.content}</p>
                     )}
                     {/* 하루 이야기 카드와 같은 줄 — [이름] ····· [♡][💬] */}
-                    <div className="flex items-center justify-between mt-1 mb-1.5">
-                      <span className="text-[11.5px] font-semibold text-ink-soft">
+                    <div className="flex items-center justify-between gap-3 mt-2 mb-2">
+                      <span className="text-[13px] font-semibold text-ink-soft">
                         {a.is_mine ? '나' : maskName(a.nickname)}
                       </span>
-                      <div className="flex items-center gap-1 -mr-2">
+                      <div className="flex items-center gap-1">
                         <LikeButton
                           liked={!!a.liked_by_me}
                           count={a.like_count ?? 0}
@@ -357,7 +357,7 @@ export default function TodayQuestion() {
       </div>
 
       {notice && (
-        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 rounded-full bg-ink text-paper text-[13px] shadow-lg">
+        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 px-4 py-3 rounded-full bg-ink text-paper text-[14px] leading-relaxed">
           {notice}
         </div>
       )}
