@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { getDiaryFeed, toggleDiaryLike, type Diary } from '../../lib/diaries'
+import { toggleDiaryLike, type Diary } from '../../lib/diaries'
+import { getConversationFeed } from '../../lib/communityConversations'
 import { supabase } from '../../lib/supabase'
 import LikeButton from '../community/LikeButton'
 import { CommentToggle } from '../community/DiaryComments'
@@ -60,19 +61,28 @@ export default function DiaryHomeFeed({ limit = 6 }: { limit?: number }) {
   const navigate = useNavigate()
   const [feed, setFeed] = useState<Diary[] | null>(null)
   const [loggedIn, setLoggedIn] = useState(false)
+  const [error, setError] = useState('')
+  const loadVersion = useRef(0)
 
-  useEffect(() => {
-    let active = true
-    void (async () => {
+  const load = useCallback(async () => {
+    const version = ++loadVersion.current
+    setError('')
+    setFeed(null)
+    try {
       const [rows, { data: { session } }] = await Promise.all([
-        getDiaryFeed('recent', limit), supabase.auth.getSession(),
+        getConversationFeed('recent', limit), supabase.auth.getSession(),
       ])
-      if (!active) return
+      if (version !== loadVersion.current) return
       setFeed(rows)
       setLoggedIn(!!session)
-    })()
-    return () => { active = false }
+    } catch {
+      if (version === loadVersion.current) setError('이야기를 불러오지 못했어요. 잠시 후 다시 시도해 주세요.')
+    }
   }, [limit])
+  useEffect(() => {
+    void load()
+    return () => { loadVersion.current++ }
+  }, [load])
 
   const go = () => navigate('/app/diary')
   // 말풍선 — 홈에서는 펼치지 않고 이야기 화면으로 가서 그 글의 댓글을 연다
@@ -89,7 +99,12 @@ export default function DiaryHomeFeed({ limit = 6 }: { limit?: number }) {
           onMore={feed && feed.length > 0 ? go : undefined}
         />
 
-        {feed === null ? (
+        {error ? (
+          <div role="alert" className="rounded-card bg-quiet px-5 py-6 text-center text-[15px] leading-[1.7] text-ink-soft">
+            <p>{error}</p>
+            <button type="button" onClick={() => void load()} className="mt-2 min-h-11 px-4 underline underline-offset-4 focus-visible:shadow-ring">다시 불러오기</button>
+          </div>
+        ) : feed === null ? (
           <div className="space-y-4">
             {[0, 1].map((i) => (
               <div key={i} className="rounded-card border border-rule overflow-hidden">
@@ -125,12 +140,9 @@ export default function DiaryHomeFeed({ limit = 6 }: { limit?: number }) {
                       <p className="-mt-1 text-[12px] text-ink-soft">{timeAgo(d.created_at)}</p>
                     </div>
                   </div>
-                  {/* 사진·글은 누르면 이야기 화면으로. 아래 줄(하트·말풍선)은 버튼이라 따로 둔다 — 버튼 안에 버튼을 넣을 수 없다 */}
-                  <button
-                    onClick={() => goPost(d.id)}
-                    className="w-full text-left focus:outline-none focus-visible:shadow-ring"
-                  >
-                    {imgs.length > 0 && (
+                  {/* 사진·글은 이야기로 이동하고, 영상 조작은 현재 화면에 머문다. */}
+                  {imgs.length > 0 && (
+                    <button type="button" onClick={() => goPost(d.id)} aria-label="이야기 사진과 글 보기" className="block w-full text-left focus:outline-none focus-visible:shadow-ring">
                       <div className={`mb-4 grid gap-0.5 overflow-hidden rounded-xl ${imgs.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
                         {imgs.slice(0, 4).map((src, i) => (
                           <div
@@ -143,10 +155,12 @@ export default function DiaryHomeFeed({ limit = 6 }: { limit?: number }) {
                           </div>
                         ))}
                       </div>
-                    )}
-                    {d.video_url && (
-                      <video src={d.video_url} controls playsInline preload="metadata" muted className="w-full max-h-[360px] bg-ink" />
-                    )}
+                    </button>
+                  )}
+                  {d.video_url && (
+                    <video src={d.video_url} controls playsInline preload="metadata" muted className="w-full max-h-[360px] bg-ink" />
+                  )}
+                  <button type="button" onClick={() => goPost(d.id)} className="w-full text-left focus:outline-none focus-visible:shadow-ring">
                     <div>
                       <p className="text-[16px] text-ink whitespace-pre-wrap break-words leading-[1.8] line-clamp-4">{d.content}</p>
                     </div>

@@ -60,40 +60,123 @@ export default function AppNews() {
   const [limit, setLimit] = useState(50)
   const [marking, setMarking] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [canMarkSeen, setCanMarkSeen] = useState(false)
   const version = useRef(0)
+  const viewerId = useRef<string | null | undefined>(undefined)
+  const loadedList = useRef<{ userId: string; items: ConversationNews[] } | null>(null)
+  const mounted = useRef(false)
+  const markVersion = useRef(0)
+  const markingRef = useRef(false)
+
+  const changeViewer = useCallback((userId: string | null) => {
+    if (viewerId.current === userId) return false
+    viewerId.current = userId
+    ++version.current
+    ++markVersion.current
+    loadedList.current = null
+    markingRef.current = false
+    setLoggedIn(!!userId)
+    setItems(userId ? null : [])
+    setCanMarkSeen(false)
+    setLoading(false)
+    setMarking(false)
+    setError('')
+    return true
+  }, [])
 
   const load = useCallback(async () => {
-    const current = ++version.current
+    if (!mounted.current) return
+    let current = ++version.current
+    loadedList.current = null
+    setCanMarkSeen(false)
     setLoading(true); setError('')
     try {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (current !== version.current) return
-      setLoggedIn(!!session)
-      if (!session) { setItems([]); return }
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+      if (!mounted.current || current !== version.current) return
+      if (sessionError) throw sessionError
+      const userId = session?.user.id ?? null
+      if (changeViewer(userId)) {
+        current = version.current
+        setLoading(true)
+      }
+      if (!userId) { setItems([]); return }
       const rows = await getConversationNews(limit)
-      if (current !== version.current) return
+      if (!mounted.current || current !== version.current || viewerId.current !== userId) return
+      loadedList.current = { userId, items: rows }
       setItems(rows)
-    } catch { if (current === version.current) setError('새 소식을 불러오지 못했어요. 다시 시도해 주세요.') }
-    finally { if (current === version.current) setLoading(false) }
-  }, [limit])
+      setCanMarkSeen(true)
+    } catch {
+      if (mounted.current && current === version.current) {
+        loadedList.current = null
+        setItems(null)
+        setCanMarkSeen(false)
+        setError('새 소식을 불러오지 못했어요. 다시 시도해 주세요.')
+      }
+    } finally { if (mounted.current && current === version.current) setLoading(false) }
+  }, [limit, changeViewer])
   useEffect(() => {
+    mounted.current = true
+    setMarking(false)
+    let refreshTimer: number | undefined
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!mounted.current || !changeViewer(session?.user.id ?? null)) return
+      window.clearTimeout(refreshTimer)
+      // 인증 콜백이 반환돼 잠금이 풀린 다음 조회한다.
+      if (session) refreshTimer = window.setTimeout(() => { void load() }, 0)
+    })
     void load()
     const refresh = () => { void load() }
     window.addEventListener('focus', refresh)
     window.addEventListener(FRIENDS_CHANGED_EVENT, refresh)
-    return () => { version.current++; window.removeEventListener('focus', refresh); window.removeEventListener(FRIENDS_CHANGED_EVENT, refresh) }
-  }, [load])
+    return () => {
+      mounted.current = false
+      ++version.current
+      ++markVersion.current
+      loadedList.current = null
+      markingRef.current = false
+      window.clearTimeout(refreshTimer)
+      subscription.unsubscribe()
+      window.removeEventListener('focus', refresh)
+      window.removeEventListener(FRIENDS_CHANGED_EVENT, refresh)
+    }
+  }, [load, changeViewer])
 
   const markSeen = async () => {
-    if (marking || loading || !items?.length) return
+    const listed = loadedList.current
+    if (!mounted.current || markingRef.current || loading || !listed || listed.items !== items || !items?.length) return
+    const userId = listed.userId
+    if (viewerId.current !== userId) return
+    const listedVersion = version.current
+    const currentMark = ++markVersion.current
+    markingRef.current = true
     setMarking(true); setError('')
     const seenAt = items[0].created_at
     try {
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+      if (!mounted.current || currentMark !== markVersion.current) return
+      if (sessionError) throw sessionError
+      const currentUserId = session?.user.id ?? null
+      if (currentUserId !== userId) {
+        changeViewer(currentUserId)
+        if (currentUserId) void load()
+        return
+      }
+      if (listedVersion !== version.current || loadedList.current !== listed) return
       await markConversationNewsSeen(seenAt)
       // 서버의 정밀한 시각으로 다시 판정하고, 저장 전 시작한 조회 결과는 무효화한다.
-      await load()
-    } catch { setError('읽음 표시를 저장하지 못했어요. 잠시 후 다시 시도해 주세요.') }
-    finally { setMarking(false) }
+      if (mounted.current && currentMark === markVersion.current) await load()
+    } catch {
+      if (mounted.current && currentMark === markVersion.current) {
+        loadedList.current = null
+        setCanMarkSeen(false)
+        setError('읽음 표시를 저장하지 못했어요. 잠시 후 다시 시도해 주세요.')
+      }
+    } finally {
+      if (mounted.current && currentMark === markVersion.current) {
+        markingRef.current = false
+        setMarking(false)
+      }
+    }
   }
 
   const open = (n: ConversationNews) => navigate(conversationNewsPath(n))
@@ -105,7 +188,7 @@ export default function AppNews() {
       <BackHeader title="새 소식" onBack={() => navigate('/app/home')} rightElement={<button type="button" onClick={() => navigate('/app/friends')} className="min-h-11 px-2 text-[13px] font-bold text-ink">친구 신청</button>} />
 
       <section className="px-5 pt-6 pb-28">
-        {loggedIn && <div className="mb-2 flex flex-wrap items-center justify-between gap-x-4 gap-y-1"><button type="button" disabled={loading || marking} onClick={() => void load()} className="inline-flex min-h-11 items-center gap-2 text-[13px] text-ink-soft disabled:opacity-50"><IconRefresh size={16} stroke={1.6} aria-hidden="true" />{loading ? '확인 중…' : '새로 확인'}</button>{items?.some(item => item.is_new) && <button type="button" disabled={marking || loading} onClick={() => void markSeen()} className="min-h-11 text-[13px] font-bold text-ink disabled:opacity-50">{marking ? '저장 중…' : '모두 확인했어요'}</button>}</div>}
+        {loggedIn && <div className="mb-2 flex flex-wrap items-center justify-between gap-x-4 gap-y-1"><button type="button" disabled={loading || marking} onClick={() => void load()} className="inline-flex min-h-11 items-center gap-2 text-[13px] text-ink-soft disabled:opacity-50"><IconRefresh size={16} stroke={1.6} aria-hidden="true" />{loading ? '확인 중…' : '새로 확인'}</button>{items?.some(item => item.is_new) && <button type="button" disabled={marking || loading || !canMarkSeen} onClick={() => void markSeen()} className="min-h-11 text-[13px] font-bold text-ink disabled:opacity-50">{marking ? '저장 중…' : '모두 확인했어요'}</button>}</div>}
         {error && <div role="alert" className="mb-6 rounded-card bg-quiet p-4 text-[15px] leading-[1.7] text-ink-soft"><p>{error}</p><button type="button" onClick={() => void load()} className="mt-2 min-h-11 text-[13px] underline underline-offset-4">다시 불러오기</button></div>}
         {loggedIn === false ? (
           <div className="text-center py-16">

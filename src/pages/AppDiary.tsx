@@ -246,6 +246,7 @@ export default function AppDiary() {
                 <button key={key}
                   onClick={() => {
                     if (key === 'friends' && !loggedIn) { navigate('/app/login', { state: { from: '/app/diary' } }); return }
+                    if (key === sort) return
                     setLoading(true); setSort(key)
                   }}
                   aria-pressed={sort === key}

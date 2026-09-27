@@ -99,9 +99,9 @@ export async function createBoardPost(
 export async function updateBoardPost(
   id: string, patch: { category: BoardCategory; content: string; images: string[]; video_url: string | null },
 ): Promise<boolean> {
-  const { error } = await supabase
-    .from('board_posts').update({ ...patch, updated_at: new Date().toISOString() }).eq('id', id)
-  return !error
+  const { data, error } = await supabase
+    .from('board_posts').update({ ...patch, updated_at: new Date().toISOString() }).eq('id', id).select('id')
+  return !error && data?.some(row => row.id === id) === true
 }
 
 // 내가 쓴 속 이야기 — 숨김 처리된 글도 나에게는 보인다(status 로 표시)
