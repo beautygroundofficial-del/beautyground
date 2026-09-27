@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import BackHeader from '../components/layout/BackHeader'
 import AppFrame from '../components/layout/AppFrame'
@@ -45,9 +45,11 @@ export default function AppBoardPost() {
   const { isAdmin } = useIsAdmin()
   const [loggedIn, setLoggedIn] = useState(false)
   const [post, setPost] = useState<BoardPost | null | undefined>(undefined)
+  const [loadError, setLoadError] = useState('')
   const [toast, setToast] = useState('')
   const [viewerIndex, setViewerIndex] = useState<number | null>(null)
   const commentsRef = useRef<HTMLDivElement>(null)
+  const loadVersion = useRef(0)
 
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 2400) }
 
@@ -56,17 +58,28 @@ export default function AppBoardPost() {
     if (st?.toast) { showToast(st.toast); window.history.replaceState({}, '') }
   }, [location.state])
 
-  useEffect(() => {
-    let alive = true
-    void (async () => {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!alive) return
+  const loadPost = useCallback(async () => {
+    const version = ++loadVersion.current
+    setPost(undefined)
+    setLoadError('')
+    setLoggedIn(false)
+    setViewerIndex(null)
+    try {
+      const { data: { session }, error } = await supabase.auth.getSession()
+      if (version !== loadVersion.current) return
+      if (error) throw error
       setLoggedIn(!!session)
-      const p = await getBoardPost(id)
-      if (alive) setPost(p)
-    })()
-    return () => { alive = false }
+      const p = await getBoardPost(id, { throwOnError: true })
+      if (version === loadVersion.current) setPost(p)
+    } catch {
+      if (version === loadVersion.current) setLoadError('이야기를 불러오지 못했어요. 잠시 후 다시 시도해 주세요.')
+    }
   }, [id])
+
+  useEffect(() => {
+    void loadPost()
+    return () => { ++loadVersion.current }
+  }, [loadPost])
 
   useEffect(() => {
     if (post && openComments && !focusComment) commentsRef.current?.scrollIntoView({ block: 'start' })
@@ -108,7 +121,14 @@ export default function AppBoardPost() {
         }
       />
 
-      {post === undefined ? (
+      {loadError ? (
+        <div role="alert" className="px-5 py-16 text-center">
+          <p className="text-[15px] leading-[1.7] text-ink-soft">{loadError}</p>
+          <button type="button" onClick={() => void loadPost()} className="mt-4 min-h-11 px-4 text-[14px] text-ink underline underline-offset-4 focus-visible:shadow-ring">
+            다시 불러오기
+          </button>
+        </div>
+      ) : post === undefined ? (
         <p className="py-16 text-center text-[13px] text-ink-faint">불러오는 중…</p>
       ) : post === null ? (
         <div className="px-5 py-16 text-center">

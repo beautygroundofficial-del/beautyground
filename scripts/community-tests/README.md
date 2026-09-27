@@ -119,6 +119,20 @@ node scripts/community-tests/test-community-update-results.cjs
 
 글쓰기 검사는 계정 소유자를 알 수 없는 이전 `bg_draft_diary`·`bg_draft_board` 값을 자동 복원하지 않으며 삭제하지도 않는 동작을 확인한다. 사진 업로드 fixture 성공은 실제 Storage 업로드 검증이 아니다.
 
+## 2026-09-28 대화 복귀·헤더 후속 검사
+
+```powershell
+node --test --test-isolation=none scripts/community-tests/test-app-header.cjs scripts/community-tests/test-board-post.cjs
+node scripts/community-tests/test-member-count.mjs # 위 COMMUNITY_TEST_RUNTIME 필요
+$env:APP = 'http://127.0.0.1:5212' # 별도로 빌드하고 실행한 production preview
+$env:TEST_OUTPUT = Join-Path ([System.IO.Path]::GetTempPath()) 'community-return-ui'
+python -B scripts/community-tests/test-community-return-ui.py
+```
+
+- 헤더 11개: 계정 교체·로그아웃·사용자 정보 변경·늦은 초기 조회·언마운트. 상세 글 9개: 403/503 재시도, 정상 0행, 경로 전환과 늦은 응답, 인증 거절, 기존 라이브러리 호출 호환성. 실제 TS/TSX를 변환해 검사한다.
+- 회원 수 SQL 8개: 표시 기준값과 KST 경계, 역할별 실행·테이블 접근 제한, 안전한 함수 설정, 재적용. **운영 DB 적용 여부를 증명하는 검사는 아니다.**
+- 복귀 브라우저 6개: 503/403과 없음 구분, 재시도 후 원글·댓글 강조와 URL 보존, 네 화면 폭, 같은 화면에서 가상 계정 교체·로그아웃. HTTP와 WebSocket 모두 fixture로 차단하고 실제 로그인하지 않는다. `BEFORE_ONLY=1`은 수정 전 빌드의 503 삭제 오표시 재현에만 쓴다.
+
 ## 공통 한계
 
 - 최소 fixture 스키마이며 **운영 스키마 전체, 운영 RLS 정책 전체, Supabase Auth·Storage를 재현하지 않는다.** 공개 RPC의 실행 권한과 함수 내부 처리를 확인하는 테스트다.
