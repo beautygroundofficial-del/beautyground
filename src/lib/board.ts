@@ -71,9 +71,12 @@ export async function getBoardFeed(categories: BoardCategory[] = [], limit = 30,
   return (data ?? []) as BoardPost[]
 }
 
-export async function getBoardPost(id: string): Promise<BoardPost | null> {
+export async function getBoardPost(id: string, options: { throwOnError?: boolean } = {}): Promise<BoardPost | null> {
   const { data, error } = await supabase.rpc('get_board_post', { p_id: id })
-  if (error) return null
+  if (error) {
+    if (options.throwOnError) throw error
+    return null
+  }
   const row = Array.isArray(data) ? data[0] : data
   return (row ?? null) as BoardPost | null
 }

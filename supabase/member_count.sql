@@ -2,14 +2,15 @@
 -- 지금까지는 AppHeader.tsx에 7321이 하드코딩(2026-09-10 임시값)돼 있었다.
 -- auth.users는 클라이언트(anon/authenticated)에서 직접 select 할 수 없으므로
 -- admin_members.sql과 같은 패턴으로 SECURITY DEFINER 함수 하나만 공개로 연다.
--- 개인정보는 전혀 반환하지 않고 숫자 하나만 돌려주므로 관리자 게이팅(is_admin()) 없이 누구나 호출 가능하게 둔다.
+-- 개인정보는 반환하지 않고 숫자 하나만 돌려준다. anon/authenticated만 실행 가능하다.
+-- 표시값은 과거 기준값 + 기준일 이후 가입 수이며, 실제 총회원 수나 커뮤니티 활성 지표가 아니다.
 -- 실행: Supabase 대시보드(beautyground-main, bjqtuklkskrqzbuxdwxm) → SQL Editor
 
 create or replace function public.get_member_count()
 returns integer
 language sql
 security definer
-set search_path = public
+set search_path = ''
 stable
 as $$
   select 7321 + (
@@ -18,4 +19,7 @@ as $$
   );
 $$;
 
+revoke all on function public.get_member_count() from public;
 grant execute on function public.get_member_count() to anon, authenticated;
+
+notify pgrst, 'reload schema';

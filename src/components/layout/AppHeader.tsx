@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import type { User } from '@supabase/supabase-js'
 import { Link } from 'react-router-dom'
 import { IconSearch, IconUser } from '../common/Icon'
 import { supabase } from '../../lib/supabase'
@@ -22,18 +23,28 @@ export default function AppHeader({ promoBarAbove = false }: Props) {
 
   useEffect(() => {
     let active = true
-    supabase.auth.getUser().then(({ data }) => {
+    let authChanged = false
+    const updateName = (authUser: User | null) => {
       if (!active) return
-      const authUser = data.user
-      if (!authUser) return
-      const meta = authUser.user_metadata as { name?: string } | undefined
-      setName(meta?.name || authUser.email?.split('@')[0] || null)
+      const meta = authUser?.user_metadata as { name?: string } | undefined
+      setName(meta?.name || authUser?.email?.split('@')[0] || null)
+    }
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      authChanged = true
+      updateName(session?.user ?? null)
+    })
+    supabase.auth.getUser().then(({ data, error }) => {
+      // 초기 조회보다 최신 로그인·로그아웃 알림을 우선한다.
+      if (!authChanged) updateName(error ? null : data.user)
+    }).catch(() => {
+      if (!authChanged) updateName(null)
     })
     supabase.rpc('get_member_count').then(({ data, error }) => {
       if (active && !error && typeof data === 'number') setFollowerCount(data)
     })
     return () => {
       active = false
+      subscription.unsubscribe()
     }
   }, [])
 
