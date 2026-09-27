@@ -328,9 +328,10 @@ grant execute on function public.my_affiliate_summary(text) to authenticated;
 
 notify pgrst, 'reload schema';
 
--- 11) 파트너스 추천 — 앱에서 잘 팔리는 제품 순(2026-09-26 대표님: "탑10 추천, 더보기는 판매 순 전체").
---     기준: 결제완료 이상(paid/shipped/done) 주문의 판매 수량 합, 최근 90일. 판매 0인 제품은 리뷰 수 → 최신 등록 순으로 뒤에 붙여
---     초기(주문이 적을 때)에도 목록이 비지 않게 한다. 판매중(on_sale) 제품만.
+-- 11) 파트너스 추천 — 앱 인기 제품 순(2026-09-27 대표님: "제품이 너무 중복이니 앱에서 인기 품목으로").
+--     인기 점수 = 최근 90일 결제 수량×1000 + 찜×50 + 리뷰 수(500 상한). 실제 주문이 적은 초기엔 리뷰·찜이 순위를 만든다.
+--     중복 제거 ①향·용량만 다른 변형(이름에서 "50ml 프리미엄자몽" 같은 꼬리 제거)은 점수 높은 1개만 ②브랜드당 대표 1개가 먼저,
+--     그다음 각 브랜드의 2번째… 순으로 — 한 브랜드가 목록을 독점하지 않게. 판매중(on_sale)만.
 create or replace function public.partner_best_products(p_limit integer default 10, p_offset integer default 0)
 returns table (id uuid, name text, thumbnail_url text, price integer, sale_price integer, sold_qty bigint, rank bigint)
 language sql
@@ -346,17 +347,36 @@ as $$
       and o.created_at >= now() - interval '90 days'
     group by o.product_id
   ),
-  ranked as (
-    select p.id, p.name, p.thumbnail_url, p.price, p.sale_price,
+  wish as (
+    select w.product_id, count(*)::bigint as n from public.wishlist_items w group by w.product_id
+  ),
+  scored as (
+    select p.id, p.name, p.thumbnail_url, p.price, p.sale_price, p.partner_id, p.created_at,
            coalesce(s.qty, 0)::bigint as sold_qty,
-           row_number() over (
-             order by coalesce(s.qty, 0) desc,
-                      coalesce((p.review_summary->>'count')::int, 0) desc,
-                      p.created_at desc
-           ) as rank
+           coalesce(s.qty, 0) * 1000
+             + coalesce(w.n, 0) * 50
+             + least(coalesce((p.review_summary->>'count')::int, 0), 500) as score,
+           coalesce((p.review_summary->>'count')::int, 0) as rc,
+           -- 변형 묶기: 용량/수량/향 꼬리 제거 → 같은 base 는 한 제품으로
+           lower(regexp_replace(regexp_replace(p.name, '\s*\(?\d+(\.\d+)?\s*(ml|mL|g|kg|매|개|종|입|p|P).*$', ''), '\s+', ' ', 'g')) as base
     from public.products p
     left join sold s on s.product_id = p.id
+    left join wish w on w.product_id = p.id
     where p.status = 'on_sale'
+  ),
+  one_per_variant as (
+    select distinct on (partner_id, base) *
+    from scored
+    order by partner_id, base, score desc, rc desc, created_at desc
+  ),
+  per_brand as (
+    select *, row_number() over (partition by partner_id order by score desc, rc desc, created_at desc) as rn
+    from one_per_variant
+  ),
+  ranked as (
+    select id, name, thumbnail_url, price, sale_price, sold_qty,
+           row_number() over (order by rn, score desc, rc desc, created_at desc) as rank
+    from per_brand
   )
   select id, name, thumbnail_url, price, sale_price, sold_qty, rank
   from ranked

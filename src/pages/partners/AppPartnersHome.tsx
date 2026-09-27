@@ -88,7 +88,7 @@ function Home({ affiliate }: { affiliate: Affiliate }) {
           </p>
           {aboutOpen && (
             <ul className="mt-2 space-y-1 text-[12.5px] text-ink-soft leading-relaxed list-disc pl-4">
-              <li>제품 링크를 붙여넣거나 아래 잘 팔리는 제품에서 [내 링크]를 누르면 바로 만들어져요.</li>
+              <li>제품 링크를 붙여넣거나 아래 인기 제품에서 [내 링크]를 누르면 바로 만들어져요.</li>
               <li>내 링크로 들어온 손님이 7일 안에 구매하면 내 판매로 잡혀요. 취소·환불은 제외.</li>
               <li>매월 정산해 등록한 계좌로 보내드려요. 재고·배송·비용 부담이 없어요.</li>
               <li>다른 파트너를 모집하거나 하위 판매 수당을 받는 방식은 아니에요.</li>
@@ -130,14 +130,14 @@ function Home({ affiliate }: { affiliate: Affiliate }) {
         )}
       </section>
 
-      {/* 잘 팔리는 제품 TOP 10 — 링크 붙이는 곳 바로 아래(2026-09-26 대표님). [내 링크]로 한 번에 생성·복사 */}
+      {/* 인기 제품 TOP 10 — 링크 붙이는 곳 바로 아래(2026-09-26 대표님). [내 링크]로 한 번에 생성·복사 */}
       {best.length > 0 && (
         <section className="px-5 pt-7">
           <div className="flex items-center justify-between mb-1">
-            <h2 className="text-[15px] font-bold text-ink">잘 팔리는 제품 TOP 10</h2>
+            <h2 className="text-[15px] font-bold text-ink">인기 제품 TOP 10</h2>
             <Link to="/app/partners/best" className="text-[12.5px] text-ink-soft underline underline-offset-2">더보기</Link>
           </div>
-          <p className="text-[12px] text-ink-faint mb-1">앱에서 잘 팔리는 순 · 추천 제품으로 내 링크를 만들어 보세요</p>
+          <p className="text-[12px] text-ink-faint mb-1">판매·찜·리뷰 기준, 브랜드별 대표 제품 · [내 링크]로 바로 만들어요</p>
           <ul className="divide-y divide-rule">
             {best.map((p) => <BestProductRow key={p.id} p={p} onToast={showToast} onMade={() => void load()} />)}
           </ul>
