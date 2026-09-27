@@ -99,7 +99,27 @@ $env:PORT = '5201'
 
 **브라우저의 운영 Supabase HTTP 요청은 전부 가로채 로컬 bridge 또는 명시적 가상 응답으로 처리한다.** 허용하는 외부 전달은 없으며 앱의 정확한 loopback origin만 통과시킨다. 서비스 워커는 차단하고 모든 WebSocket은 연결 없이 닫는다. 세션은 `invalid.example` 계정과 유효하지 않은 가상 JWT이며 실제 로그인·운영 계정·비밀키를 사용하지 않는다. 이 차단은 테스트가 생성한 브라우저에 적용된다. 테스트용 앱 서버의 `/api/`도 빈 응답으로 대체하므로 별도 서버측 외부 통신 경로를 검증하는 도구는 아니다.
 
-## 검증 한계
+## 2026-09-28 추가 회귀
+
+글쓰기·홈·계정 전환 검사는 운영 방식의 **로컬 production preview**에서 실행한다. Vite 개발 서버의 HMR WebSocket과 테스트의 전면 WebSocket 차단이 충돌해 탐색이 지연되는 현상을 확인했다. 빌드한 앱을 `npm run preview -- --host 127.0.0.1 --port 5210 --strictPort`로 띄우고 아래처럼 실행한다. 기존 서버의 포트를 빼앗지 않는다.
+
+```powershell
+$env:APP = 'http://127.0.0.1:5210'
+$env:PORT = '5209' # 별도로 실행한 메모리 bridge의 포트
+python -B scripts/community-tests/test-community-feed.py
+python -B scripts/community-tests/test-community-writing.py
+node scripts/community-tests/test-app-news.cjs
+node scripts/community-tests/test-writer-auth-race.cjs
+node scripts/community-tests/test-community-update-results.cjs
+```
+
+- `test-community-feed.py`: 홈 조회 오류·재시도·정상 빈 목록·글 이동·반복 정렬·영상 이동 분리. 모든 외부 요청은 fixture에서 끝나며 bridge도 쓰지 않는다.
+- `test-community-writing.py`: 계정별 초안, 이전 공용 초안 제외, 사진 일부 실패와 이미지 처리 예외 후 재시도, 로그인 후 수정 대상 복귀, 선택 항목 펼침, 입력 크기·버튼·네 가지 화면 너비. 가짜 Auth·Storage·게시 응답을 사용한다. 허용한 보조 조회만 loopback bridge로 보낸다.
+- 세 `.cjs` 검사는 실제 TS/TSX 소스를 메모리에서 변환해 소식 계정 경합, 초기 인증과 초안 로드 경합, 수정된 행 확인을 검사한다. TypeScript는 프로젝트의 설치 패키지를 사용하고 운영 네트워크에 연결하지 않는다. `COMMUNITY_TEST_REPO`로 별도 소스 사본을 지정할 수 있다.
+
+글쓰기 검사는 계정 소유자를 알 수 없는 이전 `bg_draft_diary`·`bg_draft_board` 값을 자동 복원하지 않으며 삭제하지도 않는 동작을 확인한다. 사진 업로드 fixture 성공은 실제 Storage 업로드 검증이 아니다.
+
+## 공통 한계
 
 - 최소 fixture 스키마이며 **운영 스키마 전체, 운영 RLS 정책 전체, Supabase Auth·Storage를 재현하지 않는다.** 공개 RPC의 실행 권한과 함수 내부 처리를 확인하는 테스트다.
 - `auth.uid()`는 세션 claim으로 흉내 내고 `is_admin()`은 false로 고정한다. **`claim_mission`은 항상 0점을 반환하는 stub**이므로 포인트 적립·중복 지급·한도는 검증하지 않는다.

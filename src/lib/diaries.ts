@@ -86,18 +86,21 @@ export interface MyDiaryRow {
 }
 
 export async function getMyDiary(id: string): Promise<MyDiaryRow | null> {
+  const { data: { session } } = await supabase.auth.getSession()
+  if (!session) return null
   const { data, error } = await supabase
-    .from('diaries').select('id, content, images, steps, video_url, pet_ids').eq('id', id).maybeSingle()
-  if (error || !data) return null
+    .from('diaries').select('id, content, images, steps, video_url, pet_ids').eq('id', id).eq('user_id', session.user.id).maybeSingle()
+  if (error) throw error
+  if (!data) return null
   return data as MyDiaryRow
 }
 
 export async function updateDiary(
   id: string, patch: { content: string; images: string[]; steps: number | null; video_url: string | null; pet_ids?: string[] },
 ): Promise<boolean> {
-  const { error } = await supabase
-    .from('diaries').update({ ...patch, updated_at: new Date().toISOString() }).eq('id', id)
-  return !error
+  const { data, error } = await supabase
+    .from('diaries').update({ ...patch, updated_at: new Date().toISOString() }).eq('id', id).select('id')
+  return !error && data?.some(row => row.id === id) === true
 }
 
 export async function toggleDiaryLike(diaryId: string): Promise<{ liked: boolean; like_count: number } | null> {

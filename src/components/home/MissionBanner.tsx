@@ -19,14 +19,14 @@ export default function MissionBanner() {
       >
         <span className="min-w-0">
           <span className="block text-[14px] font-bold text-ink">
-            오늘 놓치면 못 받는 미션
+            내 속도로 함께하는 활동
           </span>
           <span className="block text-[12px] text-ink-soft mt-0.5 truncate">
             {missions.slice(0, 4).map((m) => `${m.icon ?? ''} ${m.title}`.trim()).join(' · ')}
           </span>
         </span>
         <span className="shrink-0 ml-3 px-3 py-1.5 rounded-full bg-ink text-paper text-[12px] font-semibold">
-          지금 받기
+          둘러보기
         </span>
       </button>
     </section>

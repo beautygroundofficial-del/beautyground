@@ -32,7 +32,9 @@ interface Props {
   maxLen: number
   maxImages?: number
   autoFocus?: boolean
+  disabled?: boolean
   onNotice?: (msg: string) => void
+  onBusyChange?: (busy: boolean) => void
   // 고쳐 쓰기 — 이미 올라가 있는 것
   existingImages?: string[]
   onRemoveExistingImage?: (url: string) => void
@@ -42,7 +44,7 @@ interface Props {
 
 export default function PostComposer({
   content, onContentChange, files, onFilesChange, video, onVideoChange,
-  placeholder, maxLen, maxImages = MAX_IMAGES, autoFocus, onNotice,
+  placeholder, maxLen, maxImages = MAX_IMAGES, autoFocus, disabled = false, onNotice, onBusyChange,
   existingImages = [], onRemoveExistingImage, existingVideo = null, onRemoveExistingVideo,
 }: Props) {
   const albumRef = useRef<HTMLInputElement>(null)
@@ -52,6 +54,7 @@ export default function PostComposer({
   const [checkingVideo, setCheckingVideo] = useState(false)
   const [compressPct, setCompressPct] = useState<number | null>(null)
   const [showEmoji, setShowEmoji] = useState(false)
+  useEffect(() => { onBusyChange?.(checkingVideo || compressPct !== null) }, [checkingVideo, compressPct, onBusyChange])
 
   const insertEmoji = (emoji: string) => {
     const el = textRef.current
@@ -102,8 +105,8 @@ export default function PostComposer({
     }
     // 길이·해상도 확인 — 브라우저가 메타데이터만 읽는다(전체를 올리지 않음)
     setCheckingVideo(true)
+    try {
     const meta = await probeVideo(f)
-    setCheckingVideo(false)
     if (!meta) { onNotice?.('영상을 읽지 못했어요. 다른 파일로 시도해 주세요'); return }
     if (meta.duration > MAX_VIDEO_SEC) { onNotice?.(`영상은 ${MAX_VIDEO_SEC}초 안으로 올려주세요`); return }
 
@@ -118,23 +121,26 @@ export default function PostComposer({
       onNotice?.(`줄여도 ${MAX_VIDEO_MB}MB를 넘어요. 더 짧게 잘라서 올려주세요`); return
     }
     onVideoChange(out)
+    } catch { onNotice?.('영상을 준비하지 못했어요. 다시 선택해 주세요.') }
+    finally { setCheckingVideo(false); setCompressPct(null) }
   }
 
   const remove = (idx: number) => onFilesChange(files.filter((_, i) => i !== idx))
 
-  const btn = 'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-rule text-[12.5px] text-ink-soft disabled:opacity-40 focus:outline-none focus-visible:shadow-ring'
+  const btn = 'inline-flex min-h-11 items-center gap-1.5 px-3 py-2 rounded-full border border-solid border-rule text-[14px] text-ink-soft disabled:opacity-40 focus:outline-none focus-visible:shadow-ring'
   const totalImages = existingImages.length + previews.length
 
   return (
-    <div className="rounded-card border border-rule bg-paper p-4">
+    <fieldset disabled={disabled} className="min-w-0 rounded-card border border-solid border-rule bg-paper p-4 disabled:opacity-70">
       <textarea
+        aria-label="이야기 내용"
         ref={textRef}
         value={content}
         onChange={(e) => onContentChange(e.target.value.slice(0, maxLen))}
         placeholder={placeholder}
         autoFocus={autoFocus}
         rows={6}
-        className="w-full resize-none text-[15px] leading-[1.8] text-ink placeholder:text-ink-faint focus:outline-none"
+        className="w-full resize-none text-[16px] leading-[1.8] text-ink placeholder:text-ink-soft focus:outline-none focus-visible:shadow-ring"
       />
 
       {totalImages > 0 && (
@@ -144,7 +150,7 @@ export default function PostComposer({
               <img src={src} alt="" className="w-full h-full object-cover" />
               {onRemoveExistingImage && (
                 <button type="button" onClick={() => onRemoveExistingImage(src)} aria-label="올려둔 사진 빼기"
-                  className="absolute top-1.5 right-1.5 w-7 h-7 rounded-full bg-ink/80 text-paper text-[14px] leading-none focus:outline-none focus-visible:shadow-ring">×</button>
+                  className="absolute top-1.5 right-1.5 w-11 h-11 rounded-full bg-ink/80 text-paper text-[18px] leading-none focus:outline-none focus-visible:shadow-ring">×</button>
               )}
             </div>
           ))}
@@ -152,7 +158,7 @@ export default function PostComposer({
             <div key={`${src}-${i}`} className={`relative bg-quiet rounded-lg overflow-hidden ${totalImages === 1 ? 'aspect-[4/3]' : 'aspect-square'}`}>
               <img src={src} alt="" className="w-full h-full object-cover" />
               <button type="button" onClick={() => remove(i)} aria-label={`${i + 1}번째 사진 빼기`}
-                className="absolute top-1.5 right-1.5 w-7 h-7 rounded-full bg-ink/80 text-paper text-[14px] leading-none focus:outline-none focus-visible:shadow-ring">×</button>
+                className="absolute top-1.5 right-1.5 w-11 h-11 rounded-full bg-ink/80 text-paper text-[18px] leading-none focus:outline-none focus-visible:shadow-ring">×</button>
             </div>
           ))}
         </div>
@@ -165,14 +171,17 @@ export default function PostComposer({
             type="button"
             onClick={() => (video ? onVideoChange(null) : onRemoveExistingVideo?.())}
             aria-label="영상 빼기"
-            className="absolute top-1.5 right-1.5 w-7 h-7 rounded-full bg-ink/80 text-paper text-[14px] leading-none focus:outline-none focus-visible:shadow-ring"
+            className="absolute top-1.5 right-1.5 w-11 h-11 rounded-full bg-ink/80 text-paper text-[18px] leading-none focus:outline-none focus-visible:shadow-ring"
           >
             ×
           </button>
         </div>
       )}
 
-      <div className="flex items-center justify-between mt-3 pt-3 border-t border-rule flex-wrap gap-2">
+      <div className="mt-3 text-right text-[12px] text-ink-soft tabular-nums" aria-live="off">{content.length}/{maxLen}</div>
+      <details className="mt-3 border-t border-rule pt-3">
+        <summary className="min-h-11 cursor-pointer text-[14px] font-medium leading-relaxed text-ink">사진·영상·이모지 더하기 <span className="text-ink-soft">(선택)</span></summary>
+      <div className="flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center gap-2 flex-wrap">
           <button type="button" onClick={() => albumRef.current?.click()} disabled={full} className={btn}>
             <span aria-hidden="true">🖼️</span> 앨범
@@ -189,7 +198,6 @@ export default function PostComposer({
           </button>
           <span className="text-[11.5px] text-ink-faint tabular-nums">사진 {totalImages}/{maxImages}{hasVideo ? ' · 영상 1' : ''}</span>
         </div>
-        <span className="text-[11.5px] text-ink-faint tabular-nums">{content.length}/{maxLen}</span>
       </div>
       {showEmoji && (
         <div className="flex flex-wrap gap-1.5 mt-2.5 pt-2.5 border-t border-rule">
@@ -199,20 +207,21 @@ export default function PostComposer({
               type="button"
               onClick={() => insertEmoji(e)}
               aria-label={`이모지 ${e} 넣기`}
-              className="w-9 h-9 rounded-control text-[18px] leading-none hover:bg-quiet focus:outline-none focus-visible:shadow-ring"
+              className="w-11 h-11 rounded-control text-[20px] leading-none hover:bg-quiet focus:outline-none focus-visible:shadow-ring"
             >
               {e}
             </button>
           ))}
         </div>
       )}
-      <p className="text-[11px] text-ink-faint mt-2">영상은 1개, {MAX_VIDEO_SEC}초 안으로 짧게 — 큰 영상은 올리기 전에 자동으로 가볍게 줄여요</p>
+      <p className="text-[12px] leading-relaxed text-ink-soft mt-2">사진·영상은 선택이에요. 영상은 1개, {MAX_VIDEO_SEC}초까지 올릴 수 있어요.</p>
+      </details>
 
       <input ref={albumRef} type="file" accept="image/*" multiple hidden onChange={pick} />
       {/* capture — 모바일에서는 카메라가 바로 뜨고, PC 에서는 그냥 파일 선택창이 뜬다 */}
       <input ref={cameraRef} type="file" accept="image/*" capture="environment" hidden onChange={pick} />
       <input ref={videoRef} type="file" accept="video/mp4,video/webm,video/quicktime" hidden onChange={(e) => void pickVideo(e)} />
-    </div>
+    </fieldset>
   )
 }
 
@@ -220,12 +229,13 @@ export default function PostComposer({
 export function loadDraft<T extends object>(key: string): Partial<T> {
   try {
     const raw = localStorage.getItem(`bg_draft_${key}`)
-    return raw ? (JSON.parse(raw) as Partial<T>) : {}
+    const parsed: unknown = raw ? JSON.parse(raw) : null
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed as Partial<T> : {}
   } catch { return {} }
 }
 
-export function saveDraft(key: string, value: object) {
-  try { localStorage.setItem(`bg_draft_${key}`, JSON.stringify(value)) } catch { /* 저장 못 해도 글쓰기는 된다 */ }
+export function saveDraft(key: string, value: object): boolean {
+  try { localStorage.setItem(`bg_draft_${key}`, JSON.stringify(value)); return true } catch { return false }
 }
 
 export function clearDraft(key: string) {
