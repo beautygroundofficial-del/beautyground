@@ -38,6 +38,9 @@ export default function AppBoardPost() {
   const { id = '' } = useParams()
   const navigate = useNavigate()
   const location = useLocation()
+  const query = new URLSearchParams(location.search)
+  const focusComment = query.get('comment') || undefined
+  const openComments = query.has('comments')
 
   const { isAdmin } = useIsAdmin()
   const [loggedIn, setLoggedIn] = useState(false)
@@ -64,6 +67,10 @@ export default function AppBoardPost() {
     })()
     return () => { alive = false }
   }, [id])
+
+  useEffect(() => {
+    if (post && openComments && !focusComment) commentsRef.current?.scrollIntoView({ block: 'start' })
+  }, [post?.id, openComments, focusComment])
 
   const onDelete = async () => {
     if (!post || !window.confirm('이 이야기를 지울까요?')) return
@@ -191,6 +198,7 @@ export default function AppBoardPost() {
           <div className="pb-28" ref={commentsRef}>
             <BoardComments
               postId={post.id}
+              focusCommentId={focusComment}
               count={post.comment_count}
               loggedIn={loggedIn}
               onCountChange={(n) => setPost((prev) => (prev ? { ...prev, comment_count: n } : prev))}

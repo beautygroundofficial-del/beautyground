@@ -1,10 +1,10 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import BackHeader from '../components/layout/BackHeader'
 import AppFrame from '../components/layout/AppFrame'
 import { supabase } from '../lib/supabase'
 import {
-  getDiaryFeed, getMonthlyBestDiaries, deleteDiary, toggleDiaryLike,
+  getMonthlyBestDiaries, deleteDiary, toggleDiaryLike,
   type Diary, type BestDiary, type DiarySort,
 } from '../lib/diaries'
 import LikeButton from '../components/community/LikeButton'
@@ -15,7 +15,8 @@ import StoryTabs from '../components/community/StoryTabs'
 import Lightbox from '../components/community/Lightbox'
 import FriendButton from '../components/community/FriendButton'
 import { PetAvatars, petWalkLabel } from '../components/community/PetMarks'
-import { getFriendDiaryFeed, getFriendStatuses, type FriendStatus } from '../lib/friends'
+import { FRIENDS_CHANGED_EVENT, getFriendStatuses, type FriendStatus } from '../lib/friends'
+import { getConversationDiary, getConversationFeed } from '../lib/communityConversations'
 
 // 살아가는 이야기 — 유저가 사진과 함께 일상을 남기는 곳.
 // 글을 올리면 create_diary RPC 안에서 diary_post 미션이 자동 적립된다(화면에서 따로 적립 호출 안 함).
@@ -69,6 +70,12 @@ function SectionHead({ label, title, right }: { label: string; title: string; ri
 export default function AppDiary() {
   const navigate = useNavigate()
   const location = useLocation()
+  const params = new URLSearchParams(location.search)
+  const legacy = location.state as { toast?: string; openComments?: string; focus?: string } | null
+  const targetId = params.get('focus') || params.get('comments') || legacy?.focus || legacy?.openComments || null
+  const targetComments = params.get('comments') || legacy?.openComments || null
+  const targetComment = params.get('comment') || undefined
+  const loadVersion = useRef(0)
 
   const [loggedIn, setLoggedIn] = useState<boolean | null>(null)
   const [sort, setSort] = useState<FeedView>('recent')
@@ -77,12 +84,16 @@ export default function AppDiary() {
   const [friendOf, setFriendOf] = useState<Record<string, FriendStatus>>({})
   const [best, setBest] = useState<BestDiary[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState('')
+  const [targetError, setTargetError] = useState('')
+  const [expanded, setExpanded] = useState<Set<string>>(new Set())
 
   const [toast, setToast] = useState('')
   // 사진 크게 보기 — 어느 글의 몇 번째 사진인지
   const [viewer, setViewer] = useState<{ images: string[]; index: number } | null>(null)
   // 댓글이 펼쳐진 글들
   const [openComments, setOpenComments] = useState<Set<string>>(new Set())
+  const [openBest, setOpenBest] = useState<string | null>(null)
   // 새 소식·그 사람 페이지에서 온 글 — 목록이 뜨면 그 카드로 내려가 잠깐 강조한다(2026-09-12 A2)
   const [focusId, setFocusId] = useState<string | null>(null)
   const toggleComments = (id: string) => setOpenComments((prev) => {
@@ -101,40 +112,50 @@ export default function AppDiary() {
     const st = location.state as { toast?: string; openComments?: string; focus?: string } | null
     if (st?.toast) showToast(st.toast)
     // 홈 카드의 말풍선에서 들어오면 그 글의 댓글을 펼친 채로 시작한다
-    if (st?.openComments) setOpenComments(new Set([st.openComments]))
-    if (st?.focus || st?.openComments) setFocusId(st.focus ?? st.openComments ?? null)
-    if (st?.toast || st?.openComments || st?.focus) window.history.replaceState({}, '')
-  }, [location.state])
+    if (targetComments) setOpenComments(prev => new Set([...prev, targetComments]))
+    if (targetId) { setFocusId(targetId); setExpanded(prev => new Set([...prev, targetId])) }
+  }, [location.state, targetComments, targetId])
 
   const load = useCallback(async (s: FeedView) => {
-    const { data: { session } } = await supabase.auth.getSession()
-    setLoggedIn(!!session)
-    const [rows, bests] = await Promise.all([
-      s === 'friends' ? getFriendDiaryFeed(30) : getDiaryFeed(s, 30),
-      getMonthlyBestDiaries(3),
-    ])
-    setFeed(rows)
-    setBest(bests)
-    setLoading(false)
-    // 친구 버튼 상태 — 로그인했을 때만, 남의 글쓴이만
-    if (session) {
-      const others = rows.filter((r) => !r.is_mine).map((r) => r.user_id)
-      setFriendOf(await getFriendStatuses(others))
-    } else {
-      setFriendOf({})
-    }
-  }, [])
-
-  useEffect(() => { void load(sort) }, [load, sort])
+    const version = ++loadVersion.current
+    setLoading(true); setLoadError(''); setTargetError('')
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const [rows, bests] = await Promise.all([getConversationFeed(s), getMonthlyBestDiaries(3)])
+      if (version !== loadVersion.current) return
+      setLoggedIn(!!session)
+      if (targetId && !rows.some(row => row.id === targetId)) {
+        try {
+          const target = await getConversationDiary(targetId)
+          if (version !== loadVersion.current) return
+          if (target) rows.unshift(target)
+          else setTargetError('이 이야기는 삭제되었거나 지금은 볼 수 없어요.')
+        } catch { if (version === loadVersion.current) setTargetError('선택한 이야기를 불러오지 못했어요. 다시 시도해 주세요.') }
+      }
+      if (version !== loadVersion.current) return
+      setFeed(rows); setBest(bests)
+      const statuses = session ? await getFriendStatuses(rows.filter(r => !r.is_mine).map(r => r.user_id)) : {}
+      if (version === loadVersion.current) setFriendOf(statuses)
+    } catch { if (version === loadVersion.current) setLoadError('이야기를 불러오지 못했어요. 잠시 후 다시 시도해 주세요.') }
+    finally { if (version === loadVersion.current) setLoading(false) }
+  }, [targetId])
 
   useEffect(() => {
-    if (!focusId || loading) return
+    void load(sort)
+    const refresh = () => { void load(sort) }
+    window.addEventListener(FRIENDS_CHANGED_EVENT, refresh)
+    window.addEventListener('focus', refresh)
+    return () => { loadVersion.current++; window.removeEventListener(FRIENDS_CHANGED_EVENT, refresh); window.removeEventListener('focus', refresh) }
+  }, [load, sort])
+
+  useEffect(() => {
+    if (!focusId || loading || targetComment) return
     const el = document.getElementById(`diary-${focusId}`)
     if (!el) return
     el.scrollIntoView({ behavior: 'smooth', block: 'center' })
     const t = setTimeout(() => setFocusId(null), 2500)
     return () => clearTimeout(t)
-  }, [focusId, loading, feed])
+  }, [focusId, loading, feed, targetComment])
 
   // 좋아요(평가) 대신 공감 반응으로 바꿨다(2026-09-07) — 누르는 처리는 ReactionBar 안에 있고,
   // 여기서는 결과만 받아 목록에 반영한다(정렬·재조회 없이 그 자리에서만 바뀐다).
@@ -156,7 +177,7 @@ export default function AppDiary() {
 
   return (
     <AppFrame>
-      <BackHeader title="이야기" />
+      <BackHeader title="이야기" rightElement={<button type="button" onClick={() => navigate('/app/friends')} className="min-h-11 px-2 text-[13px] font-semibold">내 친구</button>} />
       <StoryTabs current="/app/diary" />
 
       {/* 쓰기 — 화면에 들어오면 가장 먼저 보이는 행동 */}
@@ -178,7 +199,7 @@ export default function AppDiary() {
           <SectionHead label="이번 달, 많은 분이 마음을 눌러준" title="이달의 이야기" />
           <div className="flex items-start gap-2.5 overflow-x-auto scrollbar-hide -mx-1 px-1 snap-x">
             {best.map((b, i) => {
-              const open = openComments.has(b.id)
+              const open = openBest === b.id
               return (
                 <div
                   key={b.id}
@@ -187,7 +208,7 @@ export default function AppDiary() {
                 >
                   <button
                     type="button"
-                    onClick={() => toggleComments(b.id)}
+                    onClick={() => setOpenBest(prev => prev === b.id ? null : b.id)}
                     className="w-full text-left focus:outline-none focus-visible:shadow-ring"
                   >
                     <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-ink text-paper text-[11px] font-bold mb-1.5">
@@ -201,15 +222,7 @@ export default function AppDiary() {
                     )}
                   </button>
                   {open && (
-                    <DiaryComments
-                      diaryId={b.id}
-                      open
-                      count={0}
-                      loggedIn={!!loggedIn}
-                      onCountChange={() => {}}
-                      onAward={(p) => showToast(`${p}P를 받았어요`)}
-                      onNotice={showToast}
-                    />
+                    <button type="button" onClick={() => navigate(`/app/diary?focus=${b.id}&comments=${b.id}`)} className="min-h-11 mt-2 text-[13px] underline">이야기와 댓글 읽기</button>
                   )}
                 </div>
               )
@@ -240,7 +253,10 @@ export default function AppDiary() {
           }
         />
 
-        {loading ? (
+        {targetError && <div role="status" className="mb-4 rounded-card bg-quiet p-4 text-[14px] text-ink-soft">{targetError}<button type="button" onClick={() => void load(sort)} className="block min-h-11 underline">다시 불러오기</button></div>}
+        {loadError ? (
+          <div role="alert" className="py-10 text-center text-[14px] text-ink-soft"><p>{loadError}</p><button type="button" onClick={() => void load(sort)} className="mt-3 min-h-11 px-4 underline">다시 불러오기</button></div>
+        ) : loading ? (
           <p className="py-12 text-center text-[13px] text-ink-faint">불러오는 중…</p>
         ) : feed.length === 0 && sort === 'walk' ? (
           <button
@@ -297,9 +313,10 @@ export default function AppDiary() {
                   )}
 
                   <div className="p-3.5">
-                    <p className="text-[14px] text-ink whitespace-pre-wrap leading-relaxed line-clamp-4">
+                    <p className={`text-[16px] text-ink whitespace-pre-wrap leading-[1.8] ${expanded.has(d.id) ? '' : 'line-clamp-4'}`}>
                       {d.content}
                     </p>
+                    <button type="button" aria-expanded={expanded.has(d.id)} onClick={() => setExpanded(prev => { const next = new Set(prev); if (next.has(d.id)) next.delete(d.id); else next.add(d.id); return next })} className="min-h-11 text-[13px] text-ink-soft underline underline-offset-4">{expanded.has(d.id) ? '접기' : '이야기 전체 읽기'}</button>
 
                     <div className="flex items-center justify-between mt-2.5 pt-2.5 border-t border-rule">
                       <div className="flex items-center gap-2 min-w-0">
@@ -374,6 +391,7 @@ export default function AppDiary() {
                     {/* 댓글 — 내 글에도 달린다(글쓴이가 답을 해야 대화가 된다) */}
                     <DiaryComments
                       diaryId={d.id}
+                      focusCommentId={targetId === d.id ? targetComment : undefined}
                       open={openComments.has(d.id)}
                       count={d.comment_count}
                       loggedIn={!!loggedIn}

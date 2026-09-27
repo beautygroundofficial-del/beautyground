@@ -1,10 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import BackHeader from '../components/layout/BackHeader'
 import AppFrame from '../components/layout/AppFrame'
 import { supabase } from '../lib/supabase'
 import {
-  getMyFriends, getFriendRequests, respondFriend, removeFriend,
+  getMyFriends, getFriendRequests, respondFriend, removeFriend, FRIENDS_CHANGED_EVENT,
   type FriendRow, type FriendRequestRow,
 } from '../lib/friends'
 
@@ -37,49 +37,104 @@ function Section({ title, count, children }: { title: string; count?: number; ch
 
 export default function AppFriends() {
   const navigate = useNavigate()
-  const [loggedIn, setLoggedIn] = useState<boolean | null>(null)
+  const [viewerId, setViewerId] = useState<string | null | undefined>(undefined)
+  const loggedIn = viewerId === undefined ? null : !!viewerId
   const [friends, setFriends] = useState<FriendRow[] | null>(null)
   const [requests, setRequests] = useState<FriendRequestRow[]>([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+  const [busyUserId, setBusyUserId] = useState<string | null>(null)
+  const busyRef = useRef(false)
+  const loadVersion = useRef(0)
   const [toast, setToast] = useState('')
-  const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 2400) }
-
-  const load = async () => {
-    const [f, r] = await Promise.all([getMyFriends(), getFriendRequests()])
-    setFriends(f)
-    setRequests(r)
-  }
+  const showToast = (msg: string) => setToast(msg)
 
   useEffect(() => {
-    void (async () => {
-      const { data: { session } } = await supabase.auth.getSession()
-      setLoggedIn(!!session)
-      if (!session) { setFriends([]); return }
-      await load()
-    })()
+    if (!toast) return
+    const timer = window.setTimeout(() => setToast(''), 2400)
+    return () => window.clearTimeout(timer)
+  }, [toast])
+
+  const load = useCallback(async () => {
+    const version = ++loadVersion.current
+    setLoading(true)
+    try {
+      const [f, r] = await Promise.all([
+        getMyFriends({ throwOnError: true }), getFriendRequests({ throwOnError: true }),
+      ])
+      if (version !== loadVersion.current) return
+      setFriends(f)
+      setRequests(r)
+      setError('')
+    } catch {
+      if (version === loadVersion.current) setError('친구 목록을 불러오지 못했어요. 다시 시도해 주세요.')
+    } finally {
+      if (version === loadVersion.current) setLoading(false)
+    }
   }, [])
+
+  useEffect(() => {
+    let alive = true
+    void supabase.auth.getSession().then(({ data: { session } }) => {
+      if (alive) setViewerId(session?.user.id ?? null)
+    }).catch(() => {
+      if (alive) { setViewerId(null); setError('로그인 상태를 확인하지 못했어요. 다시 로그인해 주세요.') }
+    })
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (alive) setViewerId(session?.user.id ?? null)
+    })
+    return () => { alive = false; ++loadVersion.current; subscription.unsubscribe() }
+  }, [])
+
+  useEffect(() => {
+    ++loadVersion.current
+    setFriends(viewerId === null ? [] : null)
+    setRequests([])
+    setError('')
+    if (!viewerId) return
+    void load()
+    const refresh = () => {
+      if (document.visibilityState === 'visible' && !busyRef.current) void load()
+    }
+    window.addEventListener('focus', refresh)
+    document.addEventListener('visibilitychange', refresh)
+    window.addEventListener(FRIENDS_CHANGED_EVENT, refresh)
+    return () => {
+      ++loadVersion.current
+      window.removeEventListener('focus', refresh)
+      document.removeEventListener('visibilitychange', refresh)
+      window.removeEventListener(FRIENDS_CHANGED_EVENT, refresh)
+    }
+  }, [viewerId, load])
 
   const received = requests.filter((r) => r.direction === 'received')
   const sent = requests.filter((r) => r.direction === 'sent')
 
-  const accept = async (r: FriendRequestRow) => {
-    if (!(await respondFriend(r.user_id, true))) { showToast('잠시 후 다시 시도해 주세요'); return }
-    showToast(`${r.nickname ?? '친구'}님과 친구가 됐어요`)
-    await load()
+  const act = async (userId: string, action: () => Promise<boolean>, message: string) => {
+    if (busyRef.current) return
+    busyRef.current = true
+    setBusyUserId(userId)
+    try {
+      const ok = await action()
+      showToast(ok ? message : '처리하지 못했어요. 새로 불러온 친구 상태를 확인해 주세요.')
+      await load()
+    } catch {
+      showToast('처리하지 못했어요. 잠시 후 다시 시도해 주세요.')
+    } finally {
+      busyRef.current = false
+      setBusyUserId(null)
+    }
   }
-  const decline = async (r: FriendRequestRow) => {
-    if (!(await respondFriend(r.user_id, false))) { showToast('잠시 후 다시 시도해 주세요'); return }
-    setRequests((prev) => prev.filter((x) => !(x.user_id === r.user_id && x.direction === 'received')))
-  }
-  const cancel = async (r: FriendRequestRow) => {
+
+  const accept = (r: FriendRequestRow) => act(r.user_id, () => respondFriend(r.user_id, true), `${r.nickname ?? '친구'}님과 친구가 됐어요`)
+  const decline = (r: FriendRequestRow) => act(r.user_id, () => respondFriend(r.user_id, false), '친구 신청을 거절했어요')
+  const cancel = (r: FriendRequestRow) => {
     if (!window.confirm('친구 신청을 취소할까요?')) return
-    if (!(await removeFriend(r.user_id))) { showToast('잠시 후 다시 시도해 주세요'); return }
-    setRequests((prev) => prev.filter((x) => !(x.user_id === r.user_id && x.direction === 'sent')))
+    return act(r.user_id, () => removeFriend(r.user_id), '친구 신청을 취소했어요')
   }
-  const unfriend = async (f: FriendRow) => {
+  const unfriend = (f: FriendRow) => {
     if (!window.confirm(`${f.nickname ?? '이 친구'}님과 친구를 끊을까요?`)) return
-    if (!(await removeFriend(f.user_id))) { showToast('잠시 후 다시 시도해 주세요'); return }
-    setFriends((prev) => (prev ?? []).filter((x) => x.user_id !== f.user_id))
-    showToast('친구를 끊었어요')
+    return act(f.user_id, () => removeFriend(f.user_id), '친구를 끊었어요')
   }
 
   const row = 'flex items-center justify-between gap-3 rounded-card border border-rule bg-paper px-4 py-3'
@@ -93,6 +148,15 @@ export default function AppFriends() {
       <BackHeader title="친구" onBack={() => navigate('/app/mypage')} />
 
       <div className="px-5 pt-5 pb-28">
+        {loggedIn && (
+          <div className="flex justify-end mb-3">
+            <button type="button" onClick={() => void load()} disabled={loading || busyUserId !== null}
+              className="text-[12px] text-ink-soft px-2 py-2 disabled:opacity-50">
+              {loading ? '새로 불러오는 중…' : '새로고침'}
+            </button>
+          </div>
+        )}
+        {error && <p role="alert" className="mb-4 rounded-control border border-rule bg-quiet px-4 py-3 text-[13px] text-ink-soft">{error}</p>}
         {loggedIn === false ? (
           <div className="text-center py-16">
             <p className="text-[14px] text-ink-soft mb-4">로그인하면 친구를 맺을 수 있어요</p>
@@ -103,7 +167,7 @@ export default function AppFriends() {
               로그인
             </button>
           </div>
-        ) : friends === null ? (
+        ) : friends === null && error ? null : friends === null ? (
           <p className="py-16 text-center text-[13px] text-ink-faint">불러오는 중…</p>
         ) : (
           <>
@@ -117,8 +181,8 @@ export default function AppFriends() {
                         <p className={subCls}>{timeAgo(r.created_at)}에 친구 신청</p>
                       </div>
                       <div className="flex items-center gap-1 shrink-0">
-                        <button type="button" onClick={() => void decline(r)} className={ghost}>거절</button>
-                        <button type="button" onClick={() => void accept(r)} className={solid}>수락</button>
+                        <button type="button" disabled={busyUserId !== null} onClick={() => void decline(r)} className={ghost + ' disabled:opacity-50'}>거절</button>
+                        <button type="button" disabled={busyUserId !== null} onClick={() => void accept(r)} className={solid + ' disabled:opacity-50'}>수락</button>
                       </div>
                     </li>
                   ))}
@@ -143,7 +207,7 @@ export default function AppFriends() {
                         <Link to={`/app/people/${f.user_id}`} className={nameCls + ' block hover:underline'}>{f.nickname ?? '익명'}</Link>
                         <p className={subCls}>{timeAgo(f.since)}부터 친구</p>
                       </div>
-                      <button type="button" onClick={() => void unfriend(f)} className={ghost}>끊기</button>
+                      <button type="button" disabled={busyUserId !== null} onClick={() => void unfriend(f)} className={ghost + ' disabled:opacity-50'}>끊기</button>
                     </li>
                   ))}
                 </ul>
@@ -159,7 +223,7 @@ export default function AppFriends() {
                         <p className={nameCls}>{r.nickname ?? '익명'}</p>
                         <p className={subCls}>{timeAgo(r.created_at)} · 답을 기다리는 중</p>
                       </div>
-                      <button type="button" onClick={() => void cancel(r)} className={ghost}>취소</button>
+                      <button type="button" disabled={busyUserId !== null} onClick={() => void cancel(r)} className={ghost + ' disabled:opacity-50'}>취소</button>
                     </li>
                   ))}
                 </ul>
@@ -170,7 +234,7 @@ export default function AppFriends() {
       </div>
 
       {toast && (
-        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 rounded-full bg-ink text-paper text-[13px] shadow-lg">
+        <div role="status" className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 rounded-full bg-ink text-paper text-[13px] shadow-lg">
           {toast}
         </div>
       )}

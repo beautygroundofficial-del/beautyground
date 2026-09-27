@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import BackHeader from '../components/layout/BackHeader'
 import AppFrame from '../components/layout/AppFrame'
 import { supabase } from '../lib/supabase'
 import { getUserProfile, getUserDiaries, type PersonProfile } from '../lib/people'
 import { toggleDiaryLike, type Diary } from '../lib/diaries'
-import { getFriendStatuses, type FriendStatus } from '../lib/friends'
+import { FRIENDS_CHANGED_EVENT, getFriendStatuses, type FriendStatus } from '../lib/friends'
 import { petEmoji } from '../lib/pets'
 import FriendButton from '../components/community/FriendButton'
 import LikeButton from '../components/community/LikeButton'
@@ -47,36 +47,105 @@ function sinceLabel(iso: string | null) {
 export default function AppPerson() {
   const { id = '' } = useParams()
   const navigate = useNavigate()
-  const [loggedIn, setLoggedIn] = useState(false)
+  const location = useLocation()
+  const returnTo = (location.state as { from?: string } | null)?.from
+  const [viewerId, setViewerId] = useState<string | null | undefined>(undefined)
+  const loggedIn = !!viewerId
   const [profile, setProfile] = useState<PersonProfile | null | undefined>(undefined)
   const [feed, setFeed] = useState<Diary[]>([])
   const [friend, setFriend] = useState<FriendStatus>('none')
+  const [friendLoading, setFriendLoading] = useState(true)
+  const [friendError, setFriendError] = useState('')
+  const [refreshVersion, setRefreshVersion] = useState(0)
+  const [loadError, setLoadError] = useState('')
   const [viewer, setViewer] = useState<{ images: string[]; index: number } | null>(null)
   const [toast, setToast] = useState('')
-  const showToast = (m: string) => { setToast(m); setTimeout(() => setToast(''), 2400) }
+  const showToast = (m: string) => setToast(m)
+
+  useEffect(() => {
+    if (!toast) return
+    const timer = window.setTimeout(() => setToast(''), 2400)
+    return () => window.clearTimeout(timer)
+  }, [toast])
 
   useEffect(() => {
     let alive = true
+    void supabase.auth.getSession().then(({ data: { session } }) => {
+      if (alive) setViewerId(session?.user.id ?? null)
+    }).catch(() => {
+      if (alive) { setViewerId(null); setLoadError('로그인 상태를 확인하지 못했어요. 다시 시도해 주세요.') }
+    })
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (alive) setViewerId(session?.user.id ?? null)
+    })
+    return () => { alive = false; subscription.unsubscribe() }
+  }, [])
+
+  useEffect(() => {
+    let alive = true
+    setProfile(undefined)
+    setFeed([])
+    setViewer(null)
+    setLoadError('')
+    if (viewerId === undefined) return
     void (async () => {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!alive) return
-      setLoggedIn(!!session)
-      const [p, rows] = await Promise.all([getUserProfile(id), getUserDiaries(id, 30)])
-      if (!alive) return
-      setProfile(p)
-      setFeed(rows)
-      if (session && p && !p.is_me) setFriend((await getFriendStatuses([id]))[id] ?? 'none')
+      try {
+        const [p, rows] = await Promise.all([getUserProfile(id), getUserDiaries(id, 30)])
+        if (!alive) return
+        setProfile(p)
+        setFeed(rows)
+      } catch {
+        if (alive) setLoadError('이야기를 불러오지 못했어요. 잠시 후 다시 시도해 주세요.')
+      }
     })()
     return () => { alive = false }
-  }, [id])
+  }, [id, viewerId, refreshVersion])
+
+  useEffect(() => {
+    let alive = true
+    let requestVersion = 0
+    setFriend('none')
+    setFriendError('')
+    const refresh = async () => {
+      const version = ++requestVersion
+      if (!viewerId || viewerId === id) { setFriendLoading(false); return }
+      setFriendLoading(true)
+      try {
+        const next = (await getFriendStatuses([id], { throwOnError: true }))[id] ?? 'none'
+        if (!alive || version !== requestVersion) return
+        setFriend(next)
+        setFriendError('')
+      } catch {
+        if (alive && version === requestVersion) setFriendError('친구 상태를 확인하지 못했어요')
+      } finally {
+        if (alive && version === requestVersion) setFriendLoading(false)
+      }
+    }
+    void refresh()
+    const onRefresh = () => { if (document.visibilityState === 'visible') void refresh() }
+    window.addEventListener('focus', onRefresh)
+    document.addEventListener('visibilitychange', onRefresh)
+    window.addEventListener(FRIENDS_CHANGED_EVENT, onRefresh)
+    return () => {
+      alive = false
+      window.removeEventListener('focus', onRefresh)
+      document.removeEventListener('visibilitychange', onRefresh)
+      window.removeEventListener(FRIENDS_CHANGED_EVENT, onRefresh)
+    }
+  }, [id, viewerId, refreshVersion])
 
   const name = profile ? (friend === 'friends' || profile.is_me ? (profile.nickname ?? '익명') : maskName(profile.nickname)) : ''
 
   return (
     <AppFrame>
-      <BackHeader title="그 사람의 이야기" onBack={() => navigate(-1)} />
+      <BackHeader title="그 사람의 이야기" onBack={() => {
+        if (returnTo?.startsWith('/app/') && !returnTo.includes('\\')) navigate(returnTo, { replace: true })
+        else navigate(-1)
+      }} />
 
-      {profile === undefined ? (
+      {loadError ? (
+        <div role="alert" className="py-16 px-5 text-center text-[14px] text-ink-soft"><p>{loadError}</p><button type="button" className="min-h-11 mt-2 underline" onClick={() => setRefreshVersion(v => v + 1)}>다시 불러오기</button></div>
+      ) : profile === undefined || (profile !== null && profile.user_id !== id) ? (
         <p className="py-16 text-center text-[13px] text-ink-faint">불러오는 중…</p>
       ) : profile === null ? (
         <p className="py-16 text-center text-[13px] text-ink-faint">찾을 수 없는 사람이에요</p>
@@ -96,11 +165,17 @@ export default function AppPerson() {
               </div>
               {profile.is_me ? (
                 <button type="button" onClick={() => navigate('/app/mypage')} className="shrink-0 text-[12px] text-ink-soft rounded-control border border-rule px-3 py-1.5">마이페이지</button>
-              ) : loggedIn ? (
-                <div className="shrink-0 scale-110 origin-right">
-                  <FriendButton userId={id} status={friend} loggedIn={loggedIn} onChange={setFriend} onNotice={showToast} />
+              ) : (
+                <div className="shrink-0 text-right">
+                  <FriendButton key={id} userId={id} status={friend} loggedIn={loggedIn} disabled={friendLoading || !!friendError}
+                    onChange={setFriend} onNotice={showToast} />
+                  {friendError && (
+                    <button type="button" onClick={() => setRefreshVersion((v) => v + 1)} className="block mt-1 text-[11px] text-ink-soft">
+                      {friendError} · 다시 시도
+                    </button>
+                  )}
                 </div>
-              ) : null}
+              )}
             </div>
 
             {/* 펫 — 이 사람과 사는 친구들 */}
@@ -156,7 +231,7 @@ export default function AppPerson() {
                                 return res
                               }} />
                             {/* 댓글은 이야기 화면에서 — 그 글을 펼친 채로 이동 */}
-                            <CommentToggle count={d.comment_count} open={false} onClick={() => navigate('/app/diary', { state: { openComments: d.id, focus: d.id } })} />
+                            <CommentToggle count={d.comment_count} open={false} onClick={() => navigate(`/app/diary?focus=${encodeURIComponent(d.id)}&comments=${encodeURIComponent(d.id)}`)} />
                           </div>
                         </div>
                       </div>
@@ -169,7 +244,7 @@ export default function AppPerson() {
         </>
       )}
 
-      {toast && <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 rounded-full bg-ink text-paper text-[13px] shadow-lg">{toast}</div>}
+      {toast && <div role="status" className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 rounded-full bg-ink text-paper text-[13px] shadow-lg">{toast}</div>}
       {viewer && <Lightbox images={viewer.images} index={viewer.index} onClose={() => setViewer(null)} />}
     </AppFrame>
   )

@@ -1,5 +1,6 @@
 import { Link, useLocation } from 'react-router-dom'
 import { IconHome, IconGrid, IconTalk, IconUser } from '../common/Icon'
+import { IconBell } from '@tabler/icons-react'
 
 // 2026-09-02 개편 — 하단 5칸 중 3칸이 제품(카테고리·장바구니)이라 쇼핑몰로만 보였다.
 // 커뮤니티를 앞세우는 라이프스타일 플랫폼 방향에 맞춰 제품은 '쇼핑' 한 칸으로 묶고,
@@ -11,6 +12,7 @@ import { IconHome, IconGrid, IconTalk, IconUser } from '../common/Icon'
 const NAV_ITEMS = [
   { path: '/app/home', Icon: IconHome, label: '홈' },
   { path: '/app/diary', Icon: IconTalk, label: '이야기' },
+  { path: '/app/news', Icon: IconBell, label: '소식' },
   { path: '/app/category', Icon: IconGrid, label: '쇼핑' },
   { path: '/app/mypage', Icon: IconUser, label: '마이' },
 ]
@@ -27,7 +29,7 @@ export default function BottomNav() {
         <div className="flex items-stretch h-14">
           {NAV_ITEMS.map(({ path, Icon, label }) => {
             // '이야기'는 하루 이야기(/app/diary)와 속 이야기(/app/board) 두 갈래 — 둘 다 같은 탭이 켜진다
-            const isActive = pathname === path || (path === '/app/diary' && pathname.startsWith('/app/board'))
+            const isActive = pathname === path || (path === '/app/diary' && (pathname.startsWith('/app/board') || pathname.startsWith('/app/diary/'))) || (path === '/app/news' && pathname === '/app/friends')
             return (
               <Link
                 key={label}

@@ -195,11 +195,11 @@ export interface BoardComment {
   is_mine: boolean
 }
 
-export async function getBoardComments(postId: string, limit = 50): Promise<BoardComment[]> {
+export async function getBoardComments(postId: string, limit = 50, offset = 0): Promise<BoardComment[] | null> {
   const { data, error } = await supabase.rpc('get_board_comments', {
-    p_post_id: postId, p_limit: limit, p_offset: 0,
+    p_post_id: postId, p_limit: limit, p_offset: offset,
   })
-  if (error) return []
+  if (error) return null
   return (data ?? []) as BoardComment[]
 }
 
@@ -222,6 +222,6 @@ export async function createBoardComment(
 }
 
 export async function deleteBoardComment(commentId: string): Promise<boolean> {
-  const { error } = await supabase.from('board_comments').delete().eq('id', commentId)
-  return !error
+  const { data, error } = await supabase.from('board_comments').delete().eq('id', commentId).select('id')
+  return !error && !!data?.some((row) => row.id === commentId)
 }

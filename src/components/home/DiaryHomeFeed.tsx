@@ -56,7 +56,7 @@ function SectionHead({ label, title, onMore }: { label: string; title: string; o
   )
 }
 
-export default function DiaryHomeFeed() {
+export default function DiaryHomeFeed({ limit = 6 }: { limit?: number }) {
   const navigate = useNavigate()
   const [feed, setFeed] = useState<Diary[] | null>(null)
   const [loggedIn, setLoggedIn] = useState(false)
@@ -65,18 +65,19 @@ export default function DiaryHomeFeed() {
     let active = true
     void (async () => {
       const [rows, { data: { session } }] = await Promise.all([
-        getDiaryFeed('recent', 6), supabase.auth.getSession(),
+        getDiaryFeed('recent', limit), supabase.auth.getSession(),
       ])
       if (!active) return
       setFeed(rows)
       setLoggedIn(!!session)
     })()
     return () => { active = false }
-  }, [])
+  }, [limit])
 
   const go = () => navigate('/app/diary')
   // 말풍선 — 홈에서는 펼치지 않고 이야기 화면으로 가서 그 글의 댓글을 연다
-  const goComments = (id: string) => navigate('/app/diary', { state: { openComments: id } })
+  const goPost = (id: string) => navigate(`/app/diary?focus=${id}`)
+  const goComments = (id: string) => navigate(`/app/diary?focus=${id}&comments=${id}`)
 
   return (
     <>
@@ -116,7 +117,7 @@ export default function DiaryHomeFeed() {
                 <li key={d.id} className="rounded-card border border-rule bg-paper overflow-hidden">
                   {/* 사진·글은 누르면 이야기 화면으로. 아래 줄(하트·말풍선)은 버튼이라 따로 둔다 — 버튼 안에 버튼을 넣을 수 없다 */}
                   <button
-                    onClick={go}
+                    onClick={() => goPost(d.id)}
                     className="w-full text-left focus:outline-none focus-visible:shadow-ring"
                   >
                     {imgs.length > 0 && (
