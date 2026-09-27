@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict'
-import { createCommunityDb, IDS } from './community-db-harness.mjs'
+import { readFile } from 'node:fs/promises'
+import path from 'node:path'
+import { createCommunityDb, IDS, REPO } from './community-db-harness.mjs'
 
 const results = []
 async function check(name, fn, options = {}) {
@@ -129,6 +131,22 @@ await check('read watermark preserves later arrivals and never regresses or acce
 })
 
 await check('anon/public read grants; authenticated-only notifications and writes',async f=>{
+  // Supabase may grant anon explicitly: revoking PUBLIC alone does not remove it.
+  // Seed the seven existing migration targets and grant anon on newly created functions.
+  await f.db.exec(`
+    grant execute on function
+      public.get_diary_comments(uuid,integer,integer),
+      public.get_board_comments(uuid,integer,integer),
+      public.get_answer_comments(uuid,integer,integer),
+      public.get_my_news(integer), public.request_friend(uuid),
+      public.respond_friend(uuid,boolean), public.remove_friend(uuid)
+    to anon;
+    alter default privileges in schema public grant execute on functions to anon;
+  `)
+  assert.equal((await f.db.query("select has_function_privilege('anon','public.get_my_news(integer)','EXECUTE') as allowed")).rows[0].allowed,true)
+  for(const file of ['community_conversation_integration.sql','community_friend_request_lock.sql']){
+    await f.db.exec(await readFile(path.join(REPO,'supabase',file),'utf8'))
+  }
   const role=(await rows(f,IDS.B,'select current_user as role, auth.uid() as id'))[0]
   assert.equal(role.role,'authenticated');assert.equal(role.id,IDS.B)
   await call(f,null,'get_community_diary',[IDS.diary])
@@ -136,14 +154,15 @@ await check('anon/public read grants; authenticated-only notifications and write
   await call(f,null,'get_diary_comment_thread',[IDS.diary,50,0])
   for(const [name,args] of [
     ['get_community_news',[10]],['get_my_news',[10]],['mark_community_news_seen',[new Date().toISOString()]],
-    ['request_friend',[IDS.B]],['create_diary_comment',[IDS.diary,'Denied anon write',null,null]],
+    ['request_friend',[IDS.B]],['respond_friend',[IDS.B,true]],['remove_friend',[IDS.B]],
+    ['create_diary_comment',[IDS.diary,'Denied anon write',null,null]],
   ]){
     await assert.rejects(()=>call(f,null,name,args),e=>e.code==='42501',`anon must not execute ${name}`)
   }
   const unauthClaim=(await f.queryAs(null,'select * from public.get_community_news(10)',[],'authenticated')).rows
   assert.equal(unauthClaim.length,0)
   await assert.rejects(()=>rows(f,IDS.B,'select * from auth.users'),e=>e.code==='42501')
-})
+},{applyNew:false})
 
 await check('friend request/receive/accept/news/cancel/self/missing user',async f=>{
   assert.equal((await call(f,IDS.A,'request_friend',[IDS.A]))[0].status,'self')

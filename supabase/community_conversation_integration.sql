@@ -196,7 +196,7 @@ LANGUAGE sql SECURITY DEFINER SET search_path TO 'public' AS $function$
  order by i.created_at desc,i.target_id,i.comment_id nulls last,i.kind
  limit least(greatest(p_limit,1),500);
 $function$;
-revoke all on function public.get_community_news(integer) from public;
+revoke all on function public.get_community_news(integer) from public, anon;
 grant execute on function public.get_community_news(integer) to authenticated;
 
 CREATE OR REPLACE FUNCTION public.get_my_news(p_limit integer DEFAULT 30)
@@ -208,7 +208,7 @@ AS $function$
  select n.kind,n.target_type,n.target_id,n.actor_nickname,n.actor_user_id,n.excerpt,n.comment_text,n.reaction_kind,n.created_at,n.is_new
  from public.get_community_news(p_limit) n;
 $function$;
-revoke all on function public.get_my_news(integer) from public;
+revoke all on function public.get_my_news(integer) from public, anon;
 grant execute on function public.get_my_news(integer) to authenticated;
 
 CREATE OR REPLACE FUNCTION public.mark_community_news_seen(p_seen_at timestamptz)
@@ -217,7 +217,7 @@ RETURNS void LANGUAGE sql SECURITY DEFINER SET search_path TO 'public' AS $funct
  select auth.uid(),least(p_seen_at,now()) where auth.uid() is not null and p_seen_at is not null
  on conflict(user_id) do update set seen_at=greatest(public.news_seen.seen_at,excluded.seen_at);
 $function$;
-revoke all on function public.mark_community_news_seen(timestamptz) from public;
+revoke all on function public.mark_community_news_seen(timestamptz) from public, anon;
 grant execute on function public.mark_community_news_seen(timestamptz) to authenticated;
 
 notify pgrst, 'reload schema';
