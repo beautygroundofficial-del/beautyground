@@ -260,9 +260,6 @@ export default function AppCart() {
                         <p className="text-[12px] text-signal-red mt-2">현재 구매할 수 없는 상품이에요 (품절/판매중지)</p>
                       ) : (
                         <>
-                          {stock <= 5 && (
-                            <p className="text-[11px] text-signal-red mt-1">재고 {stock}개 남음</p>
-                          )}
                           <div className="flex items-center justify-between mt-2">
                             <div className="flex items-center gap-2 rounded-pill border border-rule">
                               <button
