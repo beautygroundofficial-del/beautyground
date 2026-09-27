@@ -25,7 +25,7 @@
 - 공개 일기 조회 성공 및 숨김 일기·댓글·게시판 댓글·답변 조회 결과0 확인. 직접 REST 테이블 RLS 전반을 보증하는 검사는 아니다.
 - 정확한 커밋의 GitHub 상태에서 `Vercel – beautyground`, `Vercel – beautyground-app` 모두 배포 성공을 확인했다. 실제 도메인은 새 JS `index-V-VHpsgS.js`와 CSS `index-BQYVPWLT.css`를 제공하며 CSS는 검토 후보 빌드와 바이트 단위로 같다.
 - 운영 홈·이야기·소식·친구를 새 익명 브라우저로 조회했다. 네 화면 모두 HTTP200·JavaScript 예외0·390px 가로 넘침0. 홈/이야기의 작성자 상단·외곽 박스 제거·댓글 표시와 익명 소식/친구의 로그인 안내를 확인했다. 홈과 이야기 실제 캡처를 직접 확인했고 운영 홈을 대표님 브라우저에 열었다.
-- 엄격한 운영 점검 원본 결과는 **3/4 통과**다. 홈의 기존 `get_member_count` RPC가404이며 변경하지 않은 AppHeader는 기존 기준값을 표시한다. 별도로 읽기 검사 가드가 허용 목록 밖 RPC 1건을 차단했다. 따라서 모든 운영 요청에 오류가 없었다고 주장하지 않는다. 해당 원본 결과를 보존하고, 회원 수 조회는 별도 미해결 점검 항목으로 남겼다.
+- 엄격한 운영 점검 원본 결과는 **3/4 통과**다. 홈의 기존 `get_member_count` RPC가404이며 변경하지 않은 AppHeader는 기존 기준값을 표시한다. 별도로 읽기 검사 가드가 `is_admin` 조회를 차단했다. 홈 추가 확인으로 호출명을 확정했으며 저장소 정의는 읽기 전용 SELECT EXISTS다. 앱의 쓰기 시도가 아니라 검사의 `get_*` 허용 규칙에 걸린 조회다. 운영 함수 본문을 추가로 검증한 것은 아니다. 원본 결과와 추가 진단을 보존하며, 회원 수 조회는 별도 미해결 점검 항목으로 남겼다.
 
 증거와 복구 자료: `C:/Users/Public/Documents/ESTsoft/CreatorTemp/community-deploy-20260928/`. `before-functions.json`, `rollback-functions.sql`, `release-plan-current.json`, `applied.json`, `after-functions.json`, `read-verification.json`, `rpc-read-results.json`에 기록했다. 비밀키는 저장소·기록에 포함하지 않는다.
 
