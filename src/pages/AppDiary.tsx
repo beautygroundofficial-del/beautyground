@@ -4,6 +4,7 @@ import { IconPencil } from '@tabler/icons-react'
 import BackHeader from '../components/layout/BackHeader'
 import AppFrame from '../components/layout/AppFrame'
 import { supabase } from '../lib/supabase'
+import { promptAndReport } from '../lib/reports'
 import {
   getMonthlyBestDiaries, deleteDiary, toggleDiaryLike,
   type Diary, type BestDiary, type DiarySort,
@@ -310,6 +311,10 @@ export default function AppDiary() {
                     {!d.is_mine && loggedIn && (
                       <FriendButton userId={d.user_id} status={friendOf[d.user_id] ?? 'none'} loggedIn={!!loggedIn}
                         onChange={(next) => setFriendOf((prev) => ({ ...prev, [d.user_id]: next }))} onNotice={showToast} />
+                    )}
+                    {!d.is_mine && (
+                      <button type="button" onClick={() => { if (!loggedIn) { navigate('/app/login'); return } void promptAndReport('diary', d.id).then((m) => { if (m) showToast(m) }) }}
+                        className="min-h-11 text-[12px] text-ink-faint focus-visible:shadow-ring">신고</button>
                     )}
                   </div>
                   {/* 사진은 작성자 아래, 본문 앞에 놓는다. */}

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { promptAndReport } from '../../lib/reports'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { useNicknameGate } from '../../hooks/useNicknameGate'
@@ -322,6 +323,11 @@ function CommentPanel({
               if (!loggedIn) { login(comment.id); return }
               persistDrafts({ ...draftsRef.current, replyTarget: drafts.replyTarget === comment.id ? null : comment.id })
             }} aria-expanded={drafts.replyTarget === comment.id} className="min-h-11 min-w-11 rounded-control px-2 text-[13px] text-ink-soft hover:bg-quiet focus-visible:shadow-ring disabled:opacity-40">답글</button>}
+          {!comment.is_mine && <button type="button" disabled={busy} onClick={() => {
+              if (!loggedIn) { login(comment.id); return }
+              const kind = namespace === 'board' ? 'board_comment' : namespace === 'answer' ? 'answer_comment' : 'diary_comment'
+              void promptAndReport(kind, comment.id).then((msg) => { if (msg) notice(msg) })
+            }} aria-label="이 댓글 신고" className="min-h-11 min-w-11 rounded-control px-2 text-[13px] text-ink-faint hover:bg-quiet focus-visible:shadow-ring disabled:opacity-40">신고</button>}
           {comment.is_mine && <button type="button" disabled={busy} onClick={() => void remove(comment)}
             className="min-h-11 min-w-11 rounded-control px-2 text-[13px] text-ink-soft hover:bg-quiet focus-visible:shadow-ring disabled:opacity-40">{pending === `delete:${comment.id}` ? '삭제 중…' : '삭제'}</button>}
         </div>

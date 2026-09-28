@@ -4,7 +4,9 @@ import { supabase } from '../../lib/supabase'
 import type { Live, LiveCoupon, Product } from '../../lib/types'
 import { won } from '../../lib/format'
 import { streamIframeSrc } from '../../lib/cloudflare'
-import { useLiveChat } from '../../hooks/useLiveChat'
+import { useLiveChat, type ChatMessage } from '../../hooks/useLiveChat'
+import { promptAndReport } from '../../lib/reports'
+import { blockUser } from '../../lib/blocks'
 import { useStreamStatus } from '../../hooks/useStreamStatus'
 import { useLiveHearts } from '../../hooks/useLiveHearts'
 import { useLiveWatchReward } from '../../hooks/useLiveWatchReward'
@@ -170,6 +172,22 @@ export default function ShopLiveWatch() {
     setChatInput(`@${nickname} `)
     setEmojiOpen(false)
     chatInputRef.current?.focus()
+  }
+  // 닉네임을 누르면 멘션·신고·차단 중 고르는 작은 시트(앱 심사: 채팅도 UGC라 신고·차단 수단 필요, 2026-09-28)
+  const [chatTarget, setChatTarget] = useState<ChatMessage | null>(null)
+  const [chatNotice, setChatNotice] = useState('')
+  const flashChat = (m: string) => { setChatNotice(m); window.setTimeout(() => setChatNotice(''), 2400) }
+  const onChatUser = (m: ChatMessage) => setChatTarget(m)
+  const reportChat = async () => {
+    const t = chatTarget; setChatTarget(null); if (!t) return
+    if (!isLoggedIn) { navigate('/app/login'); return }
+    const msg = await promptAndReport('chat', t.id); if (msg) flashChat(msg)
+  }
+  const blockChat = async () => {
+    const t = chatTarget; setChatTarget(null); if (!t?.user_id) { flashChat('비회원 메시지는 차단할 수 없어요'); return }
+    if (!isLoggedIn) { navigate('/app/login'); return }
+    if (!window.confirm(`${t.nickname ?? '익명'} 님을 차단할까요? 이 사람의 채팅·글이 더 이상 보이지 않아요.`)) return
+    const res = await blockUser(t.user_id); flashChat(res.message)
   }
 
   useEffect(() => {
@@ -374,9 +392,31 @@ export default function ShopLiveWatch() {
 
   const recentMessages = messages.slice(-4)
 
+  // 닉네임 탭 시트 — 모바일·PC 공통
+  const chatSheet = (
+    <>
+      {chatTarget && (
+        <div className="fixed inset-0 z-[80] bg-black/40 flex items-end justify-center" onClick={() => setChatTarget(null)}>
+          <div className="w-full sm:max-w-[480px] bg-paper rounded-t-md p-4 pb-[calc(env(safe-area-inset-bottom,0px)+16px)]" onClick={(e) => e.stopPropagation()}>
+            <p className="text-[14px] font-bold text-ink mb-3">{chatTarget.nickname ?? '익명'}</p>
+            <div className="space-y-2">
+              <button type="button" onClick={() => { const n = chatTarget.nickname ?? '익명'; setChatTarget(null); mentionUser(n) }}
+                className="w-full min-h-11 rounded-control border border-rule text-[14px] font-semibold text-ink">@{chatTarget.nickname ?? '익명'} 멘션</button>
+              <button type="button" onClick={() => void reportChat()} className="w-full min-h-11 rounded-control border border-rule text-[14px] font-semibold text-ink">이 메시지 신고</button>
+              <button type="button" onClick={() => void blockChat()} className="w-full min-h-11 rounded-control border border-rule text-[14px] font-semibold text-signal-red">이 사용자 차단</button>
+              <button type="button" onClick={() => setChatTarget(null)} className="w-full min-h-11 text-[13px] text-ink-faint">닫기</button>
+            </div>
+          </div>
+        </div>
+      )}
+      {chatNotice && <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[81] px-4 py-2.5 rounded-full bg-ink text-paper text-[13px] shadow-lg">{chatNotice}</div>}
+    </>
+  )
+
   if (isDesktop && live) {
     return (
       <>
+        {chatSheet}
         <DesktopLiveWatch
           live={live}
           hostName={hostName}
@@ -402,6 +442,7 @@ export default function ShopLiveWatch() {
           setChatInput={setChatInput}
           sendChatMessage={sendChatMessage}
           mentionUser={mentionUser}
+          onChatUser={onChatUser}
           onBack={() => navigate(-1)}
           buyProduct={buyProduct}
           quantity={quantity}
@@ -689,7 +730,7 @@ export default function ShopLiveWatch() {
                   <p key={m.id} className="text-[12.5px] text-white leading-snug" style={textShadow}>
                     <button
                       type="button"
-                      onClick={() => mentionUser(m.nickname ?? '익명')}
+                      onClick={() => onChatUser(m)}
                       className="font-bold mr-1"
                       style={{ color: nicknameColor(m.nickname ?? '익명') }}
                     >
@@ -953,6 +994,7 @@ export default function ShopLiveWatch() {
           </div>
         </div>
       )}
+      {chatSheet}
     </div>
   )
 }

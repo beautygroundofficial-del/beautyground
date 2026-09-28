@@ -426,4 +426,132 @@ AS $function$
  where not public.is_blocked_by_me(n.actor_user_id);
 $function$;
 
+-- ─────────────────────────────────────────────────────────────
+-- 4) 신고 — 속 이야기(report_board_post)뿐이던 신고를 하루 이야기·오늘의 답변·댓글 3종·라이브 채팅까지 확장
+--    (앱 심사: 모든 사용자 생성 콘텐츠에 신고 수단). 운영자는 관리자 > 커뮤니티 신고에서 보고 가린다.
+-- ─────────────────────────────────────────────────────────────
+create table if not exists public.content_reports (
+  id uuid primary key default gen_random_uuid(),
+  target_type text not null check (target_type in ('diary','answer','board_comment','diary_comment','answer_comment','chat')),
+  target_id text not null,            -- uuid 또는 chat_messages.id(bigint) 를 문자열로
+  user_id uuid not null references auth.users(id) on delete cascade,
+  reason text,
+  created_at timestamptz not null default now(),
+  unique (target_type, target_id, user_id)
+);
+alter table public.content_reports enable row level security;
+-- 정책 없음: 아래 함수로만 쓴다.
+
+create or replace function public.report_content(p_target_type text, p_target_id text, p_reason text default null)
+returns table (ok boolean, message text)
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_uid uuid := auth.uid();
+  v_exists boolean := false;
+begin
+  if v_uid is null then
+    return query select false, '로그인이 필요합니다'::text; return;
+  end if;
+  begin
+    case p_target_type
+      when 'diary' then select exists(select 1 from public.diaries where id = p_target_id::uuid) into v_exists;
+      when 'answer' then select exists(select 1 from public.daily_answers where id = p_target_id::uuid) into v_exists;
+      when 'board_comment' then select exists(select 1 from public.board_comments where id = p_target_id::uuid) into v_exists;
+      when 'diary_comment' then select exists(select 1 from public.diary_comments where id = p_target_id::uuid) into v_exists;
+      when 'answer_comment' then select exists(select 1 from public.answer_comments where id = p_target_id::uuid) into v_exists;
+      when 'chat' then select exists(select 1 from public.chat_messages where id = p_target_id::bigint) into v_exists;
+      else v_exists := false;
+    end case;
+  exception when others then
+    v_exists := false;
+  end;
+  if not v_exists then
+    return query select false, '이미 지워진 글이에요'::text; return;
+  end if;
+  insert into public.content_reports (target_type, target_id, user_id, reason)
+  values (p_target_type, p_target_id, v_uid, left(coalesce(p_reason, ''), 200))
+  on conflict (target_type, target_id, user_id) do update set reason = excluded.reason, created_at = now();
+  return query select true, '알려주셔서 고마워요. 확인해 볼게요'::text;
+end;
+$$;
+revoke all on function public.report_content(text, text, text) from public;
+grant execute on function public.report_content(text, text, text) to authenticated;
+
+-- 운영자용 목록 — 대상별로 묶어 원문·작성자·현재 상태·신고 수를 보여준다
+create or replace function public.admin_content_reports()
+returns table (target_type text, target_id text, content text, nickname text, status text, target_created_at timestamptz,
+               report_count integer, last_reported_at timestamptz, reasons text)
+language sql
+security definer
+set search_path = public
+as $$
+  with t as (
+    select 'diary'::text k, id::text tid, content, nickname, status, created_at from public.diaries
+    union all select 'answer', id::text, content, nickname, status, created_at from public.daily_answers
+    union all select 'board_comment', id::text, content, nickname, status, created_at from public.board_comments
+    union all select 'diary_comment', id::text, content, nickname, status, created_at from public.diary_comments
+    union all select 'answer_comment', id::text, content, nickname, status, created_at from public.answer_comments
+    union all select 'chat', id::text, message, nickname, 'visible', created_at from public.chat_messages
+  )
+  select r.target_type, r.target_id, t.content, t.nickname, t.status, t.created_at,
+         count(r.*)::integer, max(r.created_at),
+         string_agg(nullif(btrim(r.reason), ''), ' / ' order by r.created_at desc)
+  from public.content_reports r
+  left join t on t.k = r.target_type and t.tid = r.target_id
+  where public.is_admin()
+  group by r.target_type, r.target_id, t.content, t.nickname, t.status, t.created_at
+  order by max(r.created_at) desc;
+$$;
+revoke all on function public.admin_content_reports() from public;
+grant execute on function public.admin_content_reports() to authenticated;
+
+-- 운영자 처리 — 가리기/되살리기(글·댓글·답변), 채팅은 삭제만
+create or replace function public.admin_set_content_status(p_target_type text, p_target_id text, p_status text)
+returns boolean
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if not public.is_admin() then raise exception '관리자만 처리할 수 있습니다.'; end if;
+  if p_status not in ('visible','hidden') then raise exception '상태값이 잘못됐습니다.'; end if;
+  case p_target_type
+    when 'diary' then update public.diaries set status = p_status where id = p_target_id::uuid;
+    when 'answer' then update public.daily_answers set status = p_status where id = p_target_id::uuid;
+    when 'board_comment' then update public.board_comments set status = p_status where id = p_target_id::uuid;
+    when 'diary_comment' then update public.diary_comments set status = p_status where id = p_target_id::uuid;
+    when 'answer_comment' then update public.answer_comments set status = p_status where id = p_target_id::uuid;
+    when 'chat' then
+      if p_status = 'hidden' then delete from public.chat_messages where id = p_target_id::bigint; end if;
+    else raise exception '알 수 없는 대상입니다.';
+  end case;
+  return true;
+end;
+$$;
+revoke all on function public.admin_set_content_status(text, text, text) from public;
+grant execute on function public.admin_set_content_status(text, text, text) to authenticated;
+
+-- 라이브 채팅도 금칙어 가리기(message·nickname)
+create or replace function public.chat_mask_content()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if public.is_admin() then return new; end if;
+  new.message := public.mask_banned_words(new.message);
+  new.nickname := public.mask_banned_words(new.nickname);
+  return new;
+end;
+$$;
+drop trigger if exists chat_messages_mask_content on public.chat_messages;
+create trigger chat_messages_mask_content before insert or update of message, nickname on public.chat_messages
+  for each row execute function public.chat_mask_content();
+
+-- 차단한 사람의 채팅은 클라이언트가 get_my_blocks 로 걸러 보여준다(실시간 구독 특성상 서버 필터 대신).
+
 commit;

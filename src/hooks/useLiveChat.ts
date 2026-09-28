@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
+import { BLOCKS_CHANGED_EVENT, getMyBlocks } from '../lib/blocks'
 
 // 관리자 여부는 로그인 세션 동안 바뀌지 않으므로 한 번만 조회해 재사용한다(메시지마다 왕복 방지).
 let adminCache: boolean | null = null
@@ -29,6 +30,19 @@ export function useLiveChat(liveId: string | undefined): UseLiveChat {
   const [loading, setLoading] = useState(true)
   const [userId, setUserId] = useState<string | null>(null)
   const seenIds = useRef<Set<number>>(new Set())
+  // 차단한 사용자 id — 그 사람의 채팅은 화면에서 뺀다(앱 심사: UGC 차단 수단). 로그인 상태·차단 변경 시 다시 읽는다.
+  const [blocked, setBlocked] = useState<Set<string>>(new Set())
+  useEffect(() => {
+    let active = true
+    const load = async () => {
+      if (!userId) { setBlocked(new Set()); return }
+      const list = await getMyBlocks()
+      if (active) setBlocked(new Set(list.map((b) => b.user_id)))
+    }
+    void load()
+    window.addEventListener(BLOCKS_CHANGED_EVENT, load)
+    return () => { active = false; window.removeEventListener(BLOCKS_CHANGED_EVENT, load) }
+  }, [userId])
 
   // 현재 로그인 유저 확인 (+ 세션 변화 반영)
   useEffect(() => {
@@ -123,5 +137,6 @@ export function useLiveChat(liveId: string | undefined): UseLiveChat {
     return true
   }
 
-  return { messages, loading, isLoggedIn: userId !== null, sendMessage }
+  const visibleMessages = blocked.size === 0 ? messages : messages.filter((m) => !m.user_id || !blocked.has(m.user_id))
+  return { messages: visibleMessages, loading, isLoggedIn: userId !== null, sendMessage }
 }

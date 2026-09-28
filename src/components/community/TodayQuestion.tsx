@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
+import { promptAndReport } from '../../lib/reports'
 import {
   getTodayQuestion, getQuestionAnswers, answerTodayQuestion,
   toggleAnswerLike, getAnswerComments, createAnswerComment, deleteAnswerComment,
@@ -308,6 +309,10 @@ export default function TodayQuestion() {
                     <div className="flex items-center justify-between gap-3 mt-2 mb-2">
                       <span className="text-[13px] font-semibold text-ink-soft">
                         {a.is_mine ? '나' : maskName(a.nickname)}
+                        {!a.is_mine && (
+                          <button type="button" onClick={() => { if (!loggedIn) { navigate('/app/login'); return } void promptAndReport('answer', a.id).then((m) => { if (m) flash(m) }) }}
+                            className="ml-2 text-[12px] font-normal text-ink-faint focus-visible:shadow-ring">신고</button>
+                        )}
                       </span>
                       <div className="flex items-center gap-1">
                         <LikeButton

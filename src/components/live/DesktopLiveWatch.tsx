@@ -39,6 +39,7 @@ interface Props {
   setChatInput: (v: string) => void
   sendChatMessage: () => void
   mentionUser: (nickname: string) => void
+  onChatUser?: (m: ChatMessage) => void // 닉네임 탭 → 멘션/신고/차단 시트(없으면 멘션만)
   onBack: () => void
   // 구매 모달
   buyProduct: Product | null
@@ -76,6 +77,7 @@ export default function DesktopLiveWatch({
   setChatInput,
   sendChatMessage,
   mentionUser,
+  onChatUser,
   onBack,
   buyProduct,
   quantity,
@@ -375,7 +377,7 @@ export default function DesktopLiveWatch({
                   <p key={m.id} className="text-[13px] text-ink leading-snug">
                     <button
                       type="button"
-                      onClick={() => mentionUser(m.nickname ?? '익명')}
+                      onClick={() => (onChatUser ? onChatUser(m) : mentionUser(m.nickname ?? '익명'))}
                       className="font-bold text-ink-soft mr-1 hover:text-ink"
                     >
                       {m.nickname ?? '익명'}

@@ -97,7 +97,7 @@ const NAV_GROUPS = [
       // 월 1회 선정 — 지수는 자동 계산하되 지급은 사람이 확인하고 누른다(2026-09-07)
       { label: '월간 선정', to: '/admin/monthly-picks', icon: IconTrophy },
       // 속 이야기(손님 게시판) 신고 — 자동 숨김 없이 사람이 보고 결정(2026-09-10)
-      { label: '속 이야기 신고', to: '/admin/board-reports', icon: IconFlag },
+      { label: '커뮤니티 신고', to: '/admin/board-reports', icon: IconFlag },
     ],
   },
 ]
