@@ -1,0 +1,65 @@
+# Android AAB 빌드 — Play Console 내부 테스트/프로덕션에 올릴 서명된 번들을 만든다 (2026-09-28)
+#
+# 서명: Play 앱 서명(Google 이 최종 키 보관)을 쓰고, 여기서는 "업로드 키"로만 서명한다.
+# Secrets: ANDROID_KEYSTORE_BASE64 / ANDROID_KEY_ALIAS / ANDROID_KEY_PASSWORD (keytool 로 만든 android_upload.jks)
+# 결과물: Actions 아티팩트 app-release-<run_number>.aab → Play Console 에 업로드.
+# versionCode 는 run_number 를 쓴다(Play 는 같은 번호를 두 번 받지 않는다).
+
+name: Android AAB
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_name:
+        description: "표시 버전 (예: 1.0)"
+        required: false
+        default: "1.0"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      BG_VERSION_NAME: ${{ github.event.inputs.version_name || '1.0' }}
+      BG_VERSION_CODE: ${{ github.run_number }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: android-actions/setup-android@v3
+      - name: Build web & sync
+        run: |
+          npm ci
+          npm run build
+          npx cap sync android
+      - name: Install upload keystore
+        env:
+          KS_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          echo "$KS_B64" | base64 --decode > $RUNNER_TEMP/upload.jks
+          echo "ANDROID_KEYSTORE_PATH=$RUNNER_TEMP/upload.jks" >> "$GITHUB_ENV"
+      - name: Build AAB
+        env:
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew bundleRelease --no-daemon
+          ls -la app/build/outputs/bundle/release/
+      - name: Verify signature
+        run: |
+          AAB=android/app/build/outputs/bundle/release/app-release.aab
+          jarsigner -verify -verbose:summary "$AAB" | tail -3
+          cp "$AAB" app-release-${{ github.run_number }}.aab
+      - uses: actions/upload-artifact@v4
+        with:
+          name: app-release-${{ github.run_number }}
+          path: app-release-${{ github.run_number }}.aab
+          retention-days: 30

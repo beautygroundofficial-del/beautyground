@@ -7,8 +7,9 @@ android {
         applicationId "kr.co.beautyground.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        // CI(GitHub Actions)에서 BG_VERSION_CODE 로 빌드 번호를 올린다 — Play 는 같은 versionCode 를 두 번 받지 않는다
+        versionCode (System.getenv("BG_VERSION_CODE") ?: "1").toInteger()
+        versionName (System.getenv("BG_VERSION_NAME") ?: "1.0")
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -16,10 +17,22 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    // Play 업로드 키 — CI 가 Secrets 로 keystore 를 내려받아 환경변수로 넘긴다. 로컬(변수 없음)에서는 서명 없이 debug 만 된다.
+    signingConfigs {
+        release {
+            if (System.getenv("ANDROID_KEYSTORE_PATH")) {
+                storeFile file(System.getenv("ANDROID_KEYSTORE_PATH"))
+                storePassword System.getenv("ANDROID_KEY_PASSWORD")
+                keyAlias System.getenv("ANDROID_KEY_ALIAS")
+                keyPassword System.getenv("ANDROID_KEY_PASSWORD")
+            }
+        }
+    }
     buildTypes {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            if (System.getenv("ANDROID_KEYSTORE_PATH")) signingConfig signingConfigs.release
         }
     }
 }
