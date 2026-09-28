@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import webpush from 'web-push'
-import { sendNativePush } from '../src/server/push-native'
+import { sendNativePush } from '../src/server/push-native.js'
 
 // 라이브 송출 채널(Cloudflare Stream Live Input) 발급·조회.
 //   GET  ?liveId=<id> : 내 라이브의 송출 주소(RTMPS)·스트림키·연결상태 조회
