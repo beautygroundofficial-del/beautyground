@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { IconBell, IconHeart, IconMessageCircle, IconRefresh, IconUserCheck, IconUserPlus } from '@tabler/icons-react'
 import BackHeader from '../components/layout/BackHeader'
 import AppFrame from '../components/layout/AppFrame'
+import AppFooter from '../components/layout/AppFooter'
 import { supabase } from '../lib/supabase'
 import { REACTION_META } from '../lib/dailyQuestion'
 import { conversationNewsPath, getConversationNews, markConversationNewsSeen, type ConversationNews } from '../lib/communityConversations'
@@ -253,6 +254,8 @@ export default function AppNews() {
         )}
         {items && items.length >= limit && limit < 500 && <button type="button" disabled={loading} onClick={() => setLimit(n => Math.min(n + 50, 500))} className="mt-6 min-h-11 w-full rounded-control border border-solid border-rule text-[14px] text-ink-soft disabled:opacity-50">이전 소식 더 보기</button>}
       </section>
+
+      <AppFooter />
     </AppFrame>
   )
 }

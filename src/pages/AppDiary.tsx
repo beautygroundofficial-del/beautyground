@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { IconPencil } from '@tabler/icons-react'
 import BackHeader from '../components/layout/BackHeader'
 import AppFrame from '../components/layout/AppFrame'
+import AppFooter from '../components/layout/AppFooter'
 import { supabase } from '../lib/supabase'
 import { promptAndReport } from '../lib/reports'
 import {
@@ -419,6 +420,8 @@ export default function AppDiary() {
           </ul>
         )}
       </section>
+
+      <AppFooter />
 
       {toast && (
         <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 max-w-[calc(100%-2.5rem)] px-5 py-3 rounded-full bg-ink text-paper text-[14px]">
