@@ -14,6 +14,7 @@ const FOOTER_LINKS = [
 const LEGAL_LINKS = [
   { href: '/terms', label: '이용약관' },
   { href: '/privacy', label: '개인정보처리방침', bold: true },
+  { href: '/account-delete', label: '계정 삭제 안내' },
   { href: '/about', label: '회사소개' },
 ]
 

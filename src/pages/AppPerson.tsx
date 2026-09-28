@@ -8,6 +8,7 @@ import { toggleDiaryLike, type Diary } from '../lib/diaries'
 import { FRIENDS_CHANGED_EVENT, getFriendStatuses, type FriendStatus } from '../lib/friends'
 import { petEmoji } from '../lib/pets'
 import FriendButton from '../components/community/FriendButton'
+import { blockUser, isBlockedByMe, unblockUser } from '../lib/blocks'
 import LikeButton from '../components/community/LikeButton'
 import { CommentToggle } from '../components/community/DiaryComments'
 import { petWalkLabel } from '../components/community/PetMarks'
@@ -61,6 +62,34 @@ export default function AppPerson() {
   const [viewer, setViewer] = useState<{ images: string[]; index: number } | null>(null)
   const [toast, setToast] = useState('')
   const showToast = (m: string) => setToast(m)
+  // 차단 상태(앱 심사 조건 — 사용자가 불쾌한 사람을 직접 차단할 수 있어야 한다). 차단하면 서버가 이 사람의 이야기를 안 돌려준다.
+  const [blocked, setBlocked] = useState(false)
+  const [blockBusy, setBlockBusy] = useState(false)
+  useEffect(() => {
+    let alive = true
+    if (!viewerId || !id) { setBlocked(false); return }
+    void isBlockedByMe(id).then((v) => { if (alive) setBlocked(v) })
+    return () => { alive = false }
+  }, [id, viewerId, refreshVersion])
+  const onToggleBlock = async () => {
+    if (!viewerId) { navigate('/app/login'); return }
+    if (blockBusy) return
+    if (blocked) {
+      if (!window.confirm('차단을 풀까요? 이 사람의 이야기와 댓글이 다시 보여요.')) return
+      setBlockBusy(true)
+      const ok = await unblockUser(id)
+      setBlockBusy(false)
+      if (!ok) { showToast('차단을 풀지 못했어요. 잠시 후 다시 시도해 주세요'); return }
+      setBlocked(false); showToast('차단을 풀었어요'); setRefreshVersion((v) => v + 1)
+      return
+    }
+    if (!window.confirm('이 사람을 차단할까요? 이야기·댓글·소식이 더 이상 보이지 않고, 친구 관계도 끊겨요.')) return
+    setBlockBusy(true)
+    const res = await blockUser(id)
+    setBlockBusy(false)
+    showToast(res.message)
+    if (res.ok) { setBlocked(true); setFriend('none'); setFeed([]) }
+  }
 
   useEffect(() => {
     if (!toast) return
@@ -169,6 +198,10 @@ export default function AppPerson() {
                 <div className="max-w-full shrink-0 text-right">
                   <FriendButton key={id} userId={id} status={friend} loggedIn={loggedIn} disabled={friendLoading || !!friendError}
                     onChange={setFriend} onNotice={showToast} />
+                  <button type="button" onClick={() => void onToggleBlock()} disabled={blockBusy}
+                    className="block ml-auto min-h-11 mt-1 text-[12px] text-ink-faint underline underline-offset-4 disabled:opacity-50">
+                    {blocked ? '차단 해제' : '차단'}
+                  </button>
                   {friendError && (
                     <button type="button" onClick={() => setRefreshVersion((v) => v + 1)} className="block min-h-11 max-w-full mt-1 text-[12px] leading-[1.7] text-ink-soft break-keep underline underline-offset-4">
                       {friendError} · 다시 시도

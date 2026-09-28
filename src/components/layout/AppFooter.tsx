@@ -25,6 +25,8 @@ export default function AppFooter() {
           {sep}
           <Link to="/privacy" className="text-ink font-semibold hover:text-ink transition-colors">개인정보처리방침</Link>
           {sep}
+          <Link to="/account-delete" className="text-ink-soft hover:text-ink transition-colors">계정 삭제 안내</Link>
+          {sep}
           <Link to="/company" className="text-ink-soft hover:text-ink transition-colors">회사소개</Link>
         </div>
 

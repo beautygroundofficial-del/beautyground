@@ -11,6 +11,7 @@ import { CommentToggle } from '../components/community/DiaryComments'
 import { supabase } from '../lib/supabase'
 import { useIsAdmin } from '../lib/useIsAdmin'
 import { categoryLabel, deleteBoardPost, getBoardPost, reportBoardPost, toggleBoardLike, type BoardPost } from '../lib/board'
+import { blockUser } from '../lib/blocks'
 
 // 속 이야기 — 글 하나. (2026-09-10)
 // 공감 3종(토닥토닥·나도 그래요·응원해요)은 일기와 같은 ReactionBar. 내 글엔 띄우지 않는다.
@@ -92,6 +93,16 @@ export default function AppBoardPost() {
     navigate('/app/board', { replace: true })
   }
 
+  // 작성자 차단 — 앱 심사 조건(UGC 차단 수단). 차단하면 이 글은 물론 그 사람의 글·댓글이 전부 안 보이므로 목록으로 돌아간다.
+  const onBlock = async () => {
+    if (!post) return
+    if (!loggedIn) { navigate('/app/login'); return }
+    if (!window.confirm('이 글쓴이를 차단할까요? 이 사람의 이야기·댓글이 더 이상 보이지 않아요.')) return
+    const res = await blockUser(post.user_id)
+    showToast(res.message)
+    if (res.ok) setTimeout(() => navigate('/app/board', { replace: true }), 900)
+  }
+
   const onReport = async () => {
     if (!post) return
     if (!loggedIn) { navigate('/app/login'); return }
@@ -115,7 +126,10 @@ export default function AppBoardPost() {
                 <button type="button" onClick={() => void onDelete()} className="text-[13px] font-semibold text-ink-soft bg-quiet rounded-full px-3 py-1">삭제</button>
               </div>
             ) : (
-              <button type="button" onClick={() => void onReport()} className="text-[12.5px] text-ink-faint">신고</button>
+              <div className="flex items-center gap-3">
+                <button type="button" onClick={() => void onReport()} className="text-[12.5px] text-ink-faint">신고</button>
+                <button type="button" onClick={() => void onBlock()} className="text-[12.5px] text-ink-faint">차단</button>
+              </div>
             )
           ) : null
         }

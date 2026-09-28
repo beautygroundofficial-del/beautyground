@@ -5,7 +5,7 @@ const SUPABASE_URL = process.env.SUPABASE_URL || 'https://bjqtuklkskrqzbuxdwxm.s
 const SERVICE_ROLE = process.env.SUPABASE_SERVICE_ROLE_KEY
 const SITE = 'https://beautyground.co.kr'
 
-const STATIC_PATHS = ['/', '/app/category', '/company', '/about', '/terms', '/privacy']
+const STATIC_PATHS = ['/', '/app/category', '/company', '/about', '/terms', '/privacy', '/account-delete']
 
 function xmlEscape(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')

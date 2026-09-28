@@ -57,6 +57,24 @@ export function initNative() {
     void Browser.open({ url: url.toString(), presentationStyle: 'popover' })
   }, true)
 
+  // ③ 오프라인 안내 — 인터넷이 끊기면 빈 화면·깨진 화면 대신 안내 띠를 띄운다(앱 심사: 오류 상황에서도 사용자에게 상태를 알려야 함).
+  //    앱이 처음 뜰 때부터 오프라인이면 capacitor.config.ts 의 server.errorPath(public/offline.html)가 대신 뜬다.
+  const OFFLINE_ID = 'bg-offline-banner'
+  const showOffline = () => {
+    if (document.getElementById(OFFLINE_ID)) return
+    const el = document.createElement('div')
+    el.id = OFFLINE_ID
+    el.setAttribute('role', 'alert')
+    el.style.cssText = 'position:fixed;left:0;right:0;top:0;z-index:2147483647;padding:calc(env(safe-area-inset-top, 0px) + 12px) 16px 12px;background:#1a1a1a;color:#fff;font:600 14px/1.5 -apple-system,system-ui,sans-serif;text-align:center;'
+    el.innerHTML = '인터넷 연결이 끊겼어요. 연결되면 자동으로 이어집니다. <button type="button" style="margin-left:8px;padding:4px 10px;border:1px solid #fff;border-radius:999px;background:transparent;color:#fff;font:inherit">다시 시도</button>'
+    el.querySelector('button')?.addEventListener('click', () => { if (navigator.onLine) window.location.reload() })
+    document.body.appendChild(el)
+  }
+  const hideOffline = () => document.getElementById(OFFLINE_ID)?.remove()
+  window.addEventListener('offline', showOffline)
+  window.addEventListener('online', hideOffline)
+  if (!navigator.onLine) showOffline()
+
   // window.open 도 같은 규칙 — 결제창·SNS 공유 등이 앱 밖으로 나가지 않게
   const origOpen = window.open.bind(window)
   window.open = ((target?: string | URL, name?: string, features?: string) => {

@@ -188,6 +188,12 @@ export default function AppAccount() {
           </section>
         )}
 
+        {/* 차단한 사용자 관리 — 커뮤니티에서 차단한 사람을 여기서 풀 수 있다(앱 심사 조건) */}
+        <section>
+          <h2 className="text-[13px] font-bold text-ink-faint tracking-wide mb-3">커뮤니티</h2>
+          <button type="button" onClick={() => navigate('/app/blocked')} className="text-[13px] text-ink underline focus:outline-none focus-visible:shadow-ring">차단한 사용자 관리</button>
+        </section>
+
         {/* 회원탈퇴 */}
         <section>
           <h2 className="text-[13px] font-bold text-ink-faint tracking-wide mb-3">회원탈퇴</h2>

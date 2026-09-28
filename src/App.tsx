@@ -64,12 +64,14 @@ const AppNews = lazy(() => import('./pages/AppNews'))
 const AppFriends = lazy(() => import('./pages/AppFriends'))
 const AppPets = lazy(() => import('./pages/AppPets'))
 const AppPerson = lazy(() => import('./pages/AppPerson'))
+const AppBlocked = lazy(() => import('./pages/AppBlocked'))
 const AdminBoardReports = lazy(() => import('./pages/admin/BoardReports'))
 const AppSkinTest = lazy(() => import('./pages/AppSkinTest'))
 
 // 법적 고지
 const Terms = lazy(() => import('./pages/legal/Terms'))
 const Privacy = lazy(() => import('./pages/legal/Privacy'))
+const AccountDelete = lazy(() => import('./pages/legal/AccountDelete'))
 const Company = lazy(() => import('./pages/legal/Company'))
 
 // 관리자 — 매입 후 직접 판매하는 구조라 브랜드사가 직접 관리하는 파트너센터는 없음(2026-08-08 폐지)
@@ -230,6 +232,7 @@ export default function App() {
         {/* 법적 고지 */}
         <Route path="/terms" element={<Terms />} />
         <Route path="/privacy" element={<Privacy />} />
+        <Route path="/account-delete" element={<AccountDelete />} />
         <Route path="/about" element={<Company />} />
 
         {/* 관리자 (매입 후 직접 판매 구조라 브랜드사가 상품/방송을 직접 등록하는 파트너센터는 없음 — 2026-08-08 폐지.
@@ -393,6 +396,7 @@ export default function App() {
         <Route path="/app/friends" element={<AppFriends />} />
         <Route path="/app/pets" element={<AppPets />} />
         <Route path="/app/people/:id" element={<AppPerson />} />
+        <Route path="/app/blocked" element={<AppBlocked />} />
         <Route path="/app/skin-test" element={<AppSkinTest />} />
 
         {/* fallback */}

@@ -29,6 +29,8 @@ const config: CapacitorConfig = {
       '*.portone.io',
       '*.inicis.com',
     ],
+    // 서버(웹)를 못 불러올 때(오프라인·장애) 빈 화면 대신 보여줄 내장 페이지 — public/offline.html 이 dist 에 같이 들어간다
+    errorPath: 'offline.html',
   },
   ios: {
     contentInset: 'automatic',
