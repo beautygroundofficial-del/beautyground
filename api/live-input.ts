@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import webpush from 'web-push'
+import { sendNativePush } from './_lib/push-native'
 
 // 라이브 송출 채널(Cloudflare Stream Live Input) 발급·조회.
 //   GET  ?liveId=<id> : 내 라이브의 송출 주소(RTMPS)·스트림키·연결상태 조회
@@ -11,6 +12,9 @@ import webpush from 'web-push'
 //   POST {pushAction:'sendCoupon', userIds, title, body, image, url} : 관리자 쿠폰 생성기 발송
 //     (admin/CouponGenerator.tsx) — admin_issue_coupon RPC로 이미 뽑은 대상에게 웹 푸시 발송.
 //     같은 12개 함수 한도 이유로 여기 합침(2026-08-27).
+//   POST {pushAction:'registerDevice', platform, token} : 네이티브 앱(iOS/Android) 디바이스
+//     토큰 등록 — src/lib/pushNotifications.ts subscribeNative(). Apple 심사 4.2 대비 네이티브
+//     푸시(APNs/FCM, api/_lib/push-native.ts)용, 웹 푸시(VAPID)와 별개 저장소(2026-09-29).
 // 스트림 키는 DB에 저장하지 않고 매번 Cloudflare에서 조회한다
 // (lives 테이블은 소비자도 읽는 공개 테이블이라 키를 넣으면 방송 탈취 위험).
 const SUPABASE_URL =
@@ -61,34 +65,49 @@ async function sendLiveStartNotifications(
       .from('push_subscriptions')
       .select('id, endpoint, p256dh, auth')
       .in('user_id', userIds)
-    if (!subs || subs.length === 0) return
 
     // 2026-09-14 대표님 지시 — 후킹 카피 원칙(열린 고리) 적용: "라이브 시작"이라는
     // 사실 전달 대신, 지금 안 보면 궁금증이 안 풀린다는 느낌으로 바꿈. body(실제 방송 제목)는
     // 손대지 않는다 — 구체적 정보라 그대로 두는 게 맞다.
-    const payload = JSON.stringify({
-      title: `${notifyName} 지금 라이브 중 · 놓치면 아쉬운 이유가 있어요`,
-      body: live.title,
-      data: { url: `/app/live/${live.id}` },
-    })
+    const title = `${notifyName} 지금 라이브 중 · 놓치면 아쉬운 이유가 있어요`
+    const url = `/app/live/${live.id}`
+    const payload = JSON.stringify({ title, body: live.title, data: { url } })
 
-    await Promise.all(
-      subs.map(async (sub: { id: string; endpoint: string; p256dh: string; auth: string }) => {
-        try {
-          await webpush.sendNotification(
-            { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
-            payload
+    const webPushSend = subs && subs.length > 0
+      ? Promise.all(
+          subs.map(async (sub: { id: string; endpoint: string; p256dh: string; auth: string }) => {
+            try {
+              await webpush.sendNotification(
+                { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
+                payload
+              )
+            } catch (err: unknown) {
+              const statusCode = (err as { statusCode?: number } | null)?.statusCode
+              if (statusCode === 404 || statusCode === 410) {
+                await supabase.from('push_subscriptions').delete().eq('id', sub.id)
+              } else {
+                console.error('[live-input] push send failed', sub.id, statusCode)
+              }
+            }
+          })
+        )
+      : Promise.resolve()
+
+    // 네이티브 앱(iOS/Android) 설치 사용자 — 같은 팔로워 대상, APNs/FCM으로 별도 발송.
+    const { data: deviceTokens } = await supabase
+      .from('device_push_tokens')
+      .select('platform, token')
+      .in('user_id', userIds)
+    const nativePushSend =
+      deviceTokens && deviceTokens.length > 0
+        ? Promise.all(
+            deviceTokens.map((d: { platform: 'ios' | 'android'; token: string }) =>
+              sendNativePush(d.platform, d.token, { title, body: live.title, url }).catch(() => false)
+            )
           )
-        } catch (err: unknown) {
-          const statusCode = (err as { statusCode?: number } | null)?.statusCode
-          if (statusCode === 404 || statusCode === 410) {
-            await supabase.from('push_subscriptions').delete().eq('id', sub.id)
-          } else {
-            console.error('[live-input] push send failed', sub.id, statusCode)
-          }
-        }
-      })
-    )
+        : Promise.resolve()
+
+    await Promise.all([webPushSend, nativePushSend])
   } catch (err) {
     console.error('[live-input] sendLiveStartNotifications failed', err)
   }
@@ -217,6 +236,36 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     } else {
       await supabase.from('push_subscriptions').delete().eq('endpoint', endpoint).eq('user_id', user.id)
+    }
+    res.status(200).json({ ok: true })
+    return
+  }
+
+  // 네이티브 앱(iOS/Android) 디바이스 토큰 등록 — src/lib/pushNotifications.ts subscribeNative().
+  if (pushAction === 'registerDevice') {
+    const token = String(req.headers.authorization ?? '').replace(/^Bearer\s+/i, '')
+    if (!token) {
+      res.status(401).json({ ok: false, reason: '로그인이 필요합니다.' })
+      return
+    }
+    const { data: userData } = await supabase.auth.getUser(token)
+    const user = userData?.user
+    if (!user) {
+      res.status(401).json({ ok: false, reason: '세션이 만료되었습니다. 다시 로그인해 주세요.' })
+      return
+    }
+    const { platform, token: deviceToken } =
+      (body as { platform?: string; token?: string } | null) ?? {}
+    if ((platform !== 'ios' && platform !== 'android') || !deviceToken) {
+      res.status(400).json({ ok: false, reason: 'platform/token 이 필요합니다.' })
+      return
+    }
+    const { error } = await supabase
+      .from('device_push_tokens')
+      .upsert({ user_id: user.id, platform, token: deviceToken }, { onConflict: 'platform,token' })
+    if (error) {
+      res.status(500).json({ ok: false, reason: '디바이스 등록에 실패했습니다.' })
+      return
     }
     res.status(200).json({ ok: true })
     return

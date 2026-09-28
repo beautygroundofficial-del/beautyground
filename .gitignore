@@ -35,3 +35,6 @@ _supa_usage.json
 
 # 빌드 캐시 — 기계마다 달라 충돌만 만든다
 .vite/
+
+# Firebase(FCM 푸시) — CI Secret(ANDROID_GOOGLE_SERVICES_BASE64)에서 빌드 때 생성
+android/app/google-services.json

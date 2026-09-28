@@ -33,6 +33,10 @@ jobs:
           distribution: temurin
           java-version: 21
       # ubuntu-latest 러너에는 Android SDK(ANDROID_HOME)가 이미 있다 — setup-android 액션은 1회차에서 실패해 제거
+      - name: Install Firebase config (FCM 푸시)
+        env:
+          GS_B64: ${{ secrets.ANDROID_GOOGLE_SERVICES_BASE64 }}
+        run: echo "$GS_B64" | base64 --decode > android/app/google-services.json
       - name: Build web & sync
         run: |
           npm ci
