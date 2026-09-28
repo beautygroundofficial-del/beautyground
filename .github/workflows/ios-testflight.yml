@@ -1,0 +1,148 @@
+# iOS 빌드 → App Store Connect(TestFlight) 업로드 — 2026-09-28 앱 스토어 등록 준비
+#
+# 왜 GitHub Actions인가: 사무실에 Mac이 없다. GitHub가 빌려주는 macOS 러너에서 Xcode로 빌드한다.
+# 서명은 Xcode "클라우드 서명"에 맡긴다(-allowProvisioningUpdates + App Store Connect API 키) —
+# 인증서·프로비저닝 프로파일을 손으로 만들어 올릴 필요가 없다.
+#
+# 필요한 저장소 Secrets (Settings > Secrets and variables > Actions):
+#   ASC_KEY_ID      App Store Connect API 키 ID (예: ABC123DEF4)
+#   ASC_ISSUER_ID   Issuer ID (UUID)
+#   ASC_KEY_P8      AuthKey_<KEY_ID>.p8 파일 내용 전체(-----BEGIN PRIVATE KEY----- 부터)
+#
+# 실행: Actions 탭 > "iOS TestFlight" > Run workflow (또는 main 에 ios/** 변경 push).
+# 빌드 번호(CFBundleVersion)는 GitHub run_number 를 쓴다 — 올릴 때마다 자동 증가.
+
+name: iOS TestFlight
+
+on:
+  workflow_dispatch:
+    inputs:
+      marketing_version:
+        description: "표시 버전 (예: 1.0)"
+        required: false
+        default: "1.0"
+  # push 자동 트리거는 일부러 뺐다 — Secrets 가 없거나 빌드가 실패하면 main 배포 때마다 빨간불이 뜬다. 필요할 때 수동으로 돌린다.
+
+concurrency:
+  group: ios-testflight
+  cancel-in-progress: false
+
+jobs:
+  build-upload:
+    runs-on: macos-15
+    timeout-minutes: 60
+    env:
+      SCHEME: App
+      WORKSPACE: ios/App/App.xcodeproj
+      ARCHIVE_PATH: ${{ github.workspace }}/build/App.xcarchive
+      EXPORT_PATH: ${{ github.workspace }}/build/export
+      MARKETING_VERSION: ${{ github.event.inputs.marketing_version || '1.0' }}
+      BUILD_NUMBER: ${{ github.run_number }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Select Xcode
+        run: |
+          sudo xcode-select -s /Applications/Xcode_16.4.app 2>/dev/null || sudo xcode-select -s "$(ls -d /Applications/Xcode_16*.app | sort -V | tail -1)"
+          xcodebuild -version
+
+      - name: Install & build web (dist → 앱 내장; 실제 화면은 server.url 이 띄운다)
+        run: |
+          npm ci
+          npm run build
+
+      - name: Capacitor sync
+        run: npx cap sync ios
+
+      - name: Install App Store Connect API key
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+        run: |
+          mkdir -p ~/private_keys
+          printf '%s' "$ASC_KEY_P8" > ~/private_keys/AuthKey_${ASC_KEY_ID}.p8
+          echo "ASC_KEY_PATH=$HOME/private_keys/AuthKey_${ASC_KEY_ID}.p8" >> "$GITHUB_ENV"
+
+      - name: Set version / build number
+        run: |
+          cd ios/App
+          xcrun agvtool new-marketing-version "$MARKETING_VERSION"
+          xcrun agvtool new-version -all "$BUILD_NUMBER"
+
+      - name: Resolve Swift packages
+        run: xcodebuild -resolvePackageDependencies -project "$WORKSPACE" -scheme "$SCHEME"
+
+      - name: Archive (cloud signing)
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+        run: |
+          mkdir -p build
+          xcodebuild archive \
+            -project "$WORKSPACE" \
+            -scheme "$SCHEME" \
+            -configuration Release \
+            -destination "generic/platform=iOS" \
+            -archivePath "$ARCHIVE_PATH" \
+            -allowProvisioningUpdates \
+            -allowProvisioningDeviceRegistration \
+            -authenticationKeyPath "$ASC_KEY_PATH" \
+            -authenticationKeyID "$ASC_KEY_ID" \
+            -authenticationKeyIssuerID "$ASC_ISSUER_ID" \
+            CODE_SIGN_STYLE=Automatic \
+            DEVELOPMENT_TEAM=7BL64YP4B2 \
+            | tee build/archive.log | grep -E "error|warning: .*sign|Archive Succeeded|BUILD" || true
+          test -d "$ARCHIVE_PATH" || { echo "::error::archive failed"; tail -100 build/archive.log; exit 1; }
+
+      - name: Export IPA
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+        run: |
+          cat > build/ExportOptions.plist <<'EOF'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict>
+            <key>method</key><string>app-store-connect</string>
+            <key>destination</key><string>export</string>
+            <key>signingStyle</key><string>automatic</string>
+            <key>teamID</key><string>7BL64YP4B2</string>
+            <key>uploadSymbols</key><true/>
+            <key>manageAppVersionAndBuildNumber</key><false/>
+          </dict></plist>
+          EOF
+          xcodebuild -exportArchive \
+            -archivePath "$ARCHIVE_PATH" \
+            -exportOptionsPlist build/ExportOptions.plist \
+            -exportPath "$EXPORT_PATH" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$ASC_KEY_PATH" \
+            -authenticationKeyID "$ASC_KEY_ID" \
+            -authenticationKeyIssuerID "$ASC_ISSUER_ID"
+          ls -la "$EXPORT_PATH"
+
+      - name: Upload to App Store Connect
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+        run: |
+          IPA=$(ls "$EXPORT_PATH"/*.ipa | head -1)
+          xcrun altool --upload-app --type ios -f "$IPA" \
+            --apiKey "$ASC_KEY_ID" --apiIssuer "$ASC_ISSUER_ID" \
+            --output-format normal
+
+      - name: Keep IPA as artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-ipa-${{ github.run_number }}
+          path: |
+            build/export/*.ipa
+            build/archive.log
+          if-no-files-found: ignore
+          retention-days: 14
