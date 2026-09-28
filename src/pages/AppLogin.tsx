@@ -5,6 +5,8 @@ import ViewModeToggle from '../components/layout/ViewModeToggle'
 import DesktopAuthLayout from '../components/auth/DesktopAuthLayout'
 import { useViewMode } from '../lib/viewMode'
 import { supabase } from '../lib/supabase'
+import { startAppleSignIn } from '../lib/appleAuth'
+import AppleSignInButton from '../components/auth/AppleSignInButton'
 
 const field =
   'w-full rounded-control bg-paper border border-rule px-4 py-3 text-[14px] text-ink placeholder:text-ink-faint focus:outline-none focus-visible:shadow-ring'
@@ -63,6 +65,14 @@ export default function AppLogin() {
   // 완료돼버린다(2026-09-15 발견, 동의 체크박스 추가 작업의 후속 조치).
   // 그래서 redirectTo를 바로 from으로 보내지 않고 게이트 페이지(AppKakaoGate.tsx)로 보내
   // 신규가입 여부를 판별한 뒤, 신규면 AppSignup.tsx 동의 화면으로, 기존 가입자면 그대로 from으로 보낸다.
+  // Apple 로그인 — 카카오와 같은 게이트를 거쳐 신규가입이면 동의 화면으로(앱 심사 4.8 대응, VITE_APPLE_LOGIN=1 일 때만 버튼 노출)
+  const handleApple = async () => {
+    setError('')
+    sessionStorage.setItem('kakao_oauth_from', from)
+    const msg = await startAppleSignIn(`${window.location.origin}/app/auth/kakao/gate`)
+    if (msg) setError(msg)
+  }
+
   const handleKakao = async () => {
     setError('')
     sessionStorage.setItem('kakao_oauth_from', from)
@@ -145,6 +155,7 @@ export default function AppLogin() {
           </svg>
           네이버로 시작하기
         </button>
+        <AppleSignInButton onClick={() => void handleApple()} />
       </div>
 
       {/* 가입인지 로그인인지 고민하지 않게 한 줄로 정리한다 —

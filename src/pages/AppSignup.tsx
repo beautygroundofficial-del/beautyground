@@ -7,6 +7,8 @@ import AppFooter from '../components/layout/AppFooter'
 import Footer from '../components/layout/Footer'
 import { useViewMode } from '../lib/viewMode'
 import { supabase } from '../lib/supabase'
+import { startAppleSignIn } from '../lib/appleAuth'
+import AppleSignInButton from '../components/auth/AppleSignInButton'
 
 // 회원가입 진입 화면 — 카카오 + 네이버(2026-08-24 재노출). 휴대폰(SMS) 인증 가입은
 // 여전히 SMS API 미도입으로 보류라 대신 비회원 주문조회(연락처 기반)로 안내.
@@ -67,6 +69,17 @@ export default function AppSignup() {
   // 콜백(AppNaverCallback.tsx)에서 CSRF 대조 후 /api/auth-naver 로 code를 넘겨 세션을 완성한다.
   // entry='signup' — 이 화면은 버튼을 누르기 전에 이미 canProceed로 동의를 확인했으므로,
   // 콜백이 다시 동의 화면으로 돌려보내지 않고 그대로 from으로 통과시킨다(AppLogin.tsx와 구분).
+  // Apple 회원가입 — 동의 체크는 이미 받았으니 카카오처럼 목적지 직행
+  const handleApple = async () => {
+    setNotice('')
+    if (!canProceed) {
+      setNotice('이용약관과 개인정보 수집·이용에 모두 동의해주세요.')
+      return
+    }
+    const msg = await startAppleSignIn(`${window.location.origin}${from}`)
+    if (msg) setNotice(msg)
+  }
+
   const handleNaver = () => {
     setNotice('')
     if (!canProceed) {
@@ -187,6 +200,7 @@ export default function AppSignup() {
           </svg>
           네이버로 시작하기
         </button>
+        <AppleSignInButton onClick={() => void handleApple()} disabled={!canProceed} label="Apple로 회원가입" size="md" />
       </div>
 
       {notice && (

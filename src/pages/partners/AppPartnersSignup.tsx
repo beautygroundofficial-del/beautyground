@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import AppFrame from '../../components/layout/AppFrame'
 import BackHeader from '../../components/layout/BackHeader'
 import { supabase } from '../../lib/supabase'
+import { startAppleSignIn } from '../../lib/appleAuth'
+import AppleSignInButton from '../../components/auth/AppleSignInButton'
 
 const field =
   'w-full rounded-control bg-paper border border-rule px-4 py-3 text-[14px] text-ink placeholder:text-ink-faint focus:outline-none focus-visible:shadow-ring'
@@ -37,6 +39,13 @@ export default function AppPartnersSignup() {
       },
     })
     if (e) setError('카카오 연결에 실패했어요. 잠시 후 다시 시도해 주세요.')
+  }
+
+  const handleApple = async () => {
+    setError('')
+    sessionStorage.setItem('kakao_oauth_from', AFTER)
+    const msg = await startAppleSignIn(`${window.location.origin}/app/auth/kakao/gate`)
+    if (msg) setError(msg)
   }
 
   const handleNaver = () => {
@@ -90,6 +99,7 @@ export default function AppPartnersSignup() {
             <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path fill="#fff" d="M13.6 12.5 8.9 5.5H4.9v13h4.5v-7l4.7 7h4v-13h-4.5v7Z" /></svg>
             네이버로 파트너스 가입
           </button>
+          <AppleSignInButton onClick={() => void handleApple()} label="Apple로 파트너스 가입" />
         </div>
         <p className="text-center text-[12.5px] text-ink-faint mt-3">처음이면 가입, 이미 하셨다면 로그인됩니다</p>
 
