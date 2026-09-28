@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import webpush from 'web-push'
-import { sendNativePush } from './lib/push-native'
+import { sendNativePush } from '../src/server/push-native'
 
 // 라이브 송출 채널(Cloudflare Stream Live Input) 발급·조회.
 //   GET  ?liveId=<id> : 내 라이브의 송출 주소(RTMPS)·스트림키·연결상태 조회
@@ -14,7 +14,7 @@ import { sendNativePush } from './lib/push-native'
 //     같은 12개 함수 한도 이유로 여기 합침(2026-08-27).
 //   POST {pushAction:'registerDevice', platform, token} : 네이티브 앱(iOS/Android) 디바이스
 //     토큰 등록 — src/lib/pushNotifications.ts subscribeNative(). Apple 심사 4.2 대비 네이티브
-//     푸시(APNs/FCM, api/lib/push-native.ts)용, 웹 푸시(VAPID)와 별개 저장소(2026-09-29).
+//     푸시(APNs/FCM, src/server/push-native.ts)용, 웹 푸시(VAPID)와 별개 저장소(2026-09-29).
 // 스트림 키는 DB에 저장하지 않고 매번 Cloudflare에서 조회한다
 // (lives 테이블은 소비자도 읽는 공개 테이블이라 키를 넣으면 방송 탈취 위험).
 const SUPABASE_URL =

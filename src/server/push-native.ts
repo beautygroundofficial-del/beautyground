@@ -1,8 +1,11 @@
 // 네이티브 앱(iOS APNs / Android FCM) 푸시 발송 헬퍼.
-// default export 가 없어 Vercel이 별도 서버리스 함수로 세지 않는다(api/*.ts 12개 한도와 무관) —
-// api/live-input.ts 등에서 모듈로 import 해서 쓴다.
-// ⚠️ api/_lib/ 처럼 언더스코어 붙은 디렉터리에 두면 안 된다 — Vercel이 배포 파일 목록에서
-// 제외해버려 런타임에 ERR_MODULE_NOT_FOUND로 죽는다(2026-09-29 실제 발생, api/lib/ 로 수정).
+// api/live-input.ts 가 모듈로 import 해서 쓴다.
+// ⚠️ api/ 디렉터리 밑에 두면 안 된다 — Vercel은 api/*.ts 를 파일 위치(언더스코어·default export
+// 유무와 무관)만으로 서버리스 함수로 세서, api/_lib/ 는 배포에서 조용히 빠져 런타임에
+// ERR_MODULE_NOT_FOUND, api/lib/ 는 12개 함수 한도(Hobby 플랜)를 넘겨 빌드 자체가 실패했다
+// (2026-09-29 둘 다 실제 발생). 그래서 api/ 밖(src/server/)에 둔다 — Vercel의 Node 빌더가
+// api/live-input.ts 번들에 그냥 인라인해준다. tsc(tsconfig.app.json)는 브라우저용이라 이 폴더를
+// exclude 했다(Node 전용 타입이라 DOM 기준 strict 체크에 안 맞음).
 //
 // 신규 npm 의존성(firebase-admin 등) 없이 Node 내장 crypto/http2/fetch로 직접 구현했다:
 //   - APNs: JWT(ES256, Apple Auth Key) 발급 → HTTP/2 provider API
