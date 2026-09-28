@@ -83,6 +83,8 @@ const AdminCommissionTiers = lazy(() => import('./pages/admin/CommissionTiers'))
 const AdminHostSettlements = lazy(() => import('./pages/admin/HostSettlements'))
 const AdminPartners = lazy(() => import('./pages/admin/Partners'))
 const AdminPartnerSettlements = lazy(() => import('./pages/admin/PartnerSettlements'))
+const AdminAffiliatePartners = lazy(() => import('./pages/admin/AffiliatePartners'))
+const AdminAffiliateSettlements = lazy(() => import('./pages/admin/AffiliateSettlements'))
 const AdminDeptAccounts = lazy(() => import('./pages/admin/DeptAccounts'))
 const AdminMembers = lazy(() => import('./pages/admin/Members'))
 const AdminOrders = lazy(() => import('./pages/admin/Orders'))
@@ -245,6 +247,8 @@ export default function App() {
             <Route path="/admin/host-settlements" element={<AdminHostSettlements />} />
             <Route path="/admin/partners" element={<AdminPartners />} />
             <Route path="/admin/partner-settlements" element={<AdminPartnerSettlements />} />
+            <Route path="/admin/affiliate-partners" element={<AdminAffiliatePartners />} />
+            <Route path="/admin/affiliate-settlements" element={<AdminAffiliateSettlements />} />
             <Route path="/admin/dept-accounts" element={<AdminDeptAccounts />} />
             <Route path="/admin/members" element={<AdminMembers />} />
             <Route path="/admin/orders" element={<AdminOrders />} />

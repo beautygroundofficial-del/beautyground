@@ -72,6 +72,14 @@ const NAV_GROUPS = [
     ],
   },
   {
+    // 앱 제품 링크로 판매하는 개인 제휴 판매자(affiliates.sql, 2026-09-26) — 브랜드(입점사) 파트너와는 별개.
+    title: '파트너스',
+    items: [
+      { label: '파트너스 관리', to: '/admin/affiliate-partners', icon: IconUsers },
+      { label: '파트너스 정산 관리', to: '/admin/affiliate-settlements', icon: IconCashBanknote },
+    ],
+  },
+  {
     title: '백화점',
     items: [
       { label: '백화점 계정 관리', to: '/admin/dept-accounts', icon: IconBuildingStore },
