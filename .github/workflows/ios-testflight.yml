@@ -126,14 +126,18 @@ jobs:
             | tee build/archive.log | grep -E "error|warning: .*sign|Archive Succeeded|BUILD" || true
           test -d "$ARCHIVE_PATH" || { echo "::error::archive failed"; tail -100 build/archive.log; exit 1; }
 
-      - name: Export IPA
+      # 업로드는 Xcode 에 맡긴다(destination=upload + API 키). altool 은 5회차(2026-09-28)에서 30분 넘게 멈춰 폐기.
+      - name: Export & upload to App Store Connect
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
         run: |
           cat > build/ExportOptions.plist <<'EOF'
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
           <plist version="1.0"><dict>
             <key>method</key><string>app-store-connect</string>
-            <key>destination</key><string>export</string>
+            <key>destination</key><string>upload</string>
             <key>signingStyle</key><string>manual</string>
             <key>signingCertificate</key><string>Apple Distribution</string>
             <key>teamID</key><string>7BL64YP4B2</string>
@@ -147,18 +151,13 @@ jobs:
           xcodebuild -exportArchive \
             -archivePath "$ARCHIVE_PATH" \
             -exportOptionsPlist build/ExportOptions.plist \
-            -exportPath "$EXPORT_PATH"
-          ls -la "$EXPORT_PATH"
-
-      - name: Upload to App Store Connect
-        env:
-          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
-          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
-        run: |
-          IPA=$(ls "$EXPORT_PATH"/*.ipa | head -1)
-          xcrun altool --upload-app --type ios -f "$IPA" \
-            --apiKey "$ASC_KEY_ID" --apiIssuer "$ASC_ISSUER_ID" \
-            --output-format normal
+            -exportPath "$EXPORT_PATH" \
+            -authenticationKeyPath "$ASC_KEY_PATH" \
+            -authenticationKeyID "$ASC_KEY_ID" \
+            -authenticationKeyIssuerID "$ASC_ISSUER_ID" \
+            2>&1 | tee build/export.log | tail -40
+          grep -qE "EXPORT SUCCEEDED|Upload succeeded|exportArchive: Upload" build/export.log || { echo "::warning::export log 확인 필요"; }
+          ls -la "$EXPORT_PATH" || true
 
       - name: Keep IPA as artifact
         if: always()
@@ -166,7 +165,8 @@ jobs:
         with:
           name: ios-ipa-${{ github.run_number }}
           path: |
-            build/export/*.ipa
+            build/export/*
             build/archive.log
+            build/export.log
           if-no-files-found: ignore
           retention-days: 14
