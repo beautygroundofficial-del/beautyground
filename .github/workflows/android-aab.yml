@@ -53,7 +53,11 @@ jobs:
           ls -la "$ANDROID_KEYSTORE_PATH"
           cd android
           chmod +x gradlew
-          ./gradlew bundleRelease --no-daemon --stacktrace 2>&1 | tee ../gradle.log | grep -vE "^\s*at " | tail -60
+          set +e
+          ./gradlew bundleRelease --no-daemon --stacktrace > ../gradle.log 2>&1; RC=$?
+          set -e
+          grep -vE "^\s*at " ../gradle.log | tail -40
+          if [ $RC -ne 0 ]; then echo "::group::stacktrace(build.gradle 관련)"; grep -nE "build\.gradle|_run_closure|Caused by|Value is null" ../gradle.log | head -40; echo "::endgroup::"; exit $RC; fi
           ls -la app/build/outputs/bundle/release/
       - name: Verify signature
         run: |
