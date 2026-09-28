@@ -355,6 +355,9 @@ export const MADE_IN = '대한민국'
 export const BENEFIT_MIN_ORDER_AMOUNT = 30000
 
 // 카카오톡 채널 친구추가 링크 — 2026-08-09 대표님 확정: 앱 전용 신규 채널 대신
-// 기존 매장용 채널(@뷰티-화장품, 구독자 약 150명)로 통합해서 사용. 예전 KakaoPromoBar.tsx(2026-08-01
+// 기존 매장용 채널(@뷰티-화장품)로 통합해서 사용. 예전 KakaoPromoBar.tsx(2026-08-01
 // 삭제)에서 검증됐던 정확한 친구추가 딥링크(/friend) 그대로 재사용.
-export const KAKAO_CHANNEL_URL = 'https://pf.kakao.com/_vnwfX/friend'
+// ⚠️ 2026-09-28 정정: 예전 _vnwfX는 실제로는 9/27에 새로 만든 별개 채널(친구 15명)이었고,
+// 위 주석이 가리키던 "매장용 채널(친구 150명대)"은 _xixixbNn이었음(현재 234명, 카카오비즈니스
+// 파트너센터 rgrgrgweas@daum.net 계정, 법인폰으로 로그인). _xixixbNn으로 정정.
+export const KAKAO_CHANNEL_URL = 'https://pf.kakao.com/_xixixbNn/friend'
