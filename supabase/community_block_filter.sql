@@ -152,8 +152,8 @@ declare
 begin
   if v is null or v = '' then return v; end if;
   for w in select word from public.banned_words loop
-    -- 공백·점·별표를 끼워 넣은 변형(시.발, 시 발)도 같이 잡는다
-    v := regexp_replace(v, regexp_replace(w.word, '(.)', '\1[[:space:].*_-]*', 'g'), repeat('*', length(w.word)), 'gi');
+    -- 공백·점·별표를 끼워 넣은 변형(시.발, 시 발)도 같이 잡는다. 구분자는 글자 사이에만(lookahead) — 마지막 글자 뒤 공백을 지우지 않게
+    v := regexp_replace(v, regexp_replace(w.word, '(.)(?=.)', '\1[[:space:].*_-]*', 'g'), repeat('*', length(w.word)), 'gi');
   end loop;
   return v;
 end;
