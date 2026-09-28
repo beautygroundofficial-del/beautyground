@@ -49,9 +49,11 @@ jobs:
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
+          echo "keystore path set: ${ANDROID_KEYSTORE_PATH:+yes} / alias set: ${ANDROID_KEY_ALIAS:+yes} / pw set: ${ANDROID_KEY_PASSWORD:+yes} / code=$BG_VERSION_CODE name=$BG_VERSION_NAME"
+          ls -la "$ANDROID_KEYSTORE_PATH"
           cd android
           chmod +x gradlew
-          ./gradlew bundleRelease --no-daemon
+          ./gradlew bundleRelease --no-daemon --stacktrace 2>&1 | tee ../gradle.log | grep -vE "^\s*at " | tail -60
           ls -la app/build/outputs/bundle/release/
       - name: Verify signature
         run: |
