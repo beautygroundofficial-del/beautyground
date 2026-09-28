@@ -27,12 +27,13 @@ export default function AppSignup() {
   const [notice, setNotice] = useState('')
   const [agreeTerms, setAgreeTerms] = useState(false)
   const [agreePrivacy, setAgreePrivacy] = useState(false)
-  const canProceed = agreeTerms && agreePrivacy
+  const [agreeAge, setAgreeAge] = useState(false)
+  const canProceed = agreeTerms && agreePrivacy && agreeAge
 
   // pendingConsent 전용 — 동의 확인 후 가입 완료(원래 가려던 곳으로 이동)
   const handleContinue = () => {
     if (!canProceed) {
-      setNotice('이용약관과 개인정보 수집·이용에 모두 동의해주세요.')
+      setNotice('이용약관·개인정보 수집·이용 동의와 만 14세 이상 확인을 모두 체크해주세요.')
       return
     }
     navigate(from, { replace: true })
@@ -47,7 +48,7 @@ export default function AppSignup() {
   const handleKakao = async () => {
     setNotice('')
     if (!canProceed) {
-      setNotice('이용약관과 개인정보 수집·이용에 모두 동의해주세요.')
+      setNotice('이용약관·개인정보 수집·이용 동의와 만 14세 이상 확인을 모두 체크해주세요.')
       return
     }
     const { error } = await supabase.auth.signInWithOAuth({
@@ -73,7 +74,7 @@ export default function AppSignup() {
   const handleApple = async () => {
     setNotice('')
     if (!canProceed) {
-      setNotice('이용약관과 개인정보 수집·이용에 모두 동의해주세요.')
+      setNotice('이용약관·개인정보 수집·이용 동의와 만 14세 이상 확인을 모두 체크해주세요.')
       return
     }
     const msg = await startAppleSignIn(`${window.location.origin}${from}`)
@@ -83,7 +84,7 @@ export default function AppSignup() {
   const handleNaver = () => {
     setNotice('')
     if (!canProceed) {
-      setNotice('이용약관과 개인정보 수집·이용에 모두 동의해주세요.')
+      setNotice('이용약관·개인정보 수집·이용 동의와 만 14세 이상 확인을 모두 체크해주세요.')
       return
     }
     const clientId = import.meta.env.VITE_NAVER_CLIENT_ID as string | undefined
@@ -129,6 +130,17 @@ export default function AppSignup() {
         <span className="text-[13px] text-ink">
           <span className="text-signal-red font-bold">(필수)</span>{' '}
           <Link to="/privacy" target="_blank" rel="noreferrer" className="underline font-bold">개인정보 수집·이용</Link>에 동의합니다
+        </span>
+      </label>
+      <label className="flex items-start gap-2.5 cursor-pointer">
+        <input
+          type="checkbox"
+          checked={agreeAge}
+          onChange={(e) => setAgreeAge(e.target.checked)}
+          className="w-4 h-4 accent-ink mt-0.5 shrink-0"
+        />
+        <span className="text-[13px] text-ink">
+          <span className="text-signal-red font-bold">(필수)</span> 본인은 만 14세 이상입니다
         </span>
       </label>
     </div>

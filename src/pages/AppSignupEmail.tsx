@@ -29,7 +29,8 @@ export default function AppSignupEmail() {
   const [needsVerify, setNeedsVerify] = useState(false)
   const [agreeTerms, setAgreeTerms] = useState(false)
   const [agreePrivacy, setAgreePrivacy] = useState(false)
-  const canProceed = agreeTerms && agreePrivacy
+  const [agreeAge, setAgreeAge] = useState(false)
+  const canProceed = agreeTerms && agreePrivacy && agreeAge
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -41,7 +42,7 @@ export default function AppSignupEmail() {
     if (!EMAIL_RE.test(email.trim())) return setError('올바른 이메일 형식이 아닙니다.')
     if (!PASSWORD_RE.test(password)) return setError('비밀번호는 8자 이상, 영문+숫자를 포함해야 합니다.')
     if (password !== passwordConfirm) return setError('비밀번호가 일치하지 않습니다.')
-    if (!canProceed) return setError('이용약관과 개인정보 수집·이용에 모두 동의해주세요.')
+    if (!canProceed) return setError('이용약관·개인정보 수집·이용 동의와 만 14세 이상 확인을 모두 체크해주세요.')
 
     setSubmitting(true)
     const { data, error: signUpError } = await supabase.auth.signUp({
@@ -144,6 +145,17 @@ export default function AppSignupEmail() {
           <span className="text-[13px] text-ink">
             <span className="text-signal-red font-bold">(필수)</span>{' '}
             <Link to="/privacy" target="_blank" rel="noreferrer" className="underline font-bold">개인정보 수집·이용</Link>에 동의합니다
+          </span>
+        </label>
+        <label className="flex items-start gap-2.5 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={agreeAge}
+            onChange={(e) => setAgreeAge(e.target.checked)}
+            className="w-4 h-4 accent-ink mt-0.5 shrink-0"
+          />
+          <span className="text-[13px] text-ink">
+            <span className="text-signal-red font-bold">(필수)</span> 본인은 만 14세 이상입니다
           </span>
         </label>
       </div>
