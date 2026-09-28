@@ -1,4 +1,4 @@
-import { getDiaryComments, createDiaryComment, deleteDiaryComment } from '../../lib/diaries'
+import { getDiaryComments, createDiaryComment, deleteDiaryComment, toggleDiaryCommentLike } from '../../lib/diaries'
 import { BubbleIcon } from './marks'
 import CommentThread, { type CommentApi } from './CommentThread'
 
@@ -15,7 +15,7 @@ export function CommentToggle({ count, open, onClick }: { count: number; open: b
   )
 }
 
-const diaryApi: CommentApi = { list: getDiaryComments, create: createDiaryComment, remove: deleteDiaryComment }
+const diaryApi: CommentApi = { list: getDiaryComments, create: createDiaryComment, remove: deleteDiaryComment, toggleLike: toggleDiaryCommentLike }
 
 interface Props {
   diaryId: string

@@ -125,6 +125,15 @@ export interface DiaryComment {
   created_at: string
   is_mine: boolean
   parent_comment_id: string | null
+  like_count?: number
+  liked_by_me?: boolean
+}
+
+export async function toggleDiaryCommentLike(commentId: string): Promise<{ liked: boolean; like_count: number } | null> {
+  const { data, error } = await supabase.rpc('toggle_diary_comment_like', { p_comment_id: commentId })
+  if (error) return null
+  const row = Array.isArray(data) ? data[0] : data
+  return (row ?? null) as { liked: boolean; like_count: number } | null
 }
 
 export async function getDiaryComments(diaryId: string, limit = 50, offset = 0): Promise<DiaryComment[] | null> {

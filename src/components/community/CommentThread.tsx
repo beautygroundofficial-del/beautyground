@@ -13,11 +13,14 @@ export interface CommentRow {
   is_mine: boolean
   parent_comment_id?: string | null
   user_id?: string | null
+  like_count?: number
+  liked_by_me?: boolean
 }
 export interface CommentApi {
   list: (targetId: string, limit?: number, offset?: number) => Promise<CommentRow[] | null>
   create: (targetId: string, content: string, nickname: string | null, parentId?: string | null) => Promise<{ comment_id: string | null; awarded: number; message: string }>
   remove: (commentId: string) => Promise<boolean>
+  toggleLike?: (commentId: string) => Promise<{ liked: boolean; like_count: number } | null>
 }
 interface Props {
   targetId: string
@@ -98,6 +101,7 @@ function CommentPanel({
   const [pending, setPending] = useState<string | null>(null)
   const [message, setMessage] = useState('')
   const [highlightId, setHighlightId] = useState<string | null>(null)
+  const [likeBusyIds, setLikeBusyIds] = useState<Set<string>>(new Set())
   const lastCreatedId = useRef<string | null>(null)
   const mounted = useRef(true)
   const requestVersion = useRef(0)
@@ -300,6 +304,25 @@ function CommentPanel({
     }
   }
 
+  const toggleLike = async (comment: CommentRow) => {
+    if (!api.toggleLike) return
+    if (!loggedIn) { login(comment.id); return }
+    if (likeBusyIds.has(comment.id)) return
+    setLikeBusyIds((prev) => new Set(prev).add(comment.id))
+    try {
+      const result = await api.toggleLike(comment.id)
+      if (!result || !mounted.current) return
+      const apply = (rows: CommentRow[] | null) =>
+        rows?.map((row) => row.id === comment.id ? { ...row, liked_by_me: result.liked, like_count: result.like_count } : row) ?? null
+      listRef.current = apply(listRef.current)
+      setList((prev) => apply(prev))
+    } catch {
+      if (mounted.current) notice('좋아요를 처리하지 못했어요.')
+    } finally {
+      if (mounted.current) setLikeBusyIds((prev) => { const next = new Set(prev); next.delete(comment.id); return next })
+    }
+  }
+
   if (!open) return null
   const busy = pending !== null
   const visible = list ?? []
@@ -318,6 +341,11 @@ function CommentPanel({
           {spacious && <span>· {timeAgo(comment.created_at)}</span>}
         </div>
         <div className="ml-auto shrink-0 flex items-center gap-1">
+          {api.toggleLike && <button type="button" disabled={busy || likeBusyIds.has(comment.id)} onClick={() => void toggleLike(comment)}
+            aria-pressed={!!comment.liked_by_me} aria-label={comment.liked_by_me ? '좋아요 취소' : '좋아요'}
+            className={`min-h-11 min-w-11 rounded-control px-2 text-[13px] hover:bg-quiet focus-visible:shadow-ring disabled:opacity-40 ${comment.liked_by_me ? 'text-ink font-bold' : 'text-ink-soft'}`}>
+            {comment.liked_by_me ? '♥' : '♡'}{comment.like_count ? ` ${comment.like_count}` : ''}
+          </button>}
           {allowReplies && !comment.parent_comment_id && <button type="button" disabled={busy || !draftReady}
             onClick={() => {
               if (!loggedIn) { login(comment.id); return }

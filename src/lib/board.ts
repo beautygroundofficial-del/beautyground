@@ -192,10 +192,14 @@ export async function reportBoardPost(id: string, reason?: string): Promise<{ ok
 // ── 댓글 ───────────────────────────────────────────────────────────────────
 export interface BoardComment {
   id: string
+  user_id?: string | null
   nickname: string | null
   content: string
   created_at: string
   is_mine: boolean
+  parent_comment_id: string | null
+  like_count?: number
+  liked_by_me?: boolean
 }
 
 export async function getBoardComments(postId: string, limit = 50, offset = 0): Promise<BoardComment[] | null> {
@@ -206,6 +210,13 @@ export async function getBoardComments(postId: string, limit = 50, offset = 0): 
   return (data ?? []) as BoardComment[]
 }
 
+export async function toggleBoardCommentLike(commentId: string): Promise<{ liked: boolean; like_count: number } | null> {
+  const { data, error } = await supabase.rpc('toggle_board_comment_like', { p_comment_id: commentId })
+  if (error) return null
+  const row = Array.isArray(data) ? data[0] : data
+  return (row ?? null) as { liked: boolean; like_count: number } | null
+}
+
 export interface CreateBoardCommentResult {
   comment_id: string | null
   awarded: number
@@ -213,11 +224,12 @@ export interface CreateBoardCommentResult {
 }
 
 export async function createBoardComment(
-  postId: string, content: string, nickname?: string | null,
+  postId: string, content: string, nickname?: string | null, parentCommentId?: string | null,
 ): Promise<CreateBoardCommentResult> {
   const fail: CreateBoardCommentResult = { comment_id: null, awarded: 0, message: '잠시 후 다시 시도해 주세요' }
   const { data, error } = await supabase.rpc('create_board_comment', {
     p_post_id: postId, p_content: content, p_nickname: nickname ?? null,
+    p_parent_comment_id: parentCommentId ?? null,
   })
   if (error) return fail
   const row = Array.isArray(data) ? data[0] : data
