@@ -30,6 +30,10 @@
 	<array>
 		<string>remote-notification</string>
 	</array>
+	<key>NSCameraUsageDescription</key>
+	<string>피부 진단 사진 촬영과 라이브 방송 송출을 위해 카메라를 사용합니다.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>라이브 방송 송출을 위해 마이크를 사용합니다.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
