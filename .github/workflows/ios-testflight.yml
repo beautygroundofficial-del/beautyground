@@ -43,7 +43,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22   # Capacitor CLI 8 은 Node >=22 필수(첫 실행 실패 원인)
           cache: npm
 
       - name: Select Xcode
