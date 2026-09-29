@@ -6,15 +6,42 @@
       "note": "무소유 저자, 2010년 입적. 법륜스님과 다른 인물(혼동 주의)",
       "board_category": "mind",
       "videos": [
-        { "url": "https://www.youtube.com/shorts/z9dhl33M4e0", "title": "삶이 힘들 때 보는 법정스님 법문 몰아보기" },
-        { "url": "https://www.youtube.com/shorts/OvdhamUCPTM", "title": "무소유는 아무것도 갖지 않는다는 것이 아니다" },
-        { "url": "https://www.youtube.com/shorts/yqe5mq6Zszw", "title": "소욕지족 소병소뇌" },
-        { "url": "https://www.youtube.com/shorts/2RBlwsYcQE0", "title": "난을 키우던 법정스님이 문득 깨달은 것" },
-        { "url": "https://www.youtube.com/shorts/AJwGQA2tdDg", "title": "무소유 법정스님 명언 10가지" },
-        { "url": "https://www.youtube.com/shorts/QTtUOFfaNw0", "title": "별을 봐야 하는 이유" },
-        { "url": "https://www.youtube.com/shorts/PCV8OYte4Is", "title": "나를 위해 절대로 아끼면 안 되는 다섯 가지" },
-        { "url": "https://www.youtube.com/shorts/gppa7_DpnnA", "title": "법정스님 인생명언 best 10" },
-        { "url": "https://www.youtube.com/shorts/XvDpCpD8H-0", "title": "진짜 나를 찾아라, 과감하게 버릴 줄 알아야" }
+        {
+          "url": "https://www.youtube.com/shorts/z9dhl33M4e0",
+          "title": "삶이 힘들 때 보는 법정스님 법문 몰아보기"
+        },
+        {
+          "url": "https://www.youtube.com/shorts/OvdhamUCPTM",
+          "title": "무소유는 아무것도 갖지 않는다는 것이 아니다"
+        },
+        {
+          "url": "https://www.youtube.com/shorts/yqe5mq6Zszw",
+          "title": "소욕지족 소병소뇌"
+        },
+        {
+          "url": "https://www.youtube.com/shorts/2RBlwsYcQE0",
+          "title": "난을 키우던 법정스님이 문득 깨달은 것"
+        },
+        {
+          "url": "https://www.youtube.com/shorts/AJwGQA2tdDg",
+          "title": "무소유 법정스님 명언 10가지"
+        },
+        {
+          "url": "https://www.youtube.com/shorts/QTtUOFfaNw0",
+          "title": "별을 봐야 하는 이유"
+        },
+        {
+          "url": "https://www.youtube.com/shorts/PCV8OYte4Is",
+          "title": "나를 위해 절대로 아끼면 안 되는 다섯 가지"
+        },
+        {
+          "url": "https://www.youtube.com/shorts/gppa7_DpnnA",
+          "title": "법정스님 인생명언 best 10"
+        },
+        {
+          "url": "https://www.youtube.com/shorts/XvDpCpD8H-0",
+          "title": "진짜 나를 찾아라, 과감하게 버릴 줄 알아야"
+        }
       ]
     },
     {
@@ -22,7 +49,10 @@
       "note": "즉문즉설, 정토회. 직접 shorts 링크는 1건만 확보, 추가 수집 필요",
       "board_category": "mind",
       "videos": [
-        { "url": "https://www.youtube.com/watch?v=jWyIGOOVAwo", "title": "법륜스님 삶의 위로 20 (#쇼츠 #명언)" }
+        {
+          "url": "https://www.youtube.com/watch?v=jWyIGOOVAwo",
+          "title": "법륜스님 삶의 위로 20 (#쇼츠 #명언)"
+        }
       ]
     },
     {
@@ -30,11 +60,26 @@
       "note": "관계·소통 강연가",
       "board_category": "mind",
       "videos": [
-        { "url": "https://www.youtube.com/shorts/s08CM8KsqgI", "title": "다이돌핀의 놀라운 힘" },
-        { "url": "https://www.youtube.com/shorts/w92Va-FT49c", "title": "김창옥 교수의 명언" },
-        { "url": "https://www.youtube.com/shorts/sbpthFtGPOE", "title": "김창옥 교수 명언 요약 9가지" },
-        { "url": "https://www.youtube.com/shorts/21Op-6b8ghE", "title": "이런 여자랑 남자랑 결혼하세요" },
-        { "url": "https://www.youtube.com/watch?v=oLsp6YUC0FE", "title": "김창옥 교수 명언 top10" }
+        {
+          "url": "https://www.youtube.com/shorts/s08CM8KsqgI",
+          "title": "다이돌핀의 놀라운 힘"
+        },
+        {
+          "url": "https://www.youtube.com/shorts/w92Va-FT49c",
+          "title": "김창옥 교수의 명언"
+        },
+        {
+          "url": "https://www.youtube.com/shorts/sbpthFtGPOE",
+          "title": "김창옥 교수 명언 요약 9가지"
+        },
+        {
+          "url": "https://www.youtube.com/shorts/21Op-6b8ghE",
+          "title": "이런 여자랑 남자랑 결혼하세요"
+        },
+        {
+          "url": "https://www.youtube.com/watch?v=oLsp6YUC0FE",
+          "title": "김창옥 교수 명언 top10"
+        }
       ]
     },
     {
@@ -42,12 +87,36 @@
       "note": "사투리 토크·강연 혼합, 유머+감동 둘 다 있어 카테고리 영상별로 조정",
       "board_category": "chat",
       "videos": [
-        { "url": "https://www.youtube.com/shorts/NVdiO84wOfI", "title": "전라도 총각에게 웃겨죽는 김제동", "category_override": "chat" },
-        { "url": "https://www.youtube.com/shorts/vUzulKC2k5Y", "title": "스리랑카 여자에게 빵터진 김제동", "category_override": "chat" },
-        { "url": "https://www.youtube.com/shorts/d3C2GR-xmiw", "title": "김제동에게 책이란?", "category_override": "mind" },
-        { "url": "https://www.youtube.com/shorts/CL87UskCYT0", "title": "김제동 어머니가 말해주는 세상에서 가장 따뜻한 말 한마디", "category_override": "parents" },
-        { "url": "https://www.youtube.com/shorts/66K0KgACG50", "title": "매력터지는 전라도남자의 사랑고백에 웃겨죽는 김제동", "category_override": "chat" },
-        { "url": "https://www.youtube.com/shorts/w-dmKlH103w", "title": "진짜 힘들 땐, 정치판에 지친 이들에게 웃음 주는 김제동", "category_override": "mind" }
+        {
+          "url": "https://www.youtube.com/shorts/NVdiO84wOfI",
+          "title": "전라도 총각에게 웃겨죽는 김제동",
+          "category_override": "chat"
+        },
+        {
+          "url": "https://www.youtube.com/shorts/vUzulKC2k5Y",
+          "title": "스리랑카 여자에게 빵터진 김제동",
+          "category_override": "chat"
+        },
+        {
+          "url": "https://www.youtube.com/shorts/d3C2GR-xmiw",
+          "title": "김제동에게 책이란?",
+          "category_override": "mind"
+        },
+        {
+          "url": "https://www.youtube.com/shorts/CL87UskCYT0",
+          "title": "김제동 어머니가 말해주는 세상에서 가장 따뜻한 말 한마디",
+          "category_override": "parents"
+        },
+        {
+          "url": "https://www.youtube.com/shorts/66K0KgACG50",
+          "title": "매력터지는 전라도남자의 사랑고백에 웃겨죽는 김제동",
+          "category_override": "chat"
+        },
+        {
+          "url": "https://www.youtube.com/shorts/w-dmKlH103w",
+          "title": "진짜 힘들 땐, 정치판에 지친 이들에게 웃음 주는 김제동",
+          "category_override": "mind"
+        }
       ]
     },
     {
@@ -55,10 +124,22 @@
       "note": "순수 예능·유머",
       "board_category": "chat",
       "videos": [
-        { "url": "https://www.youtube.com/shorts/iC7sD2DN270", "title": "이지영 통장 얘기에 눈빛 변한 탁재훈 (테스트 게시 완료)" },
-        { "url": "https://www.youtube.com/shorts/peGx_R151qM", "title": "사전 협의 없이 시켰는데 레전드 만든 탁재훈의 참 다행이야" },
-        { "url": "https://www.youtube.com/shorts/Sl5G9vmE0Xk", "title": "이효리의 오구라누나 발언에 어이없는 탁재훈" },
-        { "url": "https://www.youtube.com/shorts/0-iFa8rdmig", "title": "탁재훈이 방송 최초 찐으로 좋아하는 여배우" }
+        {
+          "url": "https://www.youtube.com/shorts/iC7sD2DN270",
+          "title": "이지영 통장 얘기에 눈빛 변한 탁재훈 (테스트 게시 완료)"
+        },
+        {
+          "url": "https://www.youtube.com/shorts/peGx_R151qM",
+          "title": "사전 협의 없이 시켰는데 레전드 만든 탁재훈의 참 다행이야"
+        },
+        {
+          "url": "https://www.youtube.com/shorts/Sl5G9vmE0Xk",
+          "title": "이효리의 오구라누나 발언에 어이없는 탁재훈"
+        },
+        {
+          "url": "https://www.youtube.com/shorts/0-iFa8rdmig",
+          "title": "탁재훈이 방송 최초 찐으로 좋아하는 여배우"
+        }
       ]
     },
     {
@@ -66,10 +147,22 @@
       "note": "실명 유명인 아님 — 초상권 리스크 낮음. 정보성 콘텐츠",
       "board_category": "menopause",
       "videos": [
-        { "url": "https://www.youtube.com/shorts/Tr_Xt2PuRSU", "title": "갱년기 편두통 극복 4가지만 기억하세요" },
-        { "url": "https://www.youtube.com/shorts/JP3eHSE13js", "title": "갱년기 수면 장애 극복, 가장 간단한 방법" },
-        { "url": "https://www.youtube.com/shorts/bj2UdeiEhf8", "title": "갱년기 이것 먹고 극복?! [KBS 무엇이든 물어보세요]" },
-        { "url": "https://www.youtube.com/shorts/qwrYPbtNN6U", "title": "아침에 좋은 음식으로 갱년기 골다공증 예방하세요" }
+        {
+          "url": "https://www.youtube.com/shorts/Tr_Xt2PuRSU",
+          "title": "갱년기 편두통 극복 4가지만 기억하세요"
+        },
+        {
+          "url": "https://www.youtube.com/shorts/JP3eHSE13js",
+          "title": "갱년기 수면 장애 극복, 가장 간단한 방법"
+        },
+        {
+          "url": "https://www.youtube.com/shorts/bj2UdeiEhf8",
+          "title": "갱년기 이것 먹고 극복?! [KBS 무엇이든 물어보세요]"
+        },
+        {
+          "url": "https://www.youtube.com/shorts/qwrYPbtNN6U",
+          "title": "아침에 좋은 음식으로 갱년기 골다공증 예방하세요"
+        }
       ]
     },
     {
@@ -77,8 +170,14 @@
       "note": "실명 유명인 아님(김남주 언급 1건은 제외 권장) — 초상권 리스크 낮음",
       "board_category": "skin",
       "videos": [
-        { "url": "https://www.youtube.com/shorts/miT7jPoKLcI", "title": "40대 피부관리 시작 순서" },
-        { "url": "https://www.youtube.com/shorts/xTwhqH0jWNw", "title": "50대 의사의 피부관리" }
+        {
+          "url": "https://www.youtube.com/shorts/miT7jPoKLcI",
+          "title": "40대 피부관리 시작 순서"
+        },
+        {
+          "url": "https://www.youtube.com/shorts/xTwhqH0jWNw",
+          "title": "50대 의사의 피부관리"
+        }
       ]
     },
     {
@@ -86,9 +185,21 @@
       "note": "실명 유명인 아님 — 초상권 리스크 낮음. living/eco 둘 다 커버",
       "board_category": "eco",
       "videos": [
-        { "url": "https://www.youtube.com/shorts/e10gzpkIWJg", "title": "수도세 절약 꿀팁! 가정 물절약 총정리", "category_override": "eco" },
-        { "url": "https://www.youtube.com/shorts/s_VA8jttBYM", "title": "지갑 지키는 초간단 절약 꿀팁 3가지", "category_override": "eco" },
-        { "url": "https://www.youtube.com/watch?v=f9qIvFtgurA", "title": "아파트 생활을 편리하게 만들어줄 꿀팁", "category_override": "living" }
+        {
+          "url": "https://www.youtube.com/shorts/e10gzpkIWJg",
+          "title": "수도세 절약 꿀팁! 가정 물절약 총정리",
+          "category_override": "eco"
+        },
+        {
+          "url": "https://www.youtube.com/shorts/s_VA8jttBYM",
+          "title": "지갑 지키는 초간단 절약 꿀팁 3가지",
+          "category_override": "eco"
+        },
+        {
+          "url": "https://www.youtube.com/watch?v=f9qIvFtgurA",
+          "title": "아파트 생활을 편리하게 만들어줄 꿀팁",
+          "category_override": "living"
+        }
       ]
     },
     {
@@ -96,9 +207,281 @@
       "note": "실명 유명인 아님 — 초상권 리스크 낮음",
       "board_category": "body",
       "videos": [
-        { "url": "https://www.youtube.com/shorts/rsLwms_Hqfc", "title": "50대,60대를 위한 5가지 건강상식" },
-        { "url": "https://www.youtube.com/shorts/Z2CnHd92cXY", "title": "50대 이후 단 하나의 운동만 해야 한다면" },
-        { "url": "https://www.youtube.com/shorts/RTGXPj1yB3A", "title": "포기하고 싶을 때 꼭 들어야 할 운동 명언 4선" }
+        {
+          "url": "https://www.youtube.com/shorts/rsLwms_Hqfc",
+          "title": "50대,60대를 위한 5가지 건강상식"
+        },
+        {
+          "url": "https://www.youtube.com/shorts/Z2CnHd92cXY",
+          "title": "50대 이후 단 하나의 운동만 해야 한다면"
+        },
+        {
+          "url": "https://www.youtube.com/shorts/RTGXPj1yB3A",
+          "title": "포기하고 싶을 때 꼭 들어야 할 운동 명언 4선"
+        }
+      ]
+    },
+    {
+      "name": "kids 자동수집(무명채널)",
+      "note": "GitHub Actions 자동 수집 — 게시 전 실제 재생 확인 권장",
+      "board_category": "kids",
+      "videos": [
+        {
+          "url": "https://www.youtube.com/shorts/WgIRRcMFMoI",
+          "title": "기절하듯 재우는 반전기법 #육아쇼츠 #아기재우기 #초보부모 #육아공감 #재우기꿀팁 #육아일상 #반전주의 #꿀잼쇼츠 #육아코미디 #아기영상 #animation"
+        },
+        {
+          "url": "https://www.youtube.com/shorts/TJXSNDlsaqE",
+          "title": "엄마가 모르면 아기만 힘들어요ㅠㅠ"
+        },
+        {
+          "url": "https://www.youtube.com/shorts/NciOqXmDjxY",
+          "title": "첫째 땐 몰랐던 육아 꿀팁 3가지"
+        },
+        {
+          "url": "https://www.youtube.com/shorts/Oimp26r6Dyk",
+          "title": "20년 산후조리원 원장님의 육아 꿀팁"
+        },
+        {
+          "url": "https://www.youtube.com/shorts/6sptzeLd33E",
+          "title": "신생아 분수토 왜 그럴까요?😭 #아기쇼츠 #아기 #초보엄마 #신생아 #아기육아 #육아 #newborn #newbornbaby"
+        },
+        {
+          "url": "https://www.youtube.com/shorts/KhQ5D7AilQI",
+          "title": "⭐️45만회⭐아기 기저귀 쉽게 가는 법 #육아꿀팁"
+        },
+        {
+          "url": "https://www.youtube.com/shorts/N9oiZf0jCOY",
+          "title": "육아 4대 망언"
+        },
+        {
+          "url": "https://www.youtube.com/shorts/HlELgVYIO_I",
+          "title": "아빠 없이 여행갔을때 아들 VS 딸 #육아공감 #공감 #shorts"
+        }
+      ]
+    },
+    {
+      "name": "spouse 자동수집(무명채널)",
+      "note": "GitHub Actions 자동 수집 — 게시 전 실제 재생 확인 권장",
+      "board_category": "spouse",
+      "videos": [
+        {
+          "url": "https://www.youtube.com/shorts/UCEw7c8RIB4",
+          "title": "임산부가 못 먹는 음식 먹는 남편 2탄!"
+        },
+        {
+          "url": "https://www.youtube.com/shorts/70b1UVdWK4E",
+          "title": "유부남 의무방어전"
+        },
+        {
+          "url": "https://www.youtube.com/shorts/ycMIdmo6Ze8",
+          "title": "충격적인 80년대 결혼관념 #shorts"
+        },
+        {
+          "url": "https://www.youtube.com/shorts/om7-Elg_cFc",
+          "title": "[결혼전.결혼후] 엘리베이터 #shorts #부부 #스케치코미디"
+        },
+        {
+          "url": "https://www.youtube.com/shorts/JVjV4HDa5lM",
+          "title": "여자들의 생리 전,후 비포애프터#shorts"
+        },
+        {
+          "url": "https://www.youtube.com/shorts/BaaVUJI9J34",
+          "title": "이수지가 자신의 팬과 결혼하게 된 과정"
+        }
+      ]
+    },
+    {
+      "name": "parents 자동수집(무명채널)",
+      "note": "GitHub Actions 자동 수집 — 게시 전 실제 재생 확인 권장",
+      "board_category": "parents",
+      "videos": [
+        {
+          "url": "https://www.youtube.com/shorts/uXRwU13NQh0",
+          "title": "(감동실화)500만명을 눈물나게한 영상 #shorts #부모님 #감동영상"
+        },
+        {
+          "url": "https://www.youtube.com/shorts/zPROKYv22Mg",
+          "title": "[감동주의] 시청자를 감동시킨 위로의 한마디 #shorts"
+        },
+        {
+          "url": "https://www.youtube.com/shorts/hSBrXAgjHro",
+          "title": "부모님에게 시한부 사실을 고백한다는 것"
+        },
+        {
+          "url": "https://www.youtube.com/shorts/M5TrejyzcOk",
+          "title": "담배 피우는 이유 좀요?! #shorts"
+        },
+        {
+          "url": "https://www.youtube.com/shorts/0RXdUunlI68",
+          "title": "절대 하면 안되는 부모 가슴에 못박는말 10가지"
+        },
+        {
+          "url": "https://www.youtube.com/shorts/kKI47DhRnuI",
+          "title": "딸을 울게 만든 돌아가신 엄마의 마지막 영상 #shorts #감동"
+        },
+        {
+          "url": "https://www.youtube.com/shorts/Tt8TmAfbEY8",
+          "title": "불꽃 효도 #shorts"
+        }
+      ]
+    },
+    {
+      "name": "body 자동수집(무명채널)",
+      "note": "GitHub Actions 자동 수집 — 게시 전 실제 재생 확인 권장",
+      "board_category": "body",
+      "videos": [
+        {
+          "url": "https://www.youtube.com/shorts/CD9b7vZg8e4",
+          "title": "“똥”안 나올 때 보는 영상 #shorts #쇼츠 #쾌변"
+        },
+        {
+          "url": "https://www.youtube.com/shorts/MQTNh_0Mdb4",
+          "title": "최화정의 절대 살안찌는 식사 전 습관"
+        },
+        {
+          "url": "https://www.youtube.com/shorts/J_puwvOWpCg",
+          "title": "1분만에 0.3이 1.5되는 시력회복법 #눈건강 #쇼츠 #shorts"
+        },
+        {
+          "url": "https://www.youtube.com/shorts/uPTHzNktGts",
+          "title": "50대 이후 계란 꼭 드세요🥚 #시니어건강 #건강쇼츠 #건강 #건강정보 #계란"
+        },
+        {
+          "url": "https://www.youtube.com/shorts/pAt81vl7wjI",
+          "title": "건강을 위해 챙겨야할것!!  #건강정보 #쇼츠 #쇼츠 #부모님건강 #50대건강 #건강상식 #건강관리 #시니어건강 #50대 #60대 #중년건강"
+        }
+      ]
+    },
+    {
+      "name": "menopause 자동수집(무명채널)",
+      "note": "GitHub Actions 자동 수집 — 게시 전 실제 재생 확인 권장",
+      "board_category": "menopause",
+      "videos": [
+        {
+          "url": "https://www.youtube.com/shorts/DGzLQ7u4bIk",
+          "title": "우울, 권태, 갱년기에서 구해줄 한마디 - 김창옥 #shorts #김창옥"
+        },
+        {
+          "url": "https://www.youtube.com/shorts/mAl-KWw_Ir4",
+          "title": "갱년기에는 무조건 여성호르몬제를 먹어야 하나요? #shorts"
+        },
+        {
+          "url": "https://www.youtube.com/shorts/jQ6VHFSnQ_o",
+          "title": "잘 자면 젊어지는, 갱년기 불면증 극복하는 법! @좋은아침 5183회 20171017"
+        },
+        {
+          "url": "https://www.youtube.com/shorts/XtbZfhb07ng",
+          "title": "여성갱년기 집에서 스스로 관리하는 첫번째 방법"
+        }
+      ]
+    },
+    {
+      "name": "skin 자동수집(무명채널)",
+      "note": "GitHub Actions 자동 수집 — 게시 전 실제 재생 확인 권장",
+      "board_category": "skin",
+      "videos": [
+        {
+          "url": "https://www.youtube.com/shorts/7JQdJsVCBFg",
+          "title": "굿 모닝 채니의 아침 세안 피부 관리 루틴 #shorts #등교준비 #채니의놀고먹자"
+        },
+        {
+          "url": "https://www.youtube.com/shorts/NbUgzLW0pro",
+          "title": "피부 망치고 싶으면 ‘이렇게’ 하세요 🤬 (충격 주의) #피부관리 #꿀팁 #쇼츠 #skincare #스킨케어"
+        },
+        {
+          "url": "https://www.youtube.com/shorts/a-Rt_T0c6ag",
+          "title": "남자 피부관리, 이대로만 쓰면 됩니다 #shorts"
+        },
+        {
+          "url": "https://www.youtube.com/shorts/jAUbgbB88bg",
+          "title": "여드름 흉터 없이 짜는 법 #shorts #여드름압출 집에서 하세요‼️"
+        },
+        {
+          "url": "https://www.youtube.com/shorts/KhZ6Y_nnRgg",
+          "title": "40대 속당김 끝#shorts#쇼츠#40대스킨케어#40대보습크림#속당김크림#피부장벽개선#고보습크림"
+        },
+        {
+          "url": "https://www.youtube.com/shorts/FkcemNdEE7Y",
+          "title": "45세 예뻐지는 스킨루틴🌿🧴#40대피부관리 #동안꿀팁#비우기 #쇼츠감성#스킨케어루틴 #호호바오일#동안피부"
+        }
+      ]
+    },
+    {
+      "name": "living 자동수집(무명채널)",
+      "note": "GitHub Actions 자동 수집 — 게시 전 실제 재생 확인 권장",
+      "board_category": "living",
+      "videos": [
+        {
+          "url": "https://www.youtube.com/shorts/_8RIZcApL3Y",
+          "title": "죽은 공간도 살리는 역대급 다이소 템 #살림꿀팁 #쇼츠 #생활꿀팁"
+        },
+        {
+          "url": "https://www.youtube.com/shorts/owQuiK3voyo",
+          "title": "#생활상식 #생활꿀팁 #살림꿀팁 #유용한정보 #꿀팁 #상식 #일상정보 #쇼츠 #shorts"
+        },
+        {
+          "url": "https://www.youtube.com/shorts/5uo-uuZiyiY",
+          "title": "알아두면 평생 써먹는 생활 꿀팁 10가지 #shorts #살림팁 #꿀팁 #생활꿀팁"
+        },
+        {
+          "url": "https://www.youtube.com/shorts/exrkmziWQWA",
+          "title": "알아두면 평생 써먹는 생활 꿀팁 10가지 #shorts #살림팁 #꿀팁 #생활꿀팁"
+        },
+        {
+          "url": "https://www.youtube.com/shorts/vYLqVAHP_VA",
+          "title": "주방에 절대 없어서는 안 될 단 1가지, 식초의 놀라운 활용법 6가지 🍋🔥#식초활용 #살림팁"
+        },
+        {
+          "url": "https://www.youtube.com/shorts/Q0-jagUo8I8",
+          "title": "탄 냄비 닦다가 손목 나간 분들 #스텐연마제제거 #살림꿀팁 #생활꿀팁"
+        },
+        {
+          "url": "https://www.youtube.com/shorts/qD85UpCoCIU",
+          "title": "우리 집은 상속세 0원?상속재산 공제 기준 10가지"
+        }
+      ]
+    },
+    {
+      "name": "eco 자동수집(무명채널)",
+      "note": "GitHub Actions 자동 수집 — 게시 전 실제 재생 확인 권장",
+      "board_category": "eco",
+      "videos": [
+        {
+          "url": "https://www.youtube.com/shorts/YlzV6eQWt44",
+          "title": "절약의 달인이었던 99년생 의외의 근황"
+        },
+        {
+          "url": "https://www.youtube.com/shorts/NhLtAZDPkSo",
+          "title": "강남 40억 집주인의 극강 짠테크"
+        },
+        {
+          "url": "https://www.youtube.com/shorts/eDDjBfQsDeY",
+          "title": "짠테크 3가지 방법 정리 #shorts"
+        },
+        {
+          "url": "https://www.youtube.com/shorts/nPLWQogh610",
+          "title": "강남 40억 집주인의 극강 짠테크"
+        },
+        {
+          "url": "https://www.youtube.com/shorts/2ZcaNZn5F2Q",
+          "title": "톱스타 되고도 못 고친 짠내 나는 절약왕 스타 TOP7"
+        },
+        {
+          "url": "https://www.youtube.com/shorts/0Ah9Xii46pk",
+          "title": "통장 잔고를 쑥쑥 불려줄 짠테크 고수들의 꿀팁 7가지💸🔥"
+        }
+      ]
+    },
+    {
+      "name": "chat 자동수집(무명채널)",
+      "note": "GitHub Actions 자동 수집 — 게시 전 실제 재생 확인 권장",
+      "board_category": "chat",
+      "videos": [
+        {
+          "url": "https://www.youtube.com/shorts/-0qorf_iX_E",
+          "title": "개고통 ㅋㅋㅋㅋㅋ #shorts #웃긴영상 #웃긴 #웃긴짤 #웃긴동영상 #유머 #개그 #웃짤 #밈"
+        }
       ]
     }
   ],
