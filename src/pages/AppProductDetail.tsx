@@ -19,7 +19,7 @@ import ReviewSummary from '../components/product/ReviewSummary'
 import ProductQnA from '../components/product/ProductQnA'
 import { useProductQuestions } from '../hooks/useProductQuestions'
 import { IconHeart, IconCart, IconMinus, IconPlus } from '../components/common/Icon'
-import { IconSend2, IconBrandFacebook, IconBrandX, IconLink, IconChevronLeft, IconChevronRight } from '@tabler/icons-react'
+import { IconSend2, IconBrandFacebook, IconBrandX, IconLink } from '@tabler/icons-react'
 import ImagePlaceholder from '../components/common/ImagePlaceholder'
 import Thumb from '../components/common/Thumb'
 import ScrollToTopButton from '../components/common/ScrollToTopButton'
@@ -437,30 +437,6 @@ export default function AppProductDetail() {
               loading="eager"
               className="w-full h-full object-contain"
             />
-            {view.images.length > 1 && (
-              <>
-                {activeImg > 0 && (
-                  <button
-                    type="button"
-                    onClick={() => setActiveImg((i) => Math.max(i - 1, 0))}
-                    aria-label="이전 이미지"
-                    className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-paper/80 flex items-center justify-center shadow-sm focus:outline-none focus-visible:shadow-ring"
-                  >
-                    <IconChevronLeft size={18} className="text-ink" />
-                  </button>
-                )}
-                {activeImg < view.images.length - 1 && (
-                  <button
-                    type="button"
-                    onClick={() => setActiveImg((i) => Math.min(i + 1, view.images.length - 1))}
-                    aria-label="다음 이미지"
-                    className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-paper/80 flex items-center justify-center shadow-sm focus:outline-none focus-visible:shadow-ring"
-                  >
-                    <IconChevronRight size={18} className="text-ink" />
-                  </button>
-                )}
-              </>
-            )}
           </div>
           {view.images.length > 1 && (
             <div className="flex justify-center gap-1.5 pt-3">
