@@ -210,7 +210,7 @@ export default function AppDiary() {
                 <div
                   key={b.id}
                   className={`shrink-0 snap-start rounded-card border bg-paper p-4 transition-[width] motion-reduce:transition-none ${
-                    open ? 'w-[260px] border-ink' : 'w-[190px] border-rule'}`}
+                    open ? 'w-[260px] border-ink' : 'w-[190px] h-[168px] overflow-hidden border-rule'}`}
                 >
                   <button
                     type="button"
@@ -223,9 +223,7 @@ export default function AppDiary() {
                     <p className={`text-[15px] text-ink leading-[1.7] break-words min-h-[3.4em] ${open ? '' : 'line-clamp-2'}`}>
                       {b.content}
                     </p>
-                    {b.reaction_count > 0 && (
-                      <p className="text-[12px] text-ink-soft mt-3">🤍 {b.reaction_count}</p>
-                    )}
+                    <p className={`text-[12px] text-ink-soft mt-3 ${b.reaction_count > 0 ? '' : 'invisible'}`}>🤍 {b.reaction_count}</p>
                   </button>
                   {open && (
                     <button type="button" onClick={() => navigate(`/app/diary?focus=${b.id}&comments=${b.id}`)} className="min-h-11 mt-2 text-[13px] underline">이야기와 댓글 읽기</button>
