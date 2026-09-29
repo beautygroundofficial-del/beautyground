@@ -49,9 +49,18 @@ def yt_search(query, max_results=6):
     for item in data.get("items", []):
         vid = item["id"].get("videoId")
         title = item["snippet"]["title"]
-        if vid:
+        if vid and is_usable_title(title):
             out.append({"url": f"https://www.youtube.com/shorts/{vid}", "title": title})
     return out
+
+
+def is_usable_title(title):
+    """해시태그·이모지만 있고 실제 문장이 없는 제목은 걸러낸다(2026-09-30 —
+    Gemini가 이런 제목에 대해 내용을 지어내는 문제 발견돼 추가)."""
+    stripped = re.sub(r"#\S+", "", title)
+    stripped = re.sub(r"[\U0001F300-\U0001FAFF☀-➿]", "", stripped)
+    stripped = stripped.strip(" -|[](){}!?.,~ⓒ★⭐️")
+    return len(stripped) >= 6
 
 
 def main():
