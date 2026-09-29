@@ -12,6 +12,7 @@ import { supabase } from '../lib/supabase'
 import { useIsAdmin } from '../lib/useIsAdmin'
 import { categoryLabel, deleteBoardPost, getBoardPost, reportBoardPost, toggleBoardLike, type BoardPost } from '../lib/board'
 import { blockUser } from '../lib/blocks'
+import { extractYoutubeId, youtubeThumbnailUrl } from '../lib/youtube'
 
 // 속 이야기 — 글 하나. (2026-09-10)
 // 공감 3종(토닥토닥·나도 그래요·응원해요)은 일기와 같은 ReactionBar. 내 글엔 띄우지 않는다.
@@ -165,21 +166,38 @@ export default function AppBoardPost() {
 
             <p className="text-[15px] text-ink leading-[1.8] whitespace-pre-wrap">{post.content}</p>
 
-            {post.images.length > 0 && (
-              <div className={`grid gap-1 mt-4 rounded-card overflow-hidden ${post.images.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
-                {post.images.slice(0, 4).map((src, i) => (
-                  <button
-                    type="button"
-                    key={`${src}-${i}`}
-                    onClick={() => setViewerIndex(i)}
-                    aria-label={`사진 ${i + 1} 크게 보기`}
-                    className={`bg-quiet focus:outline-none focus-visible:shadow-ring ${post.images.length === 1 ? 'aspect-[4/3]' : 'aspect-square'}`}
-                  >
-                    <img src={src} alt="" className="w-full h-full object-cover" />
-                  </button>
-                ))}
-              </div>
-            )}
+            {(() => {
+              const ytId = extractYoutubeId(post.content)
+              const isYoutubeThumb = !!ytId && post.images.length === 1 && post.images[0] === youtubeThumbnailUrl(ytId)
+              if (isYoutubeThumb) {
+                return (
+                  <div className="mt-4 mx-auto max-w-[380px] rounded-card overflow-hidden bg-ink" style={{ aspectRatio: '9 / 16' }}>
+                    <iframe
+                      src={`https://www.youtube.com/embed/${ytId}`}
+                      title="YouTube video"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                      allowFullScreen
+                      className="w-full h-full border-0"
+                    />
+                  </div>
+                )
+              }
+              return post.images.length > 0 && (
+                <div className={`grid gap-1 mt-4 rounded-card overflow-hidden ${post.images.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
+                  {post.images.slice(0, 4).map((src, i) => (
+                    <button
+                      type="button"
+                      key={`${src}-${i}`}
+                      onClick={() => setViewerIndex(i)}
+                      aria-label={`사진 ${i + 1} 크게 보기`}
+                      className={`bg-quiet focus:outline-none focus-visible:shadow-ring ${post.images.length === 1 ? 'aspect-[4/3]' : 'aspect-square'}`}
+                    >
+                      <img src={src} alt="" className="w-full h-full object-cover" />
+                    </button>
+                  ))}
+                </div>
+              )
+            })()}
 
             {post.video_url && (
               <div className="mt-4 rounded-card overflow-hidden bg-ink">
