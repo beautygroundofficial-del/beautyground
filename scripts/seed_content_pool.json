@@ -60,11 +60,52 @@
         { "url": "https://www.youtube.com/shorts/Sl5G9vmE0Xk", "title": "이효리의 오구라누나 발언에 어이없는 탁재훈" },
         { "url": "https://www.youtube.com/shorts/0-iFa8rdmig", "title": "탁재훈이 방송 최초 찐으로 좋아하는 여배우" }
       ]
+    },
+    {
+      "name": "갱년기 정보(무명 채널)",
+      "note": "실명 유명인 아님 — 초상권 리스크 낮음. 정보성 콘텐츠",
+      "board_category": "menopause",
+      "videos": [
+        { "url": "https://www.youtube.com/shorts/Tr_Xt2PuRSU", "title": "갱년기 편두통 극복 4가지만 기억하세요" },
+        { "url": "https://www.youtube.com/shorts/JP3eHSE13js", "title": "갱년기 수면 장애 극복, 가장 간단한 방법" },
+        { "url": "https://www.youtube.com/shorts/bj2UdeiEhf8", "title": "갱년기 이것 먹고 극복?! [KBS 무엇이든 물어보세요]" },
+        { "url": "https://www.youtube.com/shorts/qwrYPbtNN6U", "title": "아침에 좋은 음식으로 갱년기 골다공증 예방하세요" }
+      ]
+    },
+    {
+      "name": "피부관리 정보(무명 채널)",
+      "note": "실명 유명인 아님(김남주 언급 1건은 제외 권장) — 초상권 리스크 낮음",
+      "board_category": "skin",
+      "videos": [
+        { "url": "https://www.youtube.com/shorts/miT7jPoKLcI", "title": "40대 피부관리 시작 순서" },
+        { "url": "https://www.youtube.com/shorts/xTwhqH0jWNw", "title": "50대 의사의 피부관리" }
+      ]
+    },
+    {
+      "name": "절약·살림 정보(무명 채널)",
+      "note": "실명 유명인 아님 — 초상권 리스크 낮음. living/eco 둘 다 커버",
+      "board_category": "eco",
+      "videos": [
+        { "url": "https://www.youtube.com/shorts/e10gzpkIWJg", "title": "수도세 절약 꿀팁! 가정 물절약 총정리", "category_override": "eco" },
+        { "url": "https://www.youtube.com/shorts/s_VA8jttBYM", "title": "지갑 지키는 초간단 절약 꿀팁 3가지", "category_override": "eco" },
+        { "url": "https://www.youtube.com/watch?v=f9qIvFtgurA", "title": "아파트 생활을 편리하게 만들어줄 꿀팁", "category_override": "living" }
+      ]
+    },
+    {
+      "name": "건강·운동 정보(무명 채널)",
+      "note": "실명 유명인 아님 — 초상권 리스크 낮음",
+      "board_category": "body",
+      "videos": [
+        { "url": "https://www.youtube.com/shorts/rsLwms_Hqfc", "title": "50대,60대를 위한 5가지 건강상식" },
+        { "url": "https://www.youtube.com/shorts/Z2CnHd92cXY", "title": "50대 이후 단 하나의 운동만 해야 한다면" },
+        { "url": "https://www.youtube.com/shorts/RTGXPj1yB3A", "title": "포기하고 싶을 때 꼭 들어야 할 운동 명언 4선" }
+      ]
     }
   ],
   "todo": [
-    "일반인(비유명인) 일상 브이로그/공감 쇼츠 — 육아/부부/부모님/건강/갱년기/피부/살림/절약 카테고리용 추가 수집 필요",
+    "육아·부부 카테고리 무명채널(초상권 낮은) 대체 소스는 아직 못 찾음 — 지금은 법륜스님/김창옥으로만 채워짐",
     "법륜스님 링크 추가 확보(현재 1건뿐)",
+    "김남주 언급된 피부관리 쇼츠(B1aMW1lGqyc)는 유명인 등장이라 제외",
     "게시 직전 각 영상 실제 재생해 부적절한 댓글·내용 없는지 확인"
   ]
 }
