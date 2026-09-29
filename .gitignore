@@ -35,3 +35,4 @@ _supa_usage.json
 
 # 빌드 캐시 — 기계마다 달라 충돌만 만든다
 .vite/
+scripts/seed_output/
