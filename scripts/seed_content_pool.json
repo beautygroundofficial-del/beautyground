@@ -475,6 +475,28 @@
           "title": "개고통 ㅋㅋㅋㅋㅋ #shorts #웃긴영상 #웃긴 #웃긴짤 #웃긴동영상 #유머 #개그 #웃짤 #밈"
         }
       ]
+    },
+    {
+      "name": "parents 자동수집(무명채널)",
+      "note": "GitHub Actions 자동 수집 — 게시 전 실제 재생 확인 권장",
+      "board_category": "parents",
+      "videos": [
+        {
+          "url": "https://www.youtube.com/shorts/EBKJgm7x5F8",
+          "title": "하늘나라로 간 엄마, 남겨진 아이의 행동 소름 #shorts #감동"
+        }
+      ]
+    },
+    {
+      "name": "living 자동수집(무명채널)",
+      "note": "GitHub Actions 자동 수집 — 게시 전 실제 재생 확인 권장",
+      "board_category": "living",
+      "videos": [
+        {
+          "url": "https://www.youtube.com/shorts/v0hMVo0Y4dg",
+          "title": "친구들 간 뒤 화장실 청소 이 순서로 정리해요"
+        }
+      ]
     }
   ],
   "todo": [
