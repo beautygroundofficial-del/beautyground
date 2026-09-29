@@ -1,0 +1,49 @@
+# 커뮤니티 시딩 주간 자동화 — 유튜브 쇼츠 링크 수집 → 게시 계획 생성 → 실행 (2026-09-29)
+#
+# 매주 월요일 09:10(KST)에 자동 실행. 창을 닫아도, 대표님이 자리에 안 계셔도 돈다.
+# 1) 유튜브 API로 부족한 카테고리 링크 보강(무명채널 위주, 초상권 낮음)
+# 2) 요일 랜덤 배치 — 시딩계정 100개 중 이번주 안 쓴 계정으로 로테이션, 좋아요10~30·댓글25~45%
+# 3) 운영 DB에 실행(board_posts/board_likes/board_comments)
+#
+# Secrets: YOUTUBE_DATA_API_KEY, SUPABASE_MGMT_TOKEN (둘 다 2026-09-29 등록됨)
+# 결과는 Actions 로그 + 커밋(seed_content_pool.json 갱신분)으로 남는다.
+
+name: 커뮤니티 시딩 주간 자동화
+
+on:
+  schedule:
+    - cron: "10 0 * * 1"   # 매주 월요일 00:10 UTC = 09:10 KST
+  workflow_dispatch: {}
+
+jobs:
+  seed:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 유튜브 쇼츠 링크 보강
+        env:
+          YOUTUBE_DATA_API_KEY: ${{ secrets.YOUTUBE_DATA_API_KEY }}
+        run: python3 scripts/seed_fetch_youtube.py
+
+      - name: 이번 주 게시 계획 생성(랜덤 요일·계정 로테이션)
+        run: python3 scripts/seed_gen_week_plan.py
+
+      - name: 실행 SQL 생성
+        run: python3 scripts/seed_gen_week_sql.py
+
+      - name: 운영 DB에 실행
+        env:
+          SUPABASE_MGMT_TOKEN: ${{ secrets.SUPABASE_MGMT_TOKEN }}
+        run: node scripts/db_query.mjs scripts/seed_output/week_batch.sql
+
+      - name: 수집된 링크 풀 커밋(변경 있을 때만)
+        run: |
+          git config user.name "beautyground-seed-bot"
+          git config user.email "beautyground.official@gmail.com"
+          git add scripts/seed_content_pool.json
+          git diff --cached --quiet || git commit -m "chore(seed): 주간 자동 수집 — $(date +%Y-%m-%d)"
+          git push origin HEAD:${{ github.ref_name }}
