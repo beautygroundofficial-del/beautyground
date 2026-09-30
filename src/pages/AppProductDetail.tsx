@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useParams, useNavigate, useLocation } from 'react-router-dom'
 import BackHeader from '../components/layout/BackHeader'
 import BottomNav from '../components/layout/BottomNav'
@@ -129,6 +129,11 @@ export default function AppProductDetail() {
   const [activeTab, setActiveTab] = useState(0)
   const [activeImg, setActiveImg] = useState(0)
   const [wished, setWished] = useState(false)
+  const imgTrackRef = useRef<HTMLDivElement>(null)
+  const imgDraggingRef = useRef(false)
+  const imgDragStartXRef = useRef(0)
+  const imgDragStartScrollRef = useRef(0)
+  const imgDraggedRef = useRef(false)
   const { questions: qnaQuestions } = useProductQuestions(id)
 
   // 공유 — 라이브 시청화면과 동일 패턴(자체 소형 메뉴: 카카오=링크복사 대체·페이스북·X·링크복사)
@@ -417,21 +422,59 @@ export default function AppProductDetail() {
       {/* 다른 /app/* 페이지와 동일하게 항상 480px 단일 컬럼 (데스크톱 전용 2컬럼 레이아웃 폐기) */}
       {view.images.length > 0 ? (
         <div className="px-4 pt-4">
-          <div className="aspect-square max-h-[560px] rounded-card bg-quiet flex items-center justify-center overflow-hidden">
-            <Thumb
-              src={view.images[Math.min(activeImg, view.images.length - 1)]}
-              alt={view.name}
-              size={800}
-              loading="eager"
-              className="w-full h-full object-contain"
-            />
+          <div
+            ref={imgTrackRef}
+            className="aspect-square max-h-[560px] rounded-card bg-quiet overflow-x-auto scrollbar-hide snap-x snap-mandatory flex cursor-grab active:cursor-grabbing select-none"
+            onScroll={(e) => {
+              const el = e.currentTarget
+              const i = Math.round(el.scrollLeft / el.clientWidth)
+              if (i !== activeImg) setActiveImg(i)
+            }}
+            onMouseDown={(e) => {
+              const track = imgTrackRef.current
+              if (!track) return
+              imgDraggingRef.current = true
+              imgDraggedRef.current = false
+              imgDragStartXRef.current = e.pageX
+              imgDragStartScrollRef.current = track.scrollLeft
+            }}
+            onMouseMove={(e) => {
+              if (!imgDraggingRef.current) return
+              const track = imgTrackRef.current
+              if (!track) return
+              e.preventDefault()
+              const delta = e.pageX - imgDragStartXRef.current
+              if (Math.abs(delta) > 4) imgDraggedRef.current = true
+              track.scrollLeft = imgDragStartScrollRef.current - delta
+            }}
+            onMouseUp={() => { imgDraggingRef.current = false }}
+            onMouseLeave={() => { imgDraggingRef.current = false }}
+            onClickCapture={(e) => {
+              if (imgDraggedRef.current) { e.preventDefault(); e.stopPropagation() }
+            }}
+          >
+            {view.images.map((src, i) => (
+              <div key={i} className="w-full h-full shrink-0 snap-center flex items-center justify-center">
+                <Thumb
+                  src={src}
+                  alt={view.name}
+                  size={800}
+                  loading={i === 0 ? 'eager' : 'lazy'}
+                  className="w-full h-full object-contain pointer-events-none"
+                />
+              </div>
+            ))}
           </div>
           {view.images.length > 1 && (
             <div className="flex justify-center gap-1.5 pt-3">
               {view.images.map((_, i) => (
                 <button
                   key={i}
-                  onClick={() => setActiveImg(i)}
+                  onClick={() => {
+                    setActiveImg(i)
+                    const track = imgTrackRef.current
+                    if (track) track.scrollTo({ left: i * track.clientWidth, behavior: 'smooth' })
+                  }}
                   className={`h-[6px] rounded-pill transition-all focus:outline-none focus-visible:shadow-ring ${i === activeImg ? 'w-6 bg-accent' : 'w-[6px] bg-rule'}`}
                   aria-label={`${i + 1}번째 이미지`}
                 />
