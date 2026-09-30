@@ -104,7 +104,6 @@ export default function AppDiary() {
   // 같이 보여준다. 기존 하루 이야기 로직과 완전히 분리된 자체 상태라 서로 영향 없다.
   const [boardFeed, setBoardFeed] = useState<BoardPost[]>([])
   const [boardLoading, setBoardLoading] = useState(true)
-  const [boardVisible, setBoardVisible] = useState(6)
   const toggleComments = (id: string) => setOpenComments((prev) => {
     const next = new Set(prev)
     if (next.has(id)) next.delete(id); else next.add(id)
@@ -207,6 +206,48 @@ export default function AppDiary() {
             <span className="block text-[13px] leading-relaxed text-ink-soft mt-1">사소한 하루도 누군가에겐 위로가 됩니다 · 사진과 걸음 수도 함께</span>
           </span>
         </button>
+      </section>
+
+      {/* 속 이야기 병합 — 하루 일기보다 반응(하트·댓글)이 훨씬 활발해 화면 맨 위에 둔다
+          (2026-09-30 대표님 지시: 탭 없애고 한 화면으로 + "맨 밑에 있으면 아무도 안 본다") */}
+      <section className="px-5 pt-8 pb-2">
+        <SectionHead label="주제별로 속마음을 꺼내놓는 곳" title="다같이 나누는 이야기" />
+        {boardLoading ? (
+          <p className="py-12 text-center text-[13px] text-ink-faint">불러오는 중…</p>
+        ) : boardFeed.length === 0 ? (
+          <p className="py-12 text-center text-[13px] text-ink-faint">아직 아무도 속 이야기를 꺼내지 않았어요</p>
+        ) : (
+          <ul className="space-y-3">
+            {boardFeed.map((p) => (
+              <li key={p.id}>
+                <button
+                  type="button"
+                  onClick={() => navigate(`/app/board/${p.id}`)}
+                  className="block w-full rounded-card border border-rule bg-paper p-4 text-left focus:outline-none focus-visible:shadow-ring"
+                >
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-[11px] font-semibold text-ink-soft bg-quiet rounded-full px-2 py-0.5">
+                      {categoryLabel(p.category)}
+                    </span>
+                    <span className="text-[11px] text-ink-faint">{timeAgo(p.created_at)}</span>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <p className="flex-1 text-[14px] text-ink leading-relaxed whitespace-pre-wrap line-clamp-2">
+                      {p.content}
+                    </p>
+                    {p.images?.[0] && (
+                      <img src={p.images[0]} alt="" loading="lazy" className="shrink-0 w-14 h-14 rounded-control object-cover bg-quiet" />
+                    )}
+                  </div>
+                  <div className="flex items-center justify-between mt-3">
+                    <span className="text-[11.5px] text-ink-faint">{p.is_mine ? '나' : maskName(p.nickname)}</span>
+                    <MetaMarks likes={p.like_count ?? 0} comments={p.comment_count} />
+                  </div>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
 
       {/* 이달의 우수 사연 — 텍스트 나열 대신 가로 카드
@@ -428,60 +469,6 @@ export default function AppDiary() {
               )
             })}
           </ul>
-        )}
-      </section>
-
-      {/* 속 이야기 — 실유저 콘텐츠(글쓰기 CTA·대표 이야기·사람들의 이야기) 아래로 내리고 6개만
-          먼저 보여준 뒤 "더보기"로 펼친다(2026-09-30 대표님 지시: 콘텐츠 자체는 좋은데 노출 위치가
-          문제 — 자동생성 콘텐츠를 실유저 콘텐츠보다 위에 앞세우지 않는다). */}
-      <section className="px-5 pt-2 pb-28">
-        <SectionHead label="주제별로 속마음을 꺼내놓는 곳" title="다같이 나누는 이야기" />
-        {boardLoading ? (
-          <p className="py-12 text-center text-[13px] text-ink-faint">불러오는 중…</p>
-        ) : boardFeed.length === 0 ? (
-          <p className="py-12 text-center text-[13px] text-ink-faint">아직 아무도 속 이야기를 꺼내지 않았어요</p>
-        ) : (
-          <>
-            <ul className="space-y-3">
-              {boardFeed.slice(0, boardVisible).map((p) => (
-                <li key={p.id}>
-                  <button
-                    type="button"
-                    onClick={() => navigate(`/app/board/${p.id}`)}
-                    className="block w-full rounded-card border border-rule bg-paper p-4 text-left focus:outline-none focus-visible:shadow-ring"
-                  >
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="text-[11px] font-semibold text-ink-soft bg-quiet rounded-full px-2 py-0.5">
-                        {categoryLabel(p.category)}
-                      </span>
-                      <span className="text-[11px] text-ink-faint">{timeAgo(p.created_at)}</span>
-                    </div>
-                    <div className="flex items-start gap-3">
-                      <p className="flex-1 text-[14px] text-ink leading-relaxed whitespace-pre-wrap line-clamp-2">
-                        {p.content}
-                      </p>
-                      {p.images?.[0] && (
-                        <img src={p.images[0]} alt="" loading="lazy" className="shrink-0 w-14 h-14 rounded-control object-cover bg-quiet" />
-                      )}
-                    </div>
-                    <div className="flex items-center justify-between mt-3">
-                      <span className="text-[11.5px] text-ink-faint">{p.is_mine ? '나' : maskName(p.nickname)}</span>
-                      <MetaMarks likes={p.like_count ?? 0} comments={p.comment_count} />
-                    </div>
-                  </button>
-                </li>
-              ))}
-            </ul>
-            {boardVisible < boardFeed.length && (
-              <button
-                type="button"
-                onClick={() => setBoardVisible((n) => n + 10)}
-                className="mt-4 min-h-11 w-full rounded-control border border-rule text-[13px] font-semibold text-ink-soft"
-              >
-                더보기
-              </button>
-            )}
-          </>
         )}
       </section>
 
