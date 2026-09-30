@@ -186,10 +186,18 @@ plan = []
 from datetime import datetime, timedelta, timezone
 now = datetime.now(timezone.utc)
 
-# 게시물 형식 섞기 — 2026-09-30 대표님 지시: "숏츠 영상만 계속 올라오면 부자연스럽다" →
-# 텍스트만 쓰는 글/이미지+텍스트 글/쇼츠+텍스트 글을 섞어서 생성한다.
-POST_TYPES = ["shorts", "text", "image"]
-POST_TYPE_WEIGHTS = [0.5, 0.3, 0.2]
+# ===== 자연스러운 게시 규칙 (2026-09-30 확정, 대표님 지시 — 임의 조정 전 이 블록부터 고칠 것) =====
+# 1) 하루 게시물 개수는 항상 같지 않다 — 6~10개 사이에서 매일 랜덤(10개 카테고리 전부가 매일
+#    올라오면 기계적으로 보인다).
+# 2) 형식(텍스트/쇼츠/이미지)은 확률이 아니라 그날 개수만큼 비율대로 미리 채워 섞은 뒤 배정한다
+#    (독립 확률이면 운 나쁜 날 한 형식만 몰릴 수 있음). 텍스트가 가장 많고, 쇼츠가 주류로 보이지
+#    않게 한다.
+# 3) 같은 날 배치 안에서 같은 계정이 두 번 글을 쓰지 않는다(used_this_week로 보장).
+# 4) 게시 시각은 하루 8~22시 사이에 흩어놓는다(한꺼번에 몰아 올리지 않음).
+POST_TYPES = ["text", "shorts", "image"]
+POST_TYPE_WEIGHTS = [0.4, 0.3, 0.3]
+MIN_POSTS_PER_DAY = 6
+MAX_POSTS_PER_DAY = 10
 # 이미지형 글의 사진 — CC0(Open Peeps, dicebear.com이 무료 호스팅) 재확인된 라이선스라 재검토 불필요.
 DICEBEAR_STYLE = "open-peeps"
 
@@ -198,10 +206,9 @@ def dicebear_url(seed):
     return f"https://api.dicebear.com/9.x/{DICEBEAR_STYLE}/png?seed={seed}&backgroundColor=f3f0ea,e8e2d5,fbeee0"
 
 
-# 카테고리마다 독립적으로 랜덤 뽑기(random.choices)를 하면 운이 나쁜 날엔 쇼츠만 거의 다 나올 수 있다
-# (대표님: "자연스럽게 섞여서 업데이트해야해" — 확률이 아니라 매일 확실한 보장이 필요). 그래서 오늘 올라갈
-# 전체 개수만큼 비율대로(50/30/20%) 타입을 미리 채워놓고 섞은 뒤 카테고리에 하나씩 배정한다.
-n_total = len(CATEGORIES)
+n_total = random.randint(MIN_POSTS_PER_DAY, MAX_POSTS_PER_DAY)
+today_categories = random.sample(CATEGORIES, n_total)  # 카테고리 전부가 아니라 오늘은 이 중 일부만
+
 day_types = []
 for t, w in zip(POST_TYPES, POST_TYPE_WEIGHTS):
     day_types += [t] * round(n_total * w)
@@ -210,7 +217,7 @@ while len(day_types) < n_total:
 day_types = day_types[:n_total]
 random.shuffle(day_types)
 
-for cat_i, cat in enumerate(CATEGORIES):
+for cat_i, cat in enumerate(today_categories):
     if cat_i > 0:
         time.sleep(8)  # 분당 요청 제한 완화 — 카테고리 첫 호출부터 넉넉히 간격 확보(2026-09-30, 3초→8초)
 
