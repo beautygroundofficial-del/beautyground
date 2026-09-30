@@ -19,14 +19,16 @@ lines = ["-- 주간 유튜브 쇼츠 시딩 배치 실행 — 자동 생성, 실
 
 for p in plan:
     post_id = str(uuid.uuid4())
-    vid = yid(p["video_url"])
-    thumb = f"https://img.youtube.com/vi/{vid}/hqdefault.jpg"
     pt = p["post_time"]
+    # 게시물 형식 섞기(2026-09-30) — shorts는 유튜브 썸네일, image는 plan이 만든 이미지 URL,
+    # text는 이미지 없음(images 빈 배열).
+    thumb = p.get("thumbnail")
+    images_sql = f"array['{thumb}']" if thumb else "array[]::text[]"
 
     lines.append(f"""
 insert into board_posts (id, user_id, nickname, category, content, images, created_at, updated_at)
 values ('{post_id}', '{p['poster']['id']}', '{esc(p['poster']['nickname'])}', '{p['category']}',
-  '{esc(p['content'])}', array['{thumb}'], '{pt}'::timestamptz, '{pt}'::timestamptz);""")
+  '{esc(p['content'])}', {images_sql}, '{pt}'::timestamptz, '{pt}'::timestamptz);""")
 
     like_values = ",\n  ".join(
         f"('{post_id}', '{l['id']}', least('{pt}'::timestamptz + interval '{l['delay_min']} minutes', now() - interval '1 minute'))"
@@ -45,6 +47,25 @@ values ('{post_id}', '{p['poster']['id']}', '{esc(p['poster']['nickname'])}', '{
 select post_id, user_id, nickname, content, created_at, created_at from (values
   {comment_values}
 ) as v(post_id, user_id, nickname, content, created_at);""")
+
+    # 팔로워(친구) 자동 추가 — 글쓴이를 이미 친구가 아닌 계정만 골라 즉시 accepted로 추가
+    # (2026-09-30 대표님 지시: 5/7/10% 랜덤 비율). 양방향 중복 방지를 위해 NOT EXISTS로 확인.
+    if p.get("new_followers"):
+        follow_values = ",\n  ".join(
+            f"('{f['id']}'::uuid, '{p['poster']['id']}'::uuid, "
+            f"least('{pt}'::timestamptz + interval '{f['delay_min']} minutes', now() - interval '1 minute'))"
+            for f in p["new_followers"]
+        )
+        lines.append(f"""insert into friendships (requester_id, addressee_id, status, created_at, responded_at)
+select requester_id, addressee_id, 'accepted', created_at, created_at from (values
+  {follow_values}
+) as v(requester_id, addressee_id, created_at)
+where not exists (
+  select 1 from friendships f
+  where (f.requester_id = v.requester_id and f.addressee_id = v.addressee_id)
+     or (f.requester_id = v.addressee_id and f.addressee_id = v.requester_id)
+)
+on conflict (requester_id, addressee_id) do nothing;""")
 
 lines.append("commit;")
 sql = "\n".join(lines)

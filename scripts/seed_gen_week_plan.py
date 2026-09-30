@@ -46,6 +46,61 @@ CATEGORY_DESC = {
 }
 
 
+def gemini_generate_original(category, n_comments):
+    """영상 없이, 그 카테고리 주제로 자연스럽게 떠오른 생각을 쓰는 글 — 캡션 1개 + 댓글 n개.
+    2026-09-30 대표님 지시: 쇼츠 링크만 계속 올라오면 부자연스럽다 — 텍스트만 쓰는 글도 섞어야 함."""
+    if not GEMINI_KEY:
+        return None
+    cat_desc = CATEGORY_DESC.get(category, category)
+    prompt = (
+        f"뷰티그라운드 앱 커뮤니티 게시판 \"{cat_desc}\" 카테고리에, 영상이나 사진 없이 그냥 오늘 문득 든 생각을 "
+        "짧게 적는 글을 씁니다(유튜브 링크 절대 포함하지 말 것).\n"
+        f"1) 40~60대 여성이 \"{cat_desc}\" 주제로 오늘 느낀 일상적인 생각·감정을 짧게 쓴 캡션 1개 "
+        "(구체적인 장면이나 상황 하나를 담을 것 — 추상적인 말만 늘어놓지 말 것)\n"
+        f"2) 그 글에 다른 사람들이 남길 법한 자연스러운 댓글 {n_comments}개(서로 다른 말투·길이로)\n"
+        "규칙: 존댓말 완결문 대신 반말·구어체 섞기, 이모티콘 남발 금지.\n"
+        '다음 JSON 형식으로만 답하세요: {"caption": "...", "comments": ["...", ...]}'
+    )
+    body = json.dumps({
+        "contents": [{"parts": [{"text": prompt}]}],
+        "generationConfig": {"response_mime_type": "application/json"},
+    }).encode("utf-8")
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent?key={GEMINI_KEY}"
+    last_err = None
+    for attempt in range(3):
+        try:
+            req = urllib.request.Request(url, data=body, headers={"Content-Type": "application/json"})
+            with urllib.request.urlopen(req, timeout=30) as resp:
+                data = json.load(resp)
+            text = data["candidates"][0]["content"]["parts"][0]["text"]
+            parsed = json.loads(text)
+            caption = parsed.get("caption", "").strip()
+            comments = [c.strip() for c in parsed.get("comments", []) if c.strip()]
+            if caption and comments:
+                return {"caption": caption, "comments": comments}
+            last_err = "빈 응답"
+            break
+        except urllib.error.HTTPError as e:
+            last_err = e
+            if e.code in (429, 503) and attempt < 2:
+                wait = 20
+                try:
+                    err_body = json.loads(e.read().decode("utf-8"))
+                    for d in err_body.get("error", {}).get("details", []):
+                        if d.get("@type", "").endswith("RetryInfo"):
+                            wait = max(20, float(d["retryDelay"].rstrip("s")) + 2)
+                except Exception:
+                    pass
+                time.sleep(wait)
+                continue
+            break
+        except Exception as e:
+            last_err = e
+            break
+    print(f"  [gemini(텍스트형) 실패, {attempt + 1}회 시도] {category}: {last_err}", file=sys.stderr)
+    return None
+
+
 def gemini_generate(video_title, category, n_comments):
     """영상 제목을 보고 그 내용에 맞는 캡션 1개 + 댓글 n개를 생성.
     제목만으로 판단해 그 카테고리 게시판과 안 맞으면 fits_category=false를 받아 이 영상은 쓰지 않는다
@@ -131,29 +186,48 @@ plan = []
 from datetime import datetime, timedelta, timezone
 now = datetime.now(timezone.utc)
 
+# 게시물 형식 섞기 — 2026-09-30 대표님 지시: "숏츠 영상만 계속 올라오면 부자연스럽다" →
+# 텍스트만 쓰는 글/이미지+텍스트 글/쇼츠+텍스트 글을 섞어서 생성한다.
+POST_TYPES = ["shorts", "text", "image"]
+POST_TYPE_WEIGHTS = [0.5, 0.3, 0.2]
+# 이미지형 글의 사진 — CC0(Open Peeps, dicebear.com이 무료 호스팅) 재확인된 라이선스라 재검토 불필요.
+DICEBEAR_STYLE = "open-peeps"
+
+
+def dicebear_url(seed):
+    return f"https://api.dicebear.com/9.x/{DICEBEAR_STYLE}/png?seed={seed}&backgroundColor=f3f0ea,e8e2d5,fbeee0"
+
+
 for cat_i, cat in enumerate(CATEGORIES):
-    videos = cat_videos.get(cat)
-    if not videos:
-        continue
     if cat_i > 0:
         time.sleep(8)  # 분당 요청 제한 완화 — 카테고리 첫 호출부터 넉넉히 간격 확보(2026-09-30, 3초→8초)
 
-    candidates = random.sample(videos, min(2, len(videos)))  # 호출량 축소(2026-09-30, 3→2)
+    post_type = random.choices(POST_TYPES, weights=POST_TYPE_WEIGHTS, k=1)[0]
+    videos = cat_videos.get(cat)
+    if post_type == "shorts" and not videos:
+        post_type = "text"  # 이 카테고리에 영상이 없으면 텍스트형으로 대체
+
     video = None
     gen = None
     n_likes = random.randint(10, 30)
     n_comments_target = max(1, int(n_likes * random.uniform(0.25, 0.45)))
-    for cand in candidates:
-        result = gemini_generate(cand["title"], cat, n_comments_target)
-        if result == "mismatch":
-            continue  # 카테고리와 안 맞는 영상 — 다음 후보로
-        video, gen = cand, result
-        break
-    if video is None:
-        print(f"[{cat}] 맞는 영상을 못 찾아 이번 주는 건너뜀(후보 {len(candidates)}개 전부 카테고리 불일치)", file=sys.stderr)
-        continue
 
-    vid = yid(video["url"])
+    if post_type == "shorts":
+        candidates = random.sample(videos, min(2, len(videos)))  # 호출량 축소(2026-09-30, 3→2)
+        for cand in candidates:
+            result = gemini_generate(cand["title"], cat, n_comments_target)
+            if result == "mismatch":
+                continue  # 카테고리와 안 맞는 영상 — 다음 후보로
+            video, gen = cand, result
+            break
+        if video is None:
+            print(f"[{cat}] 맞는 영상을 못 찾아 텍스트형으로 대체(후보 {len(candidates)}개 전부 카테고리 불일치)", file=sys.stderr)
+            post_type = "text"
+
+    if post_type in ("text", "image"):
+        gen = gemini_generate_original(cat, n_comments_target)
+
+    vid = yid(video["url"]) if video else None
     avail = [a for a in accounts if a["id"] not in used_this_week]
     poster = random.choice(avail)
     used_this_week.add(poster["id"])
@@ -169,6 +243,13 @@ for cat_i, cat in enumerate(CATEGORIES):
     likers = random.sample(react_pool, min(n_likes, len(react_pool)))
     commenters = random.sample(likers, min(n_comments_target, len(likers)))
 
+    # 팔로워(친구) 자동 추가 — 2026-09-30 대표님 지시: 매일 글을 쓰니 그때마다 다른 계정들이
+    # 글쓴이를 친구로 추가하게 하자. 전원 똑같이 10%면 티가 나니, 5%/7%/10% 중 매번 랜덤으로
+    # 하나 골라 그 비율만큼만 추가(자연스러운 편차를 위함).
+    follow_rate = random.choice([0.05, 0.07, 0.10])
+    n_followers = round(len(react_pool) * follow_rate)
+    followers = random.sample(react_pool, min(n_followers, len(react_pool)))
+
     if gen:
         caption = gen["caption"]
         comment_pool = gen["comments"]
@@ -180,14 +261,25 @@ for cat_i, cat in enumerate(CATEGORIES):
     # comments 개수가 모자라면 반복 사용, 넘치면 자름
     comment_texts = [comment_pool[i % len(comment_pool)] for i in range(len(commenters))]
 
+    if post_type == "shorts":
+        image_url = f"https://img.youtube.com/vi/{vid}/hqdefault.jpg"
+        content = f"{caption}\n{video['url']}"
+    elif post_type == "image":
+        image_url = dicebear_url(f"{poster['id']}-{post_time.isoformat()}")
+        content = caption
+    else:  # text
+        image_url = None
+        content = caption
+
     plan.append({
         "category": cat,
-        "video_url": video["url"],
-        "video_title": video["title"],
-        "figure": video["figure"],
-        "thumbnail": f"https://img.youtube.com/vi/{vid}/hqdefault.jpg",
+        "post_type": post_type,
+        "video_url": video["url"] if video else None,
+        "video_title": video["title"] if video else None,
+        "figure": video["figure"] if video else None,
+        "thumbnail": image_url,
         "poster": {"id": poster["id"], "nickname": poster["nickname"]},
-        "content": f"{caption}\n{video['url']}",
+        "content": content,
         "content_source": source,
         "post_time": post_time.isoformat(),
         "likers": [{"id": a["id"], "delay_min": random.randint(5, 4000)} for a in likers],
@@ -195,6 +287,8 @@ for cat_i, cat in enumerate(CATEGORIES):
             {"id": a["id"], "nickname": a["nickname"], "text": comment_texts[i], "delay_min": random.randint(5, 4000)}
             for i, a in enumerate(commenters)
         ],
+        "new_followers": [{"id": a["id"], "delay_min": random.randint(5, 4000)} for a in followers],
+        "follow_rate": follow_rate,
     })
 
 plan.sort(key=lambda p: p["post_time"])
@@ -205,4 +299,5 @@ json.dump(plan, open(out_path, "w", encoding="utf-8"), ensure_ascii=False, inden
 
 print(f"posts={len(plan)}")
 for p in plan:
-    print(f"  [{p['category']}] ({p['content_source']}) {p['poster']['nickname']} -> {p['video_title'][:30]} | likes={len(p['likers'])} comments={len(p['commenters'])} at {p['post_time']}")
+    label = p["video_title"][:30] if p["video_title"] else p["content"][:30]
+    print(f"  [{p['category']}] ({p['post_type']}/{p['content_source']}) {p['poster']['nickname']} -> {label} | likes={len(p['likers'])} comments={len(p['commenters'])} followers=+{len(p['new_followers'])}({p['follow_rate']*100:.0f}%) at {p['post_time']}")
