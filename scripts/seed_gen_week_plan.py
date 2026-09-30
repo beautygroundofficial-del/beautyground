@@ -6,7 +6,7 @@ try:
 except Exception:
     pass
 
-# 주간 유튜브 쇼츠 시딩 배치 생성기 — 2026-09-29 (v2: 영상 제목에 맞는 캡션·댓글을 Gemini로 생성)
+# 일간 유튜브 쇼츠 시딩 배치 생성기 — 2026-09-29 시작(v2: 영상 제목에 맞는 캡션·댓글을 Gemini로 생성), 2026-09-30 매일 실행으로 전환
 # 사용법: GEMINI_API_KEY=xxx python scripts/seed_gen_week_plan.py
 #   (이 파일과 같은 폴더의 seed_content_pool.json/seed_accounts_cache.json을 읽음)
 #   seed_accounts_cache.json이 오래됐으면 먼저 auth.users에서 bgseed%@beautyground.co.kr 재조회해 갱신할 것.
@@ -147,10 +147,12 @@ for cat_i, cat in enumerate(CATEGORIES):
     poster = random.choice(avail)
     used_this_week.add(poster["id"])
 
-    day_offset = random.randint(0, 6)
+    # 2026-09-30 매일 실행으로 전환 — 예전엔 게시물을 과거 0~6일에 무작위로 흩뿌렸으나(day_offset),
+    # 매일 도는 지금은 그러면 "오늘 실행분"이 며칠 전 날짜로 찍혀 실행 여부를 못 알아보는 문제가
+    # 생긴다(대표님이 실제로 이 문제로 "오늘 것 하나도 안 올라왔다"고 지적). 오늘 날짜로 고정.
     hour = random.randint(8, 22)
     minute = random.randint(0, 59)
-    post_time = (now - timedelta(days=day_offset)).replace(hour=hour, minute=minute, second=random.randint(0, 59), microsecond=0)
+    post_time = now.replace(hour=hour, minute=minute, second=random.randint(0, 59), microsecond=0)
 
     react_pool = [a for a in accounts if a["id"] != poster["id"]]
     likers = random.sample(react_pool, min(n_likes, len(react_pool)))
