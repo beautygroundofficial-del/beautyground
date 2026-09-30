@@ -19,14 +19,16 @@ lines = ["-- 주간 유튜브 쇼츠 시딩 배치 실행 — 자동 생성, 실
 
 for p in plan:
     post_id = str(uuid.uuid4())
-    vid = yid(p["video_url"])
-    thumb = f"https://img.youtube.com/vi/{vid}/hqdefault.jpg"
     pt = p["post_time"]
+    # 게시물 형식 섞기(2026-09-30) — shorts는 유튜브 썸네일, image는 plan이 만든 이미지 URL,
+    # text는 이미지 없음(images 빈 배열).
+    thumb = p.get("thumbnail")
+    images_sql = f"array['{thumb}']" if thumb else "array[]::text[]"
 
     lines.append(f"""
 insert into board_posts (id, user_id, nickname, category, content, images, created_at, updated_at)
 values ('{post_id}', '{p['poster']['id']}', '{esc(p['poster']['nickname'])}', '{p['category']}',
-  '{esc(p['content'])}', array['{thumb}'], '{pt}'::timestamptz, '{pt}'::timestamptz);""")
+  '{esc(p['content'])}', {images_sql}, '{pt}'::timestamptz, '{pt}'::timestamptz);""")
 
     like_values = ",\n  ".join(
         f"('{post_id}', '{l['id']}', least('{pt}'::timestamptz + interval '{l['delay_min']} minutes', now() - interval '1 minute'))"
