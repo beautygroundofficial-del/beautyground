@@ -169,6 +169,13 @@ for cat_i, cat in enumerate(CATEGORIES):
     likers = random.sample(react_pool, min(n_likes, len(react_pool)))
     commenters = random.sample(likers, min(n_comments_target, len(likers)))
 
+    # 팔로워(친구) 자동 추가 — 2026-09-30 대표님 지시: 매일 글을 쓰니 그때마다 다른 계정들이
+    # 글쓴이를 친구로 추가하게 하자. 전원 똑같이 10%면 티가 나니, 5%/7%/10% 중 매번 랜덤으로
+    # 하나 골라 그 비율만큼만 추가(자연스러운 편차를 위함).
+    follow_rate = random.choice([0.05, 0.07, 0.10])
+    n_followers = round(len(react_pool) * follow_rate)
+    followers = random.sample(react_pool, min(n_followers, len(react_pool)))
+
     if gen:
         caption = gen["caption"]
         comment_pool = gen["comments"]
@@ -195,6 +202,8 @@ for cat_i, cat in enumerate(CATEGORIES):
             {"id": a["id"], "nickname": a["nickname"], "text": comment_texts[i], "delay_min": random.randint(5, 4000)}
             for i, a in enumerate(commenters)
         ],
+        "new_followers": [{"id": a["id"], "delay_min": random.randint(5, 4000)} for a in followers],
+        "follow_rate": follow_rate,
     })
 
 plan.sort(key=lambda p: p["post_time"])
@@ -205,4 +214,4 @@ json.dump(plan, open(out_path, "w", encoding="utf-8"), ensure_ascii=False, inden
 
 print(f"posts={len(plan)}")
 for p in plan:
-    print(f"  [{p['category']}] ({p['content_source']}) {p['poster']['nickname']} -> {p['video_title'][:30]} | likes={len(p['likers'])} comments={len(p['commenters'])} at {p['post_time']}")
+    print(f"  [{p['category']}] ({p['content_source']}) {p['poster']['nickname']} -> {p['video_title'][:30]} | likes={len(p['likers'])} comments={len(p['commenters'])} followers=+{len(p['new_followers'])}({p['follow_rate']*100:.0f}%) at {p['post_time']}")

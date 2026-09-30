@@ -46,6 +46,25 @@ select post_id, user_id, nickname, content, created_at, created_at from (values
   {comment_values}
 ) as v(post_id, user_id, nickname, content, created_at);""")
 
+    # 팔로워(친구) 자동 추가 — 글쓴이를 이미 친구가 아닌 계정만 골라 즉시 accepted로 추가
+    # (2026-09-30 대표님 지시: 5/7/10% 랜덤 비율). 양방향 중복 방지를 위해 NOT EXISTS로 확인.
+    if p.get("new_followers"):
+        follow_values = ",\n  ".join(
+            f"('{f['id']}'::uuid, '{p['poster']['id']}'::uuid, "
+            f"least('{pt}'::timestamptz + interval '{f['delay_min']} minutes', now() - interval '1 minute'))"
+            for f in p["new_followers"]
+        )
+        lines.append(f"""insert into friendships (requester_id, addressee_id, status, created_at, responded_at)
+select requester_id, addressee_id, 'accepted', created_at, created_at from (values
+  {follow_values}
+) as v(requester_id, addressee_id, created_at)
+where not exists (
+  select 1 from friendships f
+  where (f.requester_id = v.requester_id and f.addressee_id = v.addressee_id)
+     or (f.requester_id = v.addressee_id and f.addressee_id = v.requester_id)
+)
+on conflict (requester_id, addressee_id) do nothing;""")
+
 lines.append("commit;")
 sql = "\n".join(lines)
 out = os.path.join(OUT_DIR, "week_batch.sql")
