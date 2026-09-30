@@ -47,7 +47,6 @@ const AppMissions = lazy(() => import('./pages/AppMissions'))
 const AppTodayActivity = lazy(() => import('./pages/AppTodayActivity'))
 const AppDiary = lazy(() => import('./pages/AppDiary'))
 const AppDiaryWrite = lazy(() => import('./pages/AppDiaryWrite'))
-const AppBoard = lazy(() => import('./pages/AppBoard'))
 const AppBoardWrite = lazy(() => import('./pages/AppBoardWrite'))
 const AppBoardPost = lazy(() => import('./pages/AppBoardPost'))
 const AppMyBoard = lazy(() => import('./pages/AppMyBoard'))
@@ -366,7 +365,8 @@ export default function App() {
         <Route path="/app/today" element={<AppTodayActivity />} />
         <Route path="/app/diary" element={<AppDiary />} />
         <Route path="/app/diary/write" element={<AppDiaryWrite />} />
-        <Route path="/app/board" element={<AppBoard />} />
+        {/* 속 이야기 별도 탭 폐지, 오늘 이야기(AppDiary)에 병합(2026-09-30) — 옛 링크는 그리로 보낸다 */}
+        <Route path="/app/board" element={<Navigate to="/app/diary" replace />} />
         <Route path="/app/board/write" element={<AppBoardWrite />} />
         <Route path="/app/board/mine" element={<AppMyBoard />} />
         <Route path="/app/board/:id" element={<AppBoardPost />} />

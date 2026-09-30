@@ -12,12 +12,13 @@ import LikeButton from '../components/community/LikeButton'
 import ReactionBar from '../components/community/ReactionBar'
 import ReactionSummary from '../components/community/ReactionSummary'
 import DiaryComments, { CommentToggle } from '../components/community/DiaryComments'
-import StoryTabs from '../components/community/StoryTabs'
 import Lightbox from '../components/community/Lightbox'
 import FriendButton from '../components/community/FriendButton'
 import { PetAvatars, petWalkLabel } from '../components/community/PetMarks'
 import { FRIENDS_CHANGED_EVENT, getFriendStatuses, type FriendStatus } from '../lib/friends'
 import { getConversationDiary, getConversationFeed } from '../lib/communityConversations'
+import { getBoardFeed, categoryLabel, type BoardPost } from '../lib/board'
+import { MetaMarks } from '../components/community/marks'
 
 // 살아가는 이야기 — 유저가 사진과 함께 일상을 남기는 곳.
 // 글을 올리면 create_diary RPC 안에서 diary_post 미션이 자동 적립된다(화면에서 따로 적립 호출 안 함).
@@ -97,6 +98,10 @@ export default function AppDiary() {
   const [openBest, setOpenBest] = useState<string | null>(null)
   // 새 소식·그 사람 페이지에서 온 글 — 목록이 뜨면 그 카드로 내려가 잠깐 강조한다(2026-09-12 A2)
   const [focusId, setFocusId] = useState<string | null>(null)
+  // 속 이야기 병합(2026-09-30 대표님 지시 — 탭 두 개가 헷갈린다) — 별도 목록을 이 화면 안에
+  // 같이 보여준다. 기존 하루 이야기 로직과 완전히 분리된 자체 상태라 서로 영향 없다.
+  const [boardFeed, setBoardFeed] = useState<BoardPost[]>([])
+  const [boardLoading, setBoardLoading] = useState(true)
   const toggleComments = (id: string) => setOpenComments((prev) => {
     const next = new Set(prev)
     if (next.has(id)) next.delete(id); else next.add(id)
@@ -150,6 +155,13 @@ export default function AppDiary() {
   }, [load, sort])
 
   useEffect(() => {
+    let alive = true
+    setBoardLoading(true)
+    getBoardFeed([], 30).then((rows) => { if (alive) { setBoardFeed(rows); setBoardLoading(false) } })
+    return () => { alive = false }
+  }, [])
+
+  useEffect(() => {
     if (!focusId || loading || targetComment) return
     const el = document.getElementById(`diary-${focusId}`)
     if (!el) return
@@ -178,8 +190,7 @@ export default function AppDiary() {
 
   return (
     <AppFrame>
-      <BackHeader title="이야기" rightElement={<button type="button" onClick={() => navigate('/app/friends')} className="min-h-11 px-2 text-[13px] font-semibold">내 친구</button>} />
-      <StoryTabs current="/app/diary" />
+      <BackHeader title="오늘 이야기" rightElement={<button type="button" onClick={() => navigate('/app/friends')} className="min-h-11 px-2 text-[13px] font-semibold">내 친구</button>} />
 
       {/* 쓰기 — 화면에 들어오면 가장 먼저 보이는 행동 */}
       <section className="px-5 pt-4">
@@ -409,6 +420,48 @@ export default function AppDiary() {
                 </li>
               )
             })}
+          </ul>
+        )}
+      </section>
+
+      {/* 속 이야기 병합 — 주제별 게시판을 별도 탭 대신 이 화면 안에 이어서 보여준다
+          (2026-09-30 대표님 지시: "하루이야기와 속이야기 너무 복잡하다" → 탭 없애고 한 화면으로) */}
+      <section className="px-5 pt-2 pb-28">
+        <SectionHead label="주제별로 속마음을 꺼내놓는 곳" title="다같이 나누는 이야기" />
+        {boardLoading ? (
+          <p className="py-12 text-center text-[13px] text-ink-faint">불러오는 중…</p>
+        ) : boardFeed.length === 0 ? (
+          <p className="py-12 text-center text-[13px] text-ink-faint">아직 아무도 속 이야기를 꺼내지 않았어요</p>
+        ) : (
+          <ul className="space-y-3">
+            {boardFeed.map((p) => (
+              <li key={p.id}>
+                <button
+                  type="button"
+                  onClick={() => navigate(`/app/board/${p.id}`)}
+                  className="block w-full rounded-card border border-rule bg-paper p-4 text-left focus:outline-none focus-visible:shadow-ring"
+                >
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-[11px] font-semibold text-ink-soft bg-quiet rounded-full px-2 py-0.5">
+                      {categoryLabel(p.category)}
+                    </span>
+                    <span className="text-[11px] text-ink-faint">{timeAgo(p.created_at)}</span>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <p className="flex-1 text-[14px] text-ink leading-relaxed whitespace-pre-wrap line-clamp-2">
+                      {p.content}
+                    </p>
+                    {p.images?.[0] && (
+                      <img src={p.images[0]} alt="" loading="lazy" className="shrink-0 w-14 h-14 rounded-control object-cover bg-quiet" />
+                    )}
+                  </div>
+                  <div className="flex items-center justify-between mt-3">
+                    <span className="text-[11.5px] text-ink-faint">{p.is_mine ? '나' : maskName(p.nickname)}</span>
+                    <MetaMarks likes={p.like_count ?? 0} comments={p.comment_count} />
+                  </div>
+                </button>
+              </li>
+            ))}
           </ul>
         )}
       </section>
