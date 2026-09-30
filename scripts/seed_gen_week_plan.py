@@ -73,10 +73,12 @@ def gemini_generate(video_title, category, n_comments):
         "generationConfig": {"response_mime_type": "application/json"},
     }).encode("utf-8")
     url = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent?key={GEMINI_KEY}"
-    # 무료 티어는 429(레이트리밋)·503(과부하)이 잦아 재시도 없이는 fallback으로 자주 떨어짐
-    # (2026-09-30 테스트에서 10건 중 8건이 재시도 없이 fallback행 — 재시도 넣어 해결)
+    # 무료 티어는 분당 요청 제한(RPM)이 낮아 429가 잦다. 2026-09-30 매일전환 첫날 실측: 고정
+    # 5·10·15초 백오프로는 회복이 안 돼 10건 중 7건이 fallback행. 429 응답의 RetryInfo.retryDelay가
+    # 종종 1~2초로 짧게 와도 그대로 믿지 말고 최소 20초는 기다린다(짧은 값은 개별 요청 재시도 권장값일
+    # 뿐 분당 한도 자체의 회복 시간이 아닌 것으로 판단됨). 최대 3회만 시도(무한 대기 방지).
     last_err = None
-    for attempt in range(4):
+    for attempt in range(3):
         try:
             req = urllib.request.Request(url, data=body, headers={"Content-Type": "application/json"})
             with urllib.request.urlopen(req, timeout=30) as resp:
@@ -94,8 +96,17 @@ def gemini_generate(video_title, category, n_comments):
             break
         except urllib.error.HTTPError as e:
             last_err = e
-            if e.code in (429, 503) and attempt < 3:
-                time.sleep(5 * (attempt + 1))
+            if e.code in (429, 503) and attempt < 2:
+                wait = 20
+                try:
+                    err_body = json.loads(e.read().decode("utf-8"))
+                    for d in err_body.get("error", {}).get("details", []):
+                        if d.get("@type", "").endswith("RetryInfo"):
+                            wait = max(20, float(d["retryDelay"].rstrip("s")) + 2)
+                except Exception:
+                    pass
+                print(f"  [gemini {e.code}, {wait:.0f}초 대기 후 재시도] {video_title[:30]}", file=sys.stderr)
+                time.sleep(wait)
                 continue
             break
         except Exception as e:
@@ -125,9 +136,9 @@ for cat_i, cat in enumerate(CATEGORIES):
     if not videos:
         continue
     if cat_i > 0:
-        time.sleep(3)  # 무료 티어 분당 요청 제한 완화 — 카테고리마다 호출 간격 확보
+        time.sleep(8)  # 분당 요청 제한 완화 — 카테고리 첫 호출부터 넉넉히 간격 확보(2026-09-30, 3초→8초)
 
-    candidates = random.sample(videos, min(3, len(videos)))
+    candidates = random.sample(videos, min(2, len(videos)))  # 호출량 축소(2026-09-30, 3→2)
     video = None
     gen = None
     n_likes = random.randint(10, 30)
