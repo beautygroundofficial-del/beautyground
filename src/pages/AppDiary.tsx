@@ -3,7 +3,9 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { IconPencil } from '@tabler/icons-react'
 import BackHeader from '../components/layout/BackHeader'
 import AppFrame from '../components/layout/AppFrame'
+import AppFooter from '../components/layout/AppFooter'
 import { supabase } from '../lib/supabase'
+import { promptAndReport } from '../lib/reports'
 import {
   getMonthlyBestDiaries, deleteDiary, toggleDiaryLike,
   type Diary, type BestDiary, type DiarySort,
@@ -102,6 +104,7 @@ export default function AppDiary() {
   // 같이 보여준다. 기존 하루 이야기 로직과 완전히 분리된 자체 상태라 서로 영향 없다.
   const [boardFeed, setBoardFeed] = useState<BoardPost[]>([])
   const [boardLoading, setBoardLoading] = useState(true)
+  const [boardVisible, setBoardVisible] = useState(6)
   const toggleComments = (id: string) => setOpenComments((prev) => {
     const next = new Set(prev)
     if (next.has(id)) next.delete(id); else next.add(id)
@@ -320,6 +323,10 @@ export default function AppDiary() {
                       <FriendButton userId={d.user_id} status={friendOf[d.user_id] ?? 'none'} loggedIn={!!loggedIn}
                         onChange={(next) => setFriendOf((prev) => ({ ...prev, [d.user_id]: next }))} onNotice={showToast} />
                     )}
+                    {!d.is_mine && (
+                      <button type="button" onClick={() => { if (!loggedIn) { navigate('/app/login'); return } void promptAndReport('diary', d.id).then((m) => { if (m) showToast(m) }) }}
+                        className="min-h-11 text-[12px] text-ink-faint focus-visible:shadow-ring">신고</button>
+                    )}
                   </div>
                   {/* 사진은 작성자 아래, 본문 앞에 놓는다. */}
                   {imgs.length > 0 && (
@@ -424,8 +431,9 @@ export default function AppDiary() {
         )}
       </section>
 
-      {/* 속 이야기 병합 — 주제별 게시판을 별도 탭 대신 이 화면 안에 이어서 보여준다
-          (2026-09-30 대표님 지시: "하루이야기와 속이야기 너무 복잡하다" → 탭 없애고 한 화면으로) */}
+      {/* 속 이야기 — 실유저 콘텐츠(글쓰기 CTA·대표 이야기·사람들의 이야기) 아래로 내리고 6개만
+          먼저 보여준 뒤 "더보기"로 펼친다(2026-09-30 대표님 지시: 콘텐츠 자체는 좋은데 노출 위치가
+          문제 — 자동생성 콘텐츠를 실유저 콘텐츠보다 위에 앞세우지 않는다). */}
       <section className="px-5 pt-2 pb-28">
         <SectionHead label="주제별로 속마음을 꺼내놓는 곳" title="다같이 나누는 이야기" />
         {boardLoading ? (
@@ -433,38 +441,51 @@ export default function AppDiary() {
         ) : boardFeed.length === 0 ? (
           <p className="py-12 text-center text-[13px] text-ink-faint">아직 아무도 속 이야기를 꺼내지 않았어요</p>
         ) : (
-          <ul className="space-y-3">
-            {boardFeed.map((p) => (
-              <li key={p.id}>
-                <button
-                  type="button"
-                  onClick={() => navigate(`/app/board/${p.id}`)}
-                  className="block w-full rounded-card border border-rule bg-paper p-4 text-left focus:outline-none focus-visible:shadow-ring"
-                >
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-[11px] font-semibold text-ink-soft bg-quiet rounded-full px-2 py-0.5">
-                      {categoryLabel(p.category)}
-                    </span>
-                    <span className="text-[11px] text-ink-faint">{timeAgo(p.created_at)}</span>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <p className="flex-1 text-[14px] text-ink leading-relaxed whitespace-pre-wrap line-clamp-2">
-                      {p.content}
-                    </p>
-                    {p.images?.[0] && (
-                      <img src={p.images[0]} alt="" loading="lazy" className="shrink-0 w-14 h-14 rounded-control object-cover bg-quiet" />
-                    )}
-                  </div>
-                  <div className="flex items-center justify-between mt-3">
-                    <span className="text-[11.5px] text-ink-faint">{p.is_mine ? '나' : maskName(p.nickname)}</span>
-                    <MetaMarks likes={p.like_count ?? 0} comments={p.comment_count} />
-                  </div>
-                </button>
-              </li>
-            ))}
-          </ul>
+          <>
+            <ul className="space-y-3">
+              {boardFeed.slice(0, boardVisible).map((p) => (
+                <li key={p.id}>
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/app/board/${p.id}`)}
+                    className="block w-full rounded-card border border-rule bg-paper p-4 text-left focus:outline-none focus-visible:shadow-ring"
+                  >
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-[11px] font-semibold text-ink-soft bg-quiet rounded-full px-2 py-0.5">
+                        {categoryLabel(p.category)}
+                      </span>
+                      <span className="text-[11px] text-ink-faint">{timeAgo(p.created_at)}</span>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <p className="flex-1 text-[14px] text-ink leading-relaxed whitespace-pre-wrap line-clamp-2">
+                        {p.content}
+                      </p>
+                      {p.images?.[0] && (
+                        <img src={p.images[0]} alt="" loading="lazy" className="shrink-0 w-14 h-14 rounded-control object-cover bg-quiet" />
+                      )}
+                    </div>
+                    <div className="flex items-center justify-between mt-3">
+                      <span className="text-[11.5px] text-ink-faint">{p.is_mine ? '나' : maskName(p.nickname)}</span>
+                      <MetaMarks likes={p.like_count ?? 0} comments={p.comment_count} />
+                    </div>
+                  </button>
+                </li>
+              ))}
+            </ul>
+            {boardVisible < boardFeed.length && (
+              <button
+                type="button"
+                onClick={() => setBoardVisible((n) => n + 10)}
+                className="mt-4 min-h-11 w-full rounded-control border border-rule text-[13px] font-semibold text-ink-soft"
+              >
+                더보기
+              </button>
+            )}
+          </>
         )}
       </section>
+
+      <AppFooter />
 
       {toast && (
         <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 max-w-[calc(100%-2.5rem)] px-5 py-3 rounded-full bg-ink text-paper text-[14px]">

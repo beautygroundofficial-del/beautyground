@@ -48,7 +48,9 @@ export default function HomeBody({ marqueeItems, promoBarAbove = false }: HomeBo
         <button type="button" onClick={() => navigate('/app/friends')} className="min-h-11 shrink-0 rounded-full border border-solid border-rule px-3 text-[13px] font-bold text-ink focus-visible:shadow-ring">내 친구</button>
       </div>
 
-      {/* 회원의 이야기를 먼저 만나고, 원하는 만큼 대화에 참여한다. */}
+      {/* 실유저 콘텐츠(대표 이야기)를 먼저 만나고, 속 이야기(자동생성, 아래)는 그 다음에 —
+          2026-09-30 대표님 지시: "콘텐츠 내용은 좋은데 노출 위치가 문제" → 자동생성 콘텐츠를
+          실유저 콘텐츠보다 앞세우지 않는다. */}
       <DiaryHomeFeed limit={3} />
 
       {/* 전화번호 인증 배너 제거(2026-09-16) — claim_mission()에서 전화인증 게이트를
