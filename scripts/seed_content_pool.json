@@ -497,6 +497,17 @@
           "title": "친구들 간 뒤 화장실 청소 이 순서로 정리해요"
         }
       ]
+    },
+    {
+      "name": "spouse 자동수집(무명채널)",
+      "note": "GitHub Actions 자동 수집 — 게시 전 실제 재생 확인 권장",
+      "board_category": "spouse",
+      "videos": [
+        {
+          "url": "https://www.youtube.com/shorts/ib60UDuhYrc",
+          "title": "상철과 영숙이 맺은 계약 조건 #상철 #영숙 #계약결혼"
+        }
+      ]
     }
   ],
   "todo": [
