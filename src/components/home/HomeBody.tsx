@@ -48,13 +48,9 @@ export default function HomeBody({ marqueeItems, promoBarAbove = false }: HomeBo
         <button type="button" onClick={() => navigate('/app/friends')} className="min-h-11 shrink-0 rounded-full border border-solid border-rule px-3 text-[13px] font-bold text-ink focus-visible:shadow-ring">내 친구</button>
       </div>
 
-      {/* 속 이야기가 하루 일기보다 반응(하트·댓글)이 훨씬 활발해 "사람들이 지금 얘기하고 있다"는
-          인상을 첫 화면에서 바로 주기 위해 맨 위로 배치 (2026-09-30 대표님 지시 — 맨 아래 있으면
-          아무도 안 본다). 카테고리 그리드로 고르고 바로 아래서 최신 글을 본다. */}
-      <BoardCategoryGrid />
-      <BoardHomeFeed />
-
-      {/* 회원의 이야기를 먼저 만나고, 원하는 만큼 대화에 참여한다. */}
+      {/* 실유저 콘텐츠(대표 이야기)를 먼저 만나고, 속 이야기(자동생성, 아래)는 그 다음에 —
+          2026-09-30 대표님 지시: "콘텐츠 내용은 좋은데 노출 위치가 문제" → 자동생성 콘텐츠를
+          실유저 콘텐츠보다 앞세우지 않는다. */}
       <DiaryHomeFeed limit={3} />
 
       {/* 전화번호 인증 배너 제거(2026-09-16) — claim_mission()에서 전화인증 게이트를
@@ -78,6 +74,12 @@ export default function HomeBody({ marqueeItems, promoBarAbove = false }: HomeBo
       <div className="px-5 pt-6">
         <TodayQuestion />
       </div>
+
+      {/* 카테고리 그리드 — 레퍼런스(소모임류 앱) UI 크기·구조 참고, 우리 카테고리로 대입(2026-09-13) */}
+      <BoardCategoryGrid />
+
+      {/* 속 이야기 — 주제별로 속마음을 꺼내놓는 곳. 최신 3개만 얇게(2026-09-10) */}
+      <BoardHomeFeed />
 
       <MissionBanner />
     </>
