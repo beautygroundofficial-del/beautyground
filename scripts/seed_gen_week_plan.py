@@ -198,11 +198,23 @@ def dicebear_url(seed):
     return f"https://api.dicebear.com/9.x/{DICEBEAR_STYLE}/png?seed={seed}&backgroundColor=f3f0ea,e8e2d5,fbeee0"
 
 
+# 카테고리마다 독립적으로 랜덤 뽑기(random.choices)를 하면 운이 나쁜 날엔 쇼츠만 거의 다 나올 수 있다
+# (대표님: "자연스럽게 섞여서 업데이트해야해" — 확률이 아니라 매일 확실한 보장이 필요). 그래서 오늘 올라갈
+# 전체 개수만큼 비율대로(50/30/20%) 타입을 미리 채워놓고 섞은 뒤 카테고리에 하나씩 배정한다.
+n_total = len(CATEGORIES)
+day_types = []
+for t, w in zip(POST_TYPES, POST_TYPE_WEIGHTS):
+    day_types += [t] * round(n_total * w)
+while len(day_types) < n_total:
+    day_types.append("text")
+day_types = day_types[:n_total]
+random.shuffle(day_types)
+
 for cat_i, cat in enumerate(CATEGORIES):
     if cat_i > 0:
         time.sleep(8)  # 분당 요청 제한 완화 — 카테고리 첫 호출부터 넉넉히 간격 확보(2026-09-30, 3초→8초)
 
-    post_type = random.choices(POST_TYPES, weights=POST_TYPE_WEIGHTS, k=1)[0]
+    post_type = day_types[cat_i]
     videos = cat_videos.get(cat)
     if post_type == "shorts" and not videos:
         post_type = "text"  # 이 카테고리에 영상이 없으면 텍스트형으로 대체
