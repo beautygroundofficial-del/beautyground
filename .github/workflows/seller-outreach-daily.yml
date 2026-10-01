@@ -1,12 +1,16 @@
 # 라이브 셀러 첫 컨택 DM 자동화 — 2026-10-01
 #
-# 매일 09:20(KST)에 자동 실행.
-# 1) 유튜브 API로 신규 셀러 후보 발굴(구독자 4천~2만·뷰티 키워드·Gemini로 "여러 브랜드
-#    소개하는 셀러" vs "자사 브랜드 채널" 판별) → 큐에 보충(중복 제외)
-# 2) 오늘자 최대 10명 처리 — 이메일 채널은 실제 발송, 카톡/인스타 채널은 대표님께
-#    "오늘 보낼 사람 + 붙여넣을 문구" 다이제스트 메일만 발송(앱에서 직접 발송해야 함)
+# 매일 09:20(KST)에 자동 실행. 오늘자 최대 10명 처리 — 이메일 채널은 실제 발송,
+# 카톡/인스타 채널은 대표님께 "오늘 보낼 사람 + 붙여넣을 문구" 다이제스트 메일만
+# 발송(앱에서 직접 발송해야 함).
 #
-# Secrets 필요: GMAIL_APP_PASSWORD(등록됨), YOUTUBE_DATA_API_KEY(등록됨), GEMINI_API_KEY(등록됨)
+# ⚠️ 유튜브 자동발굴 단계는 뺐다(2026-10-01 대표님 지시: "유튜브 자동발굴은 그만,
+# 틱톡만 자동화"). 유튜브 신규 후보는 대표님이 채널 링크를 직접 찾아서 주시면
+# 김이사가 조사해서 큐(scripts/seller_outreach_queue.json)에 수동으로 추가한다.
+# 틱톡 자동화는 보류 상태(공식 검색 API가 승인제라 즉시 불가, 품질도 낮게 나옴).
+# scripts/seller_discover_daily.mjs는 필요시 수동 실행용으로 남겨둠(워크플로우에서는 제외).
+#
+# Secrets 필요: GMAIL_APP_PASSWORD(등록됨)
 
 name: 라이브 셀러 DM 자동화
 
@@ -30,12 +34,6 @@ jobs:
 
       - name: 의존성 설치
         run: npm install nodemailer --no-save
-
-      - name: 신규 셀러 후보 발굴(중복 제외, 하루 최대 10명 보충)
-        env:
-          YOUTUBE_DATA_API_KEY: ${{ secrets.YOUTUBE_DATA_API_KEY }}
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-        run: node scripts/seller_discover_daily.mjs
 
       - name: 오늘의 DM 처리(최대 10명)
         env:

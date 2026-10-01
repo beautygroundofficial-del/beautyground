@@ -206,6 +206,33 @@
       "note": "자동발굴(구독자 9,550명, 최근영상 5개 확인함) — 발송 전 샘플 점검 권장",
       "sent": false,
       "source": "youtube"
+    },
+    {
+      "name": "HIU(하이유)",
+      "channel": "kakao",
+      "contact": "pf.kakao.com/_xdxhMxin",
+      "first_line": "매일 오전 6시 라이브 하시는 거 잘 보고 있어요 — #라방셀러로 직접 소개하시는 화장품 라인업에 백화점 입점 브랜드도 더해보시면 어떨까 해서 연락드려요.",
+      "note": "대표님 직접 발굴 — 구독자 244명(소규모지만 콘텐츠 적합도 매우 높음: 매일 라이브, #라방셀러 자칭)",
+      "sent": false,
+      "source": "manual"
+    },
+    {
+      "name": "부티크냥",
+      "channel": "kakao",
+      "contact": "pf.kakao.com/_xmxoGxfn",
+      "first_line": "부티크냥 패션뷰티수다방송 라이브 잘 보고 있어요 — 화장품·의류·주얼리까지 다양하게 소개하시던데, 백화점 입점 뷰티 브랜드로 라인업을 더 넓혀보시면 어떨까 해서 연락드려요.",
+      "note": "대표님 직접 발굴 — 구독자 2,740명, 라이브마켓+카카오톡 채널톡 주문 시스템 운영 중(실제 셀러 확인됨)",
+      "sent": false,
+      "source": "manual"
+    },
+    {
+      "name": "라방언니(QueenLive)",
+      "channel": "email",
+      "contact": "samuel@queenlive.co.kr",
+      "first_line": "라방언니 채널 보고 연락드려요 — 365일 라이브로 다양한 아이템을 소개하시는 전문 운영이 인상적이라, 백화점 입점 뷰티 브랜드 라인업도 함께 다뤄보시면 어떨까 해서요.",
+      "note": "대표님 직접 발굴 — 구독자 26,100명(기준보다 큼), QueenLive 소속 전문 라이브커머스 업체로 보임, 의류 위주라 뷰티 특화는 아닐 수 있음",
+      "sent": false,
+      "source": "manual"
     }
   ]
 }
