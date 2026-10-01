@@ -1,0 +1,175 @@
+{
+  "_note": "라이브 셀러 첫 컨택 DM 큐 — 옵시디언 '라이브 진행자 첫 컨택 DM 초안.md'에서 추출(2026-10-01). email 채널만 자동 발송, kakao/instagram은 매일 대표님께 알림 메일만 보냄(앱에서 직접 발송).",
+  "common_body": "전국 백화점 라이브 방송으로 검증된 우수 뷰티 제품을 고객에게 소개해, 고객에게는 신뢰를, 진행자님께는 안정적인 수익을 드리는 파트너십을 제안드립니다.\n백화점에 입점된 뷰티 브랜드 상품을 진행자님 편하신 곳(매장 현장이든 개인 사무실이든)으로 보내드리면, 그 자리에서 라이브로 소개만 해 주시면 됩니다. 주문 접수·포장·고객 발송까지 저희가 처리하니, 방송에만 집중하시면 됩니다.\n판매 수수료는 25%~50% 사이에서 협의합니다.\n뷰티그라운드 담당자 010-3385-4302 / beautyground.official@gmail.com",
+  "candidates": [
+    {
+      "name": "로2왕",
+      "channel": "email",
+      "contact": "percian74@gmail.com",
+      "first_line": "뷰티·에스테틱 라이브를 전문으로 하시는 걸 보고 연락드립니다.",
+      "sent": false
+    },
+    {
+      "name": "페이브릿 혀니",
+      "channel": "email",
+      "contact": "fabrit@naver.com",
+      "first_line": "페이브릿 하객룩 기획전·공구 잘 보고 있어요 — 뷰티 공구도 이미 하고 계셔서, 백화점 입점 브랜드로 판매까지 함께 해보시면 좋을 것 같아 연락드려요.",
+      "sent": false
+    },
+    {
+      "name": "모드비",
+      "channel": "kakao",
+      "contact": "카톡 modevie",
+      "first_line": "모드비 라이브 보고 연락드려요 — 옷 파실 때 보여주시는 착장·설명 리듬이 뷰티 라이브에 그대로 통할 것 같아서요.",
+      "sent": false
+    },
+    {
+      "name": "새신남",
+      "channel": "kakao",
+      "contact": "pf.kakao.com/_CCLdn",
+      "first_line": "새신남 방송 시청자 반응이 정말 좋더라고요 — 신발처럼 '써봐야 아는' 상품을 잘 파시는 분이라 뷰티 쪽도 잘 맞으실 것 같아 연락드려요.",
+      "sent": false
+    },
+    {
+      "name": "혀니마켓2",
+      "channel": "kakao",
+      "contact": "link.inpock.co.kr/chicndodo",
+      "first_line": "혀니마켓 라이브 잘 보고 있어요 — 뷰티를 이미 하고 계셔서, 백화점 입점 브랜드 상품으로 한 번 더 판을 키워보시면 어떨까 해서요.",
+      "sent": false
+    },
+    {
+      "name": "미자픽",
+      "channel": "kakao",
+      "contact": "pf.kakao.com/_mfkxhn/chat",
+      "first_line": "미자픽 방송의 솔직한 사용 후기 톤이 저희 매장 상품과 잘 어울릴 것 같아 연락드려요.",
+      "sent": false
+    },
+    {
+      "name": "여니언니",
+      "channel": "kakao",
+      "contact": "pf.kakao.com/_gefBX",
+      "first_line": "향수 라이브 전문이시라 연락드려요 — 저희 매장에 백화점 입점 향수 브랜드도 있어서, 현장에서 시향하며 파는 방송을 같이 해보고 싶어요.",
+      "sent": false
+    },
+    {
+      "name": "슈고잉",
+      "channel": "kakao",
+      "contact": "pf.kakao.com/_QvQfn",
+      "first_line": "슈고잉 라이브의 진행 템포가 인상적이라 연락드려요 — 뷰티 카테고리로 방송 폭을 넓혀보실 생각 있으실까요?",
+      "sent": false
+    },
+    {
+      "name": "특급마마",
+      "channel": "kakao",
+      "contact": "카톡 ID csi337a",
+      "first_line": "특급마마 방송 팬층이 탄탄하시더라고요 — 그 시청자분들께 백화점 뷰티 상품을 특가로 소개하는 방송을 제안드려요.",
+      "sent": false
+    },
+    {
+      "name": "시크무드",
+      "channel": "kakao",
+      "contact": "pf.kakao.com/_Vzkxmn/chat",
+      "first_line": "시크무드 라이브 스타일링 감각이 뷰티 제품 소개와도 잘 맞을 것 같아 연락드려요.",
+      "sent": false
+    },
+    {
+      "name": "유유팡팡",
+      "channel": "kakao",
+      "contact": "pf.kakao.com/talk/SRpmxlmqef5b_ZqCDP7C3x",
+      "first_line": "유유팡팡 방송의 에너지가 좋아서요 — 백화점 입점 뷰티 브랜드 상품으로 라인업을 넓혀보시면 어떨까 해서 연락드려요.",
+      "sent": false
+    },
+    {
+      "name": "뚱이언니",
+      "channel": "kakao",
+      "contact": "pf.kakao.com/_HpZGn/chat",
+      "first_line": "뚱이언니 라이브에서 뷰티 상품 설명하시는 걸 보고 연락드려요 — 백화점 입점 브랜드로 라인업을 확 넓혀드릴 수 있어요.",
+      "sent": false
+    },
+    {
+      "name": "코디마켓",
+      "channel": "kakao",
+      "contact": "pf.kakao.com/_xjtFJn/chat",
+      "first_line": "코디마켓 규모면 백화점 현장 라이브도 충분히 소화하실 것 같아 연락드려요.",
+      "sent": false
+    },
+    {
+      "name": "찐언니마켓",
+      "channel": "kakao",
+      "contact": "pf.kakao.com/_xlxbUin",
+      "first_line": "찐언니마켓 방송 잘 보고 있어요 — 클리오 특가 방송 반응이 좋더라고요, 백화점 입점 뷰티 브랜드로 라인업을 한 번 더 넓혀보시면 어떨까 해서 연락드려요.",
+      "sent": false
+    },
+    {
+      "name": "위수키",
+      "channel": "kakao",
+      "contact": "pf.kakao.com/_ChXYG",
+      "first_line": "위수키 방송에서 화장품 브랜드를 이미 잘 다루시는 걸 보고 연락드려요 — 백화점 입점 브랜드로 라인업을 한 번 더 넓혀보시면 좋을 것 같아서요.",
+      "note": "⚠️ 구독자 상한 근접 — 발송 직전 재확인",
+      "sent": false
+    },
+    {
+      "name": "나쁜마켓",
+      "channel": "kakao",
+      "contact": "pf.kakao.com/_hDSgn/chat",
+      "first_line": "나쁜마켓 방송에서 에센스·스킨·수분크림 파시는 걸 보고 연락드려요 — 백화점 입점 스킨케어 브랜드로 방송 폭을 넓혀보시면 좋을 것 같아서요.",
+      "sent": false
+    },
+    {
+      "name": "곰냥곰냥",
+      "channel": "kakao",
+      "contact": "pf.kakao.com/_xmAxchX/friend",
+      "first_line": "곰냥곰냥 방송에서 신비애 화장품 파시는 걸 보고 연락드려요 — 백화점 입점 스킨케어 브랜드로 라인업을 더 넓혀보시면 좋을 것 같아서요.",
+      "sent": false
+    },
+    {
+      "name": "곰사장",
+      "channel": "kakao",
+      "contact": "pf.kakao.com/_utxixnG",
+      "first_line": "곰사장 방송에서 뷰티·잡화를 두루 다루시는 걸 보고 연락드려요 — 백화점 입점 스킨케어·헤어바디 브랜드로 라인업을 넓혀보실 생각 있으실까요?",
+      "sent": false
+    },
+    {
+      "name": "쎈니즈(구 쎈언니샵)",
+      "channel": "kakao",
+      "contact": "pf.kakao.com/_MWJcn",
+      "first_line": "쎈니즈 방송 스타일링이 인상적이라 연락드려요 — 백화점 입점 뷰티 브랜드로 방송 카테고리를 넓혀보시면 어떨까 해서요.",
+      "sent": false
+    },
+    {
+      "name": "오제이럭셔리 이현정",
+      "channel": "instagram",
+      "contact": "Instagram DM @ojluxury_lj",
+      "first_line": "오제이럭셔리 라이브 진행하시는 걸 보고 연락드려요 — 백화점 입점 뷰티 브랜드로 방송 카테고리를 넓혀보실 생각 있으실까요?",
+      "sent": false
+    },
+    {
+      "name": "벨르나랑",
+      "channel": "instagram",
+      "contact": "Instagram DM @iam_eunvely",
+      "first_line": "벨르나랑 매주 라이브 진행하시는 걸 보고 연락드려요 — 잡화 라인에 백화점 입점 뷰티 브랜드도 함께 소개해보시면 어떨까 해서요.",
+      "sent": false
+    },
+    {
+      "name": "샤랄라살롱",
+      "channel": "kakao",
+      "contact": "livemarket.pro/sharalalive (연락 경로 재확인 필요)",
+      "first_line": "샤랄라살롱 방송에서 화장품도 함께 파시는 걸 보고 연락드려요 — 백화점 입점 뷰티 브랜드로 라인업을 더 넓혀보시면 좋을 것 같아서요.",
+      "sent": false
+    },
+    {
+      "name": "쇼핑디바",
+      "channel": "kakao",
+      "contact": "livemarket.pro/shoppingdiva (연락 경로 재확인 필요)",
+      "first_line": "쇼핑디바 방송에서 화장품·향수도 다루시는 걸 보고 연락드려요 — 백화점 입점 브랜드로 뷰티 라인업을 더 넓혀보실 생각 있으실까요?",
+      "sent": false
+    },
+    {
+      "name": "골드앤뷰(구 냉혈패션)",
+      "channel": "kakao",
+      "contact": "qr.kakao.com/talk/iAfF6ehF… (⚠️전체 링크 재확인 필요)",
+      "first_line": "골드앤뷰 방송에서 '백화점 입점 브랜드 화장품 특가' 라이브 하시는 걸 보고 연락드려요 — 저희도 실제 백화점 입점 브랜드라 방송 취지가 잘 맞을 것 같아서요.",
+      "sent": false
+    }
+  ]
+}

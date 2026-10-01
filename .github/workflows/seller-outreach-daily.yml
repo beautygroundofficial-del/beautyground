@@ -1,0 +1,44 @@
+# 라이브 셀러 첫 컨택 DM 자동화 — 2026-10-01
+#
+# 매일 09:20(KST)에 자동 실행. 하루 최대 2명(이메일 채널 1명 + 카톡/인스타 채널 1명)만 처리한다.
+# - 이메일 채널 후보: 실제로 그 사람에게 메일을 자동 발송한다.
+# - 카톡/인스타 채널 후보: DM 자동화가 안 돼서, 대표님께 "오늘 보낼 사람 + 붙여넣을 문구"를
+#   메일로 알려준다 — 앱에서 직접 복사+붙여넣기만 하면 됨.
+#
+# Secrets 필요: GMAIL_APP_PASSWORD (아직 미등록 — 저장소 Settings → Secrets에 추가 필요)
+
+name: 라이브 셀러 DM 자동화
+
+on:
+  schedule:
+    - cron: "20 0 * * *"   # 매일 00:20 UTC = 09:20 KST
+  workflow_dispatch: {}
+
+jobs:
+  outreach:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: 의존성 설치
+        run: npm install nodemailer --no-save
+
+      - name: 오늘의 DM 처리
+        env:
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+        run: node scripts/seller_outreach_daily.mjs
+
+      - name: 큐 상태 커밋(변경 있을 때만)
+        run: |
+          git config user.name "beautyground-outreach-bot"
+          git config user.email "beautyground.official@gmail.com"
+          git add scripts/seller_outreach_queue.json
+          git diff --cached --quiet || git commit -m "chore(outreach): 라이브 셀러 DM 발송 기록 — $(date +%Y-%m-%d)"
+          git push origin HEAD:${{ github.ref_name }}
