@@ -1,14 +1,14 @@
 #!/usr/bin/env node
-// 라이브 셀러 첫 컨택 DM — 매일 1명씩 진행 (2026-10-01)
+// 라이브 셀러 첫 컨택 DM — 매일 최대 10명 진행 (2026-10-01, 대표님 지시 "하루 10명은 보내야해")
 // 사용: node --env-file=.env scripts/seller_outreach_daily.mjs
 // 필요 환경변수: GMAIL_USER, GMAIL_APP_PASSWORD
 //
-// - channel:"email" 후보 → 실제로 그 사람에게 메일을 자동 발송한다.
+// - channel:"email" 후보 → 실제로 그 사람에게 메일을 자동 발송한다(현재 2명뿐).
 // - channel:"kakao"/"instagram" 후보 → 카톡/인스타 DM은 자동화가 안 돼서(채팅창이 앱 안에서만
-//   열림) 대신 대표님(beautyground.official@gmail.com)에게 "오늘 보낼 사람 + 붙여넣을 문구"를
-//   메일로 보낸다. 대표님이 앱에서 복사+붙여넣기만 하면 되게.
-// - 하루에 이메일 채널 1명 + 카톡/인스타 채널 1명, 총 최대 2명까지만 처리한다(한번에 몰아서
-//   보내지 않음 — 대표님 지시: "하루 6~10개만" 원칙과 같은 취지).
+//   열림) 대신 오늘 처리할 사람들을 하나의 다이제스트 메일로 묶어 대표님께 보낸다
+//   (사람마다 메일을 따로 보내면 받은편지함이 지저분해져서 묶음). 대표님이 앱에서 한 명씩
+//   복사+붙여넣기만 하면 되게.
+// - 하루 최대 DAILY_LIMIT명까지 처리(이메일 먼저 소진한 뒤 나머지는 카톡/인스타로 채움).
 
 import nodemailer from 'nodemailer'
 import { readFileSync, writeFileSync } from 'node:fs'
@@ -39,49 +39,57 @@ function buildBody(c) {
   return `안녕하세요, 뷰티 전문 업체 뷰티그라운드입니다.\n${c.first_line}\n\n${queue.common_body}`
 }
 
+const DAILY_LIMIT = Number(process.env.DAILY_LIMIT || 10)
 let didSomething = false
+let processed = 0
 
-// 1) 이메일 채널 — 실제 후보에게 직접 발송
-const emailCandidate = queue.candidates.find((c) => c.channel === 'email' && !c.sent)
-if (emailCandidate) {
+// 1) 이메일 채널 — 남은 후보 전부(최대 DAILY_LIMIT) 실제로 직접 발송
+const emailCandidates = queue.candidates.filter((c) => c.channel === 'email' && !c.sent)
+for (const c of emailCandidates) {
+  if (processed >= DAILY_LIMIT) break
   try {
     await send({
       from: `"뷰티그라운드" <${GMAIL_USER}>`,
-      to: emailCandidate.contact,
+      to: c.contact,
       subject: SUBJECT,
-      text: buildBody(emailCandidate),
+      text: buildBody(c),
     })
-    emailCandidate.sent = true
-    emailCandidate.sent_at = new Date().toISOString()
-    console.log(`[이메일 발송 완료] ${emailCandidate.name} <${emailCandidate.contact}>`)
+    c.sent = true
+    c.sent_at = new Date().toISOString()
+    console.log(`[이메일 발송 완료] ${c.name} <${c.contact}>`)
     didSomething = true
+    processed++
   } catch (e) {
-    console.error(`[이메일 발송 실패] ${emailCandidate.name}:`, e.message)
+    console.error(`[이메일 발송 실패] ${c.name}:`, e.message)
   }
-} else {
-  console.log('[이메일 채널] 남은 후보 없음')
 }
 
-// 2) 카톡/인스타 채널 — 대표님께 오늘의 대상+문구 리마인드 메일만 발송(실제 DM은 직접 보내셔야 함)
-const manualCandidate = queue.candidates.find((c) => (c.channel === 'kakao' || c.channel === 'instagram') && !c.sent)
-if (manualCandidate) {
+// 2) 카톡/인스타 채널 — 남은 슬롯만큼 뽑아 하나의 다이제스트 메일로 묶어 대표님께 발송
+//    (실제 DM은 앱에서 대표님이 직접 보내야 함)
+const manualSlots = DAILY_LIMIT - processed
+const manualCandidates = queue.candidates.filter((c) => (c.channel === 'kakao' || c.channel === 'instagram') && !c.sent).slice(0, manualSlots)
+if (manualCandidates.length > 0) {
+  const digestBody = manualCandidates.map((c, i) => (
+    `${i + 1}) ${c.name} (${c.channel})\n연락처: ${c.contact}${c.note ? `\n주의: ${c.note}` : ''}\n\n${buildBody(c)}\n`
+  )).join('\n──────────────────────\n\n')
   try {
     await send({
       from: `"뷰티그라운드 봇" <${GMAIL_USER}>`,
       to: GMAIL_USER,
-      subject: `[오늘의 라이브 셀러 DM] ${manualCandidate.name} (${manualCandidate.channel})`,
-      text: `오늘 보낼 사람: ${manualCandidate.name}\n연락처: ${manualCandidate.contact}${manualCandidate.note ? `\n주의: ${manualCandidate.note}` : ''}\n\n──── 아래 문구를 그대로 붙여넣으세요 ────\n\n${buildBody(manualCandidate)}`,
+      subject: `[오늘의 라이브 셀러 DM ${manualCandidates.length}명] ${manualCandidates.map((c) => c.name).join(', ')}`,
+      text: `오늘 보낼 사람 ${manualCandidates.length}명입니다. 한 명씩 복사해서 해당 채널(카톡/인스타)에 직접 붙여넣어 주세요.\n\n${digestBody}`,
     })
-    manualCandidate.sent = true
-    manualCandidate.sent_at = new Date().toISOString()
-    console.log(`[리마인드 메일 발송] ${manualCandidate.name}`)
+    for (const c of manualCandidates) { c.sent = true; c.sent_at = new Date().toISOString() }
+    console.log(`[리마인드 다이제스트 발송] ${manualCandidates.map((c) => c.name).join(', ')}`)
     didSomething = true
+    processed += manualCandidates.length
   } catch (e) {
-    console.error(`[리마인드 메일 실패] ${manualCandidate.name}:`, e.message)
+    console.error('[리마인드 다이제스트 발송 실패]', e.message)
   }
-} else {
-  console.log('[카톡/인스타 채널] 남은 후보 없음')
 }
+
+if (processed === 0) console.log('오늘 처리할 후보가 없습니다.')
+console.log(`오늘 총 ${processed}명 처리 (이메일 ${emailCandidates.filter((c) => c.sent).length}, 카톡/인스타 ${manualCandidates.length})`)
 
 if (didSomething && !DRY_RUN) {
   writeFileSync(QUEUE_PATH, JSON.stringify(queue, null, 2), 'utf-8')
