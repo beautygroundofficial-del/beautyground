@@ -196,11 +196,12 @@ now = datetime.now(timezone.utc)
 # 4) 게시 시각은 하루 8~22시 사이에 흩어놓는다(한꺼번에 몰아 올리지 않음).
 POST_TYPES = ["text", "shorts", "image"]
 POST_TYPE_WEIGHTS = [0.4, 0.3, 0.3]
-MIN_POSTS_PER_DAY = 6
-MAX_POSTS_PER_DAY = 10
-# 2026-10-01: 앱스토어·플레이 심사 "검토 중"으로 보고 6~10 → 2~4로 축소했었으나, 2026-10-04
-# 메일함 확인 결과 Apple은 App Store Connect 접근 승인(9/28)만 됐을 뿐 실제 심사 제출(in review)
-# 메일이 없고, 구글플레이는 신청 자체가 안 돼 있어 축소 근거가 사라짐 — 원래 계획(6~10건/일)으로 복귀.
+MIN_POSTS_PER_DAY = 2
+MAX_POSTS_PER_DAY = 4
+# 2026-10-04 정정: 바로 위 복귀 조치는 잘못된 판단이었음 — Gmail만 검색하고 옵시디언(앱 스토어 등록.md)을
+# 확인하지 않아, 애플·구글 둘 다 2026-09-28에 이미 심사 제출(iOS appStoreState=READY_FOR_REVIEW,
+# Google Play "검토 중인 변경사항")까지 끝나있던 것을 놓쳤다. 10-01 축소 조치가 맞았으므로 원복.
+# 앞으로 "심사 제출 여부"를 판단할 땐 Gmail 검색만으로 결론 내리지 말고 옵시디언 03 홈페이지/앱 스토어 등록.md부터 볼 것.
 # 이미지형 글의 사진 — CC0(Open Peeps, dicebear.com이 무료 호스팅) 재확인된 라이선스라 재검토 불필요.
 DICEBEAR_STYLE = "open-peeps"
 
@@ -231,7 +232,7 @@ for cat_i, cat in enumerate(today_categories):
 
     video = None
     gen = None
-    n_likes = random.randint(10, 30)  # 2026-10-04: 심사 제출 안 된 것 확인(메일함), 원래 범위로 복귀
+    n_likes = random.randint(4, 12)  # 2026-10-04 정정: 심사 제출 이미 돼있었음(위 설명 참고), 축소 원복
     n_comments_target = max(1, int(n_likes * random.uniform(0.25, 0.45)))
 
     if post_type == "shorts":
@@ -268,8 +269,8 @@ for cat_i, cat in enumerate(today_categories):
     # 팔로워(친구) 자동 추가 — 2026-09-30 대표님 지시: 매일 글을 쓰니 그때마다 다른 계정들이
     # 글쓴이를 친구로 추가하게 하자. 전원 똑같이 10%면 티가 나니, 5%/7%/10% 중 매번 랜덤으로
     # 하나 골라 그 비율만큼만 추가(자연스러운 편차를 위함).
-    # 2026-10-04: 심사 제출 안 된 것 확인(메일함) — 원래 비율(5/7/10%)로 복귀.
-    follow_rate = random.choice([0.05, 0.07, 0.10])
+    # 2026-10-04 정정: 심사 제출 이미 돼있었음(위 설명 참고) — 축소 비율로 원복.
+    follow_rate = random.choice([0.02, 0.03, 0.05])
     n_followers = round(len(react_pool) * follow_rate)
     followers = random.sample(react_pool, min(n_followers, len(react_pool)))
 
