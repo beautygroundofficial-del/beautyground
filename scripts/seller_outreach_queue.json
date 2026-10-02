@@ -7,56 +7,64 @@
       "channel": "email",
       "contact": "percian74@gmail.com",
       "first_line": "뷰티·에스테틱 라이브를 전문으로 하시는 걸 보고 연락드립니다.",
-      "sent": false
+      "sent": true,
+      "sent_at": "2026-10-02T05:50:34.330Z"
     },
     {
       "name": "페이브릿 혀니",
       "channel": "email",
       "contact": "fabrit@naver.com",
       "first_line": "페이브릿 하객룩 기획전·공구 잘 보고 있어요 — 뷰티 공구도 이미 하고 계셔서, 백화점 입점 브랜드로 판매까지 함께 해보시면 좋을 것 같아 연락드려요.",
-      "sent": false
+      "sent": true,
+      "sent_at": "2026-10-02T05:50:35.700Z"
     },
     {
       "name": "모드비",
       "channel": "kakao",
       "contact": "카톡 modevie",
       "first_line": "모드비 라이브 보고 연락드려요 — 옷 파실 때 보여주시는 착장·설명 리듬이 뷰티 라이브에 그대로 통할 것 같아서요.",
-      "sent": false
+      "sent": true,
+      "sent_at": "2026-10-02T05:50:39.552Z"
     },
     {
       "name": "새신남",
       "channel": "kakao",
       "contact": "pf.kakao.com/_CCLdn",
       "first_line": "새신남 방송 시청자 반응이 정말 좋더라고요 — 신발처럼 '써봐야 아는' 상품을 잘 파시는 분이라 뷰티 쪽도 잘 맞으실 것 같아 연락드려요.",
-      "sent": false
+      "sent": true,
+      "sent_at": "2026-10-02T05:50:39.552Z"
     },
     {
       "name": "혀니마켓2",
       "channel": "kakao",
       "contact": "link.inpock.co.kr/chicndodo",
       "first_line": "혀니마켓 라이브 잘 보고 있어요 — 뷰티를 이미 하고 계셔서, 백화점 입점 브랜드 상품으로 한 번 더 판을 키워보시면 어떨까 해서요.",
-      "sent": false
+      "sent": true,
+      "sent_at": "2026-10-02T05:50:39.552Z"
     },
     {
       "name": "미자픽",
       "channel": "kakao",
       "contact": "pf.kakao.com/_mfkxhn/chat",
       "first_line": "미자픽 방송의 솔직한 사용 후기 톤이 저희 매장 상품과 잘 어울릴 것 같아 연락드려요.",
-      "sent": false
+      "sent": true,
+      "sent_at": "2026-10-02T05:50:39.552Z"
     },
     {
       "name": "여니언니",
       "channel": "kakao",
       "contact": "pf.kakao.com/_gefBX",
       "first_line": "향수 라이브 전문이시라 연락드려요 — 저희 매장에 백화점 입점 향수 브랜드도 있어서, 현장에서 시향하며 파는 방송을 같이 해보고 싶어요.",
-      "sent": false
+      "sent": true,
+      "sent_at": "2026-10-02T05:50:39.552Z"
     },
     {
       "name": "슈고잉",
       "channel": "kakao",
       "contact": "pf.kakao.com/_QvQfn",
       "first_line": "슈고잉 라이브의 진행 템포가 인상적이라 연락드려요 — 뷰티 카테고리로 방송 폭을 넓혀보실 생각 있으실까요?",
-      "sent": false
+      "sent": true,
+      "sent_at": "2026-10-02T05:50:39.552Z"
     },
     {
       "name": "특급마마",
@@ -186,8 +194,9 @@
       "contact": "csj710910@naver.com",
       "first_line": "셀즈퀸언니 방송 잘 보고 있어요! 최근에 올리신 #가성비 #명품향수 #오마주향수 영상을 봤는데, 여러 백화점 향수를 다루시는 점이 특히 인상 깊었어요. 지금처럼 향수 라인업도 좋지만, 다른 백화점 입점 뷰티 브랜드로도 라인업을 넓혀보시면 어떨까 해서 연락드렸어요.",
       "note": "자동발굴(구독자 4,210명, 최근영상 5개 확인함) — 발송 전 샘플 점검 권장",
-      "sent": false,
-      "source": "youtube"
+      "sent": true,
+      "source": "youtube",
+      "sent_at": "2026-10-02T05:50:36.813Z"
     },
     {
       "name": "홈케어컨설팅Lazurina",
@@ -231,8 +240,9 @@
       "contact": "samuel@queenlive.co.kr",
       "first_line": "라방언니 채널 보고 연락드려요 — 365일 라이브로 다양한 아이템을 소개하시는 전문 운영이 인상적이라, 백화점 입점 뷰티 브랜드 라인업도 함께 다뤄보시면 어떨까 해서요.",
       "note": "대표님 직접 발굴 — 구독자 26,100명(기준보다 큼), QueenLive 소속 전문 라이브커머스 업체로 보임, 의류 위주라 뷰티 특화는 아닐 수 있음",
-      "sent": false,
-      "source": "manual"
+      "sent": true,
+      "source": "manual",
+      "sent_at": "2026-10-02T05:50:38.185Z"
     }
   ]
 }
