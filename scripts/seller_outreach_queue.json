@@ -71,42 +71,48 @@
       "channel": "kakao",
       "contact": "카톡 ID csi337a",
       "first_line": "특급마마 방송 팬층이 탄탄하시더라고요 — 그 시청자분들께 백화점 뷰티 상품을 특가로 소개하는 방송을 제안드려요.",
-      "sent": false
+      "sent": true,
+      "sent_at": "2026-10-03T05:27:08.010Z"
     },
     {
       "name": "시크무드",
       "channel": "kakao",
       "contact": "pf.kakao.com/_Vzkxmn/chat",
       "first_line": "시크무드 라이브 스타일링 감각이 뷰티 제품 소개와도 잘 맞을 것 같아 연락드려요.",
-      "sent": false
+      "sent": true,
+      "sent_at": "2026-10-03T05:27:08.010Z"
     },
     {
       "name": "유유팡팡",
       "channel": "kakao",
       "contact": "pf.kakao.com/talk/SRpmxlmqef5b_ZqCDP7C3x",
       "first_line": "유유팡팡 방송의 에너지가 좋아서요 — 백화점 입점 뷰티 브랜드 상품으로 라인업을 넓혀보시면 어떨까 해서 연락드려요.",
-      "sent": false
+      "sent": true,
+      "sent_at": "2026-10-03T05:27:08.010Z"
     },
     {
       "name": "뚱이언니",
       "channel": "kakao",
       "contact": "pf.kakao.com/_HpZGn/chat",
       "first_line": "뚱이언니 라이브에서 뷰티 상품 설명하시는 걸 보고 연락드려요 — 백화점 입점 브랜드로 라인업을 확 넓혀드릴 수 있어요.",
-      "sent": false
+      "sent": true,
+      "sent_at": "2026-10-03T05:27:08.010Z"
     },
     {
       "name": "코디마켓",
       "channel": "kakao",
       "contact": "pf.kakao.com/_xjtFJn/chat",
       "first_line": "코디마켓 규모면 백화점 현장 라이브도 충분히 소화하실 것 같아 연락드려요.",
-      "sent": false
+      "sent": true,
+      "sent_at": "2026-10-03T05:27:08.010Z"
     },
     {
       "name": "찐언니마켓",
       "channel": "kakao",
       "contact": "pf.kakao.com/_xlxbUin",
       "first_line": "찐언니마켓 방송 잘 보고 있어요 — 클리오 특가 방송 반응이 좋더라고요, 백화점 입점 뷰티 브랜드로 라인업을 한 번 더 넓혀보시면 어떨까 해서 연락드려요.",
-      "sent": false
+      "sent": true,
+      "sent_at": "2026-10-03T05:27:08.010Z"
     },
     {
       "name": "위수키",
@@ -114,28 +120,32 @@
       "contact": "pf.kakao.com/_ChXYG",
       "first_line": "위수키 방송에서 화장품 브랜드를 이미 잘 다루시는 걸 보고 연락드려요 — 백화점 입점 브랜드로 라인업을 한 번 더 넓혀보시면 좋을 것 같아서요.",
       "note": "⚠️ 구독자 상한 근접 — 발송 직전 재확인",
-      "sent": false
+      "sent": true,
+      "sent_at": "2026-10-03T05:27:08.010Z"
     },
     {
       "name": "나쁜마켓",
       "channel": "kakao",
       "contact": "pf.kakao.com/_hDSgn/chat",
       "first_line": "나쁜마켓 방송에서 에센스·스킨·수분크림 파시는 걸 보고 연락드려요 — 백화점 입점 스킨케어 브랜드로 방송 폭을 넓혀보시면 좋을 것 같아서요.",
-      "sent": false
+      "sent": true,
+      "sent_at": "2026-10-03T05:27:08.010Z"
     },
     {
       "name": "곰냥곰냥",
       "channel": "kakao",
       "contact": "pf.kakao.com/_xmAxchX/friend",
       "first_line": "곰냥곰냥 방송에서 신비애 화장품 파시는 걸 보고 연락드려요 — 백화점 입점 스킨케어 브랜드로 라인업을 더 넓혀보시면 좋을 것 같아서요.",
-      "sent": false
+      "sent": true,
+      "sent_at": "2026-10-03T05:27:08.010Z"
     },
     {
       "name": "곰사장",
       "channel": "kakao",
       "contact": "pf.kakao.com/_utxixnG",
       "first_line": "곰사장 방송에서 뷰티·잡화를 두루 다루시는 걸 보고 연락드려요 — 백화점 입점 스킨케어·헤어바디 브랜드로 라인업을 넓혀보실 생각 있으실까요?",
-      "sent": false
+      "sent": true,
+      "sent_at": "2026-10-03T05:27:08.010Z"
     },
     {
       "name": "쎈니즈(구 쎈언니샵)",
