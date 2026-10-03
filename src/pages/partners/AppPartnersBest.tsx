@@ -22,7 +22,7 @@ export default function AppPartnersBest() {
         <AppFrame>
           <BackHeader title="인기 제품" onBack={() => navigate('/app/partners/home')} />
           {browsing ? (
-            <CategoryBrowse onToast={showToast} />
+            <CategoryBrowse onToast={showToast} onBack={() => setBrowsing(false)} />
           ) : (
             <Top10 onMore={() => setBrowsing(true)} onToast={showToast} />
           )}
@@ -55,7 +55,7 @@ function Top10({ onMore, onToast }: { onMore: () => void; onToast: (m: string) =
   )
 }
 
-function CategoryBrowse({ onToast }: { onToast: (m: string) => void }) {
+function CategoryBrowse({ onToast, onBack }: { onToast: (m: string) => void; onBack: () => void }) {
   const { categories } = useShopCategories()
   const [selected, setSelected] = useState<string | null>(null)
   const { products, loading, hasMore, loadMore } = useShopProducts({ category: selected ?? undefined, sort: 'latest', pageSize: 20 })
@@ -63,7 +63,10 @@ function CategoryBrowse({ onToast }: { onToast: (m: string) => void }) {
 
   return (
     <>
-      <div className="px-5 pt-3 pb-2 flex gap-2 overflow-x-auto scrollbar-hide">
+      <div className="px-5 pt-4">
+        <button type="button" onClick={onBack} className="text-[12.5px] text-ink-soft focus:outline-none focus-visible:shadow-ring">‹ TOP 10으로</button>
+      </div>
+      <div className="px-5 pt-2 pb-2 flex gap-2 overflow-x-auto scrollbar-hide">
         {tabs.map((cat) => (
           <button key={cat ?? 'all'} type="button" onClick={() => setSelected(cat)}
             className={`shrink-0 px-3.5 py-1.5 rounded-full text-[12.5px] font-semibold whitespace-nowrap ${
