@@ -152,42 +152,48 @@
       "channel": "kakao",
       "contact": "pf.kakao.com/_MWJcn",
       "first_line": "쎈니즈 방송 스타일링이 인상적이라 연락드려요 — 백화점 입점 뷰티 브랜드로 방송 카테고리를 넓혀보시면 어떨까 해서요.",
-      "sent": false
+      "sent": true,
+      "sent_at": "2026-10-04T06:02:28.740Z"
     },
     {
       "name": "오제이럭셔리 이현정",
       "channel": "instagram",
       "contact": "Instagram DM @ojluxury_lj",
       "first_line": "오제이럭셔리 라이브 진행하시는 걸 보고 연락드려요 — 백화점 입점 뷰티 브랜드로 방송 카테고리를 넓혀보실 생각 있으실까요?",
-      "sent": false
+      "sent": true,
+      "sent_at": "2026-10-04T06:02:28.740Z"
     },
     {
       "name": "벨르나랑",
       "channel": "instagram",
       "contact": "Instagram DM @iam_eunvely",
       "first_line": "벨르나랑 매주 라이브 진행하시는 걸 보고 연락드려요 — 잡화 라인에 백화점 입점 뷰티 브랜드도 함께 소개해보시면 어떨까 해서요.",
-      "sent": false
+      "sent": true,
+      "sent_at": "2026-10-04T06:02:28.740Z"
     },
     {
       "name": "샤랄라살롱",
       "channel": "kakao",
       "contact": "livemarket.pro/sharalalive (연락 경로 재확인 필요)",
       "first_line": "샤랄라살롱 방송에서 화장품도 함께 파시는 걸 보고 연락드려요 — 백화점 입점 뷰티 브랜드로 라인업을 더 넓혀보시면 좋을 것 같아서요.",
-      "sent": false
+      "sent": true,
+      "sent_at": "2026-10-04T06:02:28.740Z"
     },
     {
       "name": "쇼핑디바",
       "channel": "kakao",
       "contact": "livemarket.pro/shoppingdiva (연락 경로 재확인 필요)",
       "first_line": "쇼핑디바 방송에서 화장품·향수도 다루시는 걸 보고 연락드려요 — 백화점 입점 브랜드로 뷰티 라인업을 더 넓혀보실 생각 있으실까요?",
-      "sent": false
+      "sent": true,
+      "sent_at": "2026-10-04T06:02:28.740Z"
     },
     {
       "name": "골드앤뷰(구 냉혈패션)",
       "channel": "kakao",
       "contact": "qr.kakao.com/talk/iAfF6ehF… (⚠️전체 링크 재확인 필요)",
       "first_line": "골드앤뷰 방송에서 '백화점 입점 브랜드 화장품 특가' 라이브 하시는 걸 보고 연락드려요 — 저희도 실제 백화점 입점 브랜드라 방송 취지가 잘 맞을 것 같아서요.",
-      "sent": false
+      "sent": true,
+      "sent_at": "2026-10-04T06:02:28.740Z"
     },
     {
       "name": "유미샵",
@@ -195,8 +201,9 @@
       "contact": "pf.kakao.com/_xhHcZX",
       "first_line": "유미샵 언니! '고퀄향수 라이브 유미샵' 영상 잘 보고 있어요. 고퀄리티 향수들 정말 잘 골라오시는 것 같아서 매번 궁금하게 보게 되더라고요. 혹시 백화점 입점 뷰티 브랜드로 라인업을 좀 더 넓혀보시면 어떨까 해서 연락드렸어요!",
       "note": "자동발굴(구독자 5,400명, 최근영상 5개 확인함) — 발송 전 샘플 점검 권장",
-      "sent": false,
-      "source": "youtube"
+      "sent": true,
+      "source": "youtube",
+      "sent_at": "2026-10-04T06:02:28.740Z"
     },
     {
       "name": "셀즈퀸언니",
@@ -214,8 +221,9 @@
       "contact": "pf.kakao.com/_xgnlxgxj",
       "first_line": "원장님, 채널 방송 잘 보고 있어요! 특히 최근 '에스테틱 원장님들 실사용 후기가 넘쳐나는 이든핫젤 50세트 한정수량 프로모션' 영상에서 원장님만의 꼼꼼한 설명이 정말 인상 깊더라고요. 백화점 입점 뷰티 브랜드로 라인업을 넓혀보시면 어떨까 해서 연락드려요.",
       "note": "자동발굴(구독자 14,600명, 최근영상 5개 확인함) — 발송 전 샘플 점검 권장",
-      "sent": false,
-      "source": "youtube"
+      "sent": true,
+      "source": "youtube",
+      "sent_at": "2026-10-04T06:02:28.740Z"
     },
     {
       "name": "옷짱언니2",
@@ -223,8 +231,9 @@
       "contact": "pf.kakao.com/_xfsBVX",
       "first_line": "옷짱언니2 채널 방송 잘 보고 있어요! 특히 '#향수 #악세사리 #선물 #모이사' 영상에서 향수랑 좋은 제품 많이 소개해 주셔서 좋았는데, 백화점 입점 뷰티 브랜드로 라인업을 넓혀보시면 어떨까 해서 연락드려요.",
       "note": "자동발굴(구독자 9,550명, 최근영상 5개 확인함) — 발송 전 샘플 점검 권장",
-      "sent": false,
-      "source": "youtube"
+      "sent": true,
+      "source": "youtube",
+      "sent_at": "2026-10-04T06:02:28.740Z"
     },
     {
       "name": "HIU(하이유)",
@@ -232,8 +241,9 @@
       "contact": "pf.kakao.com/_xdxhMxin",
       "first_line": "매일 오전 6시 라이브 하시는 거 잘 보고 있어요 — #라방셀러로 직접 소개하시는 화장품 라인업에 백화점 입점 브랜드도 더해보시면 어떨까 해서 연락드려요.",
       "note": "대표님 직접 발굴 — 구독자 244명(소규모지만 콘텐츠 적합도 매우 높음: 매일 라이브, #라방셀러 자칭)",
-      "sent": false,
-      "source": "manual"
+      "sent": true,
+      "source": "manual",
+      "sent_at": "2026-10-04T06:02:28.740Z"
     },
     {
       "name": "부티크냥",
