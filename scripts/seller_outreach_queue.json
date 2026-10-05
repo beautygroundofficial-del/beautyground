@@ -251,8 +251,9 @@
       "contact": "pf.kakao.com/_xmxoGxfn",
       "first_line": "부티크냥 패션뷰티수다방송 라이브 잘 보고 있어요 — 화장품·의류·주얼리까지 다양하게 소개하시던데, 백화점 입점 뷰티 브랜드로 라인업을 더 넓혀보시면 어떨까 해서 연락드려요.",
       "note": "대표님 직접 발굴 — 구독자 2,740명, 라이브마켓+카카오톡 채널톡 주문 시스템 운영 중(실제 셀러 확인됨)",
-      "sent": false,
-      "source": "manual"
+      "sent": true,
+      "source": "manual",
+      "sent_at": "2026-10-05T05:52:38.250Z"
     },
     {
       "name": "라방언니(QueenLive)",
