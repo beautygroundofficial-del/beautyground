@@ -125,37 +125,50 @@ export default function AppLogin() {
           ⚠️ 네이버 버튼은 회원가입 화면에만 있고 이 화면엔 없었다 — 네이버로 가입한 분이
              로그인하러 오면 들어올 방법이 아예 없던 실제 결함(2026-09-09 발견). */}
       {/* 사회적 증거 — 4060 여성은 "남들도 하는 방법"에 안심하는 경향(2026-09-14 조사 반영) */}
-      <p className="text-[12px] text-ink-faint text-center mb-2">가장 많이 쓰는 방법이에요</p>
-      <div className="space-y-2.5">
-        {/* 카카오 — 공식 버튼 규격(#FEE500 배경 + 검정 85% 텍스트, 카카오 고유색 예외) */}
+      <p className="text-[12px] text-ink-faint text-center mb-3">가장 많이 쓰는 방법이에요</p>
+      {/* 2026-10-09 대표님 지시로 꽉 찬 느낌 해소 — 큰 바 3개 대신 동그란 아이콘 버튼 한 줄로.
+          탭 영역(64px)은 그대로 크게 유지해 40~60대도 쉽게 누르게 한다(아래 캡션으로 서비스명 구분). */}
+      <div className="flex items-start justify-center gap-5">
+        {/* 카카오 — 공식 브랜드색(#FEE500) */}
         <button
           type="button"
           onClick={handleKakao}
-          className="w-full flex items-center justify-center gap-2 rounded-control font-bold text-[16px] py-4 focus:outline-none focus-visible:shadow-ring"
-          style={{ backgroundColor: '#FEE500', color: 'rgba(0,0,0,0.85)' }}
+          aria-label="카카오로 시작하기"
+          className="flex flex-col items-center gap-1.5 focus:outline-none"
         >
-          <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
-            <path
-              fill="rgba(0,0,0,0.85)"
-              d="M12 3C6.48 3 2 6.54 2 10.9c0 2.8 1.86 5.26 4.66 6.66l-.95 3.52c-.08.31.27.56.54.38l4.19-2.79c.51.05 1.03.08 1.56.08 5.52 0 10-3.54 10-7.85C22 6.54 17.52 3 12 3z"
-            />
-          </svg>
-          카카오로 시작하기
+          <span
+            className="w-16 h-16 rounded-full flex items-center justify-center focus-visible:shadow-ring"
+            style={{ backgroundColor: '#FEE500' }}
+          >
+            <svg width="28" height="28" viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                fill="rgba(0,0,0,0.85)"
+                d="M12 3C6.48 3 2 6.54 2 10.9c0 2.8 1.86 5.26 4.66 6.66l-.95 3.52c-.08.31.27.56.54.38l4.19-2.79c.51.05 1.03.08 1.56.08 5.52 0 10-3.54 10-7.85C22 6.54 17.52 3 12 3z"
+              />
+            </svg>
+          </span>
+          <span className="text-[11.5px] text-ink-soft">카카오</span>
         </button>
 
-        {/* 네이버 — 공식 버튼 규격(#03C75A 배경 + 흰 텍스트) */}
+        {/* 네이버 — 공식 브랜드색(#03C75A) */}
         <button
           type="button"
           onClick={handleNaver}
-          className="w-full flex items-center justify-center gap-2 rounded-control font-bold text-[16px] py-4 text-paper focus:outline-none focus-visible:shadow-ring"
-          style={{ backgroundColor: '#03C75A' }}
+          aria-label="네이버로 시작하기"
+          className="flex flex-col items-center gap-1.5 focus:outline-none"
         >
-          <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
-            <path fill="#fff" d="M13.6 12.5 8.9 5.5H4.9v13h4.5v-7l4.7 7h4v-13h-4.5v7Z" />
-          </svg>
-          네이버로 시작하기
+          <span
+            className="w-16 h-16 rounded-full flex items-center justify-center focus-visible:shadow-ring"
+            style={{ backgroundColor: '#03C75A' }}
+          >
+            <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true">
+              <path fill="#fff" d="M13.6 12.5 8.9 5.5H4.9v13h4.5v-7l4.7 7h4v-13h-4.5v7Z" />
+            </svg>
+          </span>
+          <span className="text-[11.5px] text-ink-soft">네이버</span>
         </button>
-        <AppleSignInButton onClick={() => void handleApple()} />
+
+        <AppleSignInButton onClick={() => void handleApple()} size="icon" />
       </div>
 
       {/* 가입인지 로그인인지 고민하지 않게 한 줄로 정리한다 —
