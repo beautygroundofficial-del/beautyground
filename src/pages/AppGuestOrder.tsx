@@ -149,6 +149,7 @@ export default function AppGuestOrder() {
                 </button>
                 <p className="mt-2 text-[11.5px] text-ink-faint leading-relaxed">
                   배송 전까지 직접 취소하실 수 있습니다. 배송이 시작된 뒤에는 고객센터(02-897-8287)로 연락해 주세요.
+                  결제 후 시간이 많이 지난 주문은 결제사 정산 절차상 처리에 추가 시일이 걸릴 수 있으며, 이 경우 담당자가 바로 확인 후 안내드립니다.
                 </p>
               </div>
             )}

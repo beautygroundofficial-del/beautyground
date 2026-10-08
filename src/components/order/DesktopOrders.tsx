@@ -141,6 +141,7 @@ export default function DesktopOrders({ loggedIn, groups, msg, cancelling, onReq
                             </button>
                             <p className="mt-2 text-[11.5px] text-ink-faint leading-relaxed">
                               배송 전까지 바로 취소하실 수 있습니다. 카드 취소 반영은 카드사에 따라 3~5영업일이 걸릴 수 있습니다.
+                              결제 후 시간이 많이 지난 주문은 결제사 정산 절차상 처리에 추가 시일이 걸릴 수 있으며, 이 경우 담당자가 바로 확인 후 안내드립니다.
                             </p>
                           </>
                         )}

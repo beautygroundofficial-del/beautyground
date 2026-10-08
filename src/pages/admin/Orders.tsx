@@ -108,6 +108,25 @@ export default function AdminOrders() {
     if (error) setOrders((list) => list.map((o) => (o.id === order.id ? { ...o, status: prev } : o)))
   }
 
+  // 취소요청 철회 — 실제 PG 취소가 집행된 적 없는(status가 아직 'cancel_requested'인) 건을
+  // 결제완료로 되돌린다. PG는 전혀 건드리지 않는다(2026-10-08, 취소한도초과로 막힌 실사례 대응).
+  // "이 주문을 결제완료로 되돌릴까요?" 같은 모호한 문구 대신, PG 미집행임을 명확히 안내해
+  // 혹시라도 실제 취소가 이미 된 건에 잘못 눌러 돈이 중복 환불되는 오해를 막는다.
+  const withdrawCancelRequest = async (order: OrderRow) => {
+    const ok = window.confirm(
+      '이 주문의 취소 요청을 철회하고 결제완료 상태로 되돌릴까요?\n\n' +
+      'PG(결제사) 쪽 취소는 아직 집행되지 않은 상태라는 전제입니다 — 실제로 환불이 이미 처리된 건이면 절대 누르지 마세요.'
+    )
+    if (!ok) return
+    const prev = order.status
+    setOrders((list) => list.map((o) => (o.id === order.id ? { ...o, status: 'paid' } : o)))
+    const { error } = await supabase.from('orders').update({ status: 'paid' }).eq('id', order.id)
+    if (error) {
+      setOrders((list) => list.map((o) => (o.id === order.id ? { ...o, status: prev } : o)))
+      setMsg('철회에 실패했습니다. 다시 시도해주세요.')
+    }
+  }
+
   const visible = orders.filter((o) => {
     const matchStatus = statusFilter === 'all' || o.status === statusFilter
     const q = search.trim().toLowerCase()
@@ -251,15 +270,26 @@ export default function AdminOrders() {
                         )}
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap">
-                        <select
-                          value={o.status}
-                          onChange={(e) => void handleStatusChange(o, e.target.value as Order['status'])}
-                          className="border border-rule rounded-control px-2 py-1.5 text-[12px] text-ink-soft focus:outline-none focus:border-ink transition-colors bg-paper"
-                        >
-                          {STATUS_OPTIONS.map((opt) => (
-                            <option key={opt.value} value={opt.value}>{opt.label}</option>
-                          ))}
-                        </select>
+                        <div className="flex items-center gap-2">
+                          <select
+                            value={o.status}
+                            onChange={(e) => void handleStatusChange(o, e.target.value as Order['status'])}
+                            className="border border-rule rounded-control px-2 py-1.5 text-[12px] text-ink-soft focus:outline-none focus:border-ink transition-colors bg-paper"
+                          >
+                            {STATUS_OPTIONS.map((opt) => (
+                              <option key={opt.value} value={opt.value}>{opt.label}</option>
+                            ))}
+                          </select>
+                          {o.status === 'cancel_requested' && (
+                            <button
+                              onClick={() => void withdrawCancelRequest(o)}
+                              title="PG 취소가 아직 집행 안 된 건을 결제완료로 되돌립니다(PG 미호출)"
+                              className="text-[11.5px] text-signal-blue border border-signal-blue/40 rounded-control px-2 py-1.5 whitespace-nowrap hover:bg-signal-blue/5"
+                            >
+                              취소요청 철회
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   )
