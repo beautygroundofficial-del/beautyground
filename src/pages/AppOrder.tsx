@@ -170,6 +170,7 @@ export default function AppOrder() {
   // VVIP 할인(백화점 입점 20% / 온라인 전용 30%, 적립 없음) — revalidateItems()가 매번 다시 판별해
   // items[].price에 이미 반영해둔다(서버 api/payment-complete.ts가 동일 로직으로 재검증).
   const [isVvip, setIsVvip] = useState(false)
+  const [payMethod, setPayMethod] = useState<'CARD' | 'KAKAO'>('CARD')
 
   const storeId = import.meta.env.VITE_PORTONE_STORE_ID as string | undefined
   const channelKey = import.meta.env.VITE_PORTONE_CHANNEL_KEY as string | undefined
@@ -508,7 +509,9 @@ export default function AppOrder() {
         orderName,
         totalAmount: finalTotal,
         currency: 'CURRENCY_KRW',
-        payMethod: 'CARD',
+        ...(payMethod === 'KAKAO'
+          ? { payMethod: 'EASY_PAY', easyPay: { easyPayProvider: 'EASY_PAY_PROVIDER_KAKAOPAY' } }
+          : { payMethod: 'CARD' }),
         customer: { fullName: name.trim(), phoneNumber: phone.trim(), email: buyerEmail ?? undefined },
         redirectUrl: `${window.location.origin}/app/order`,
       })
@@ -910,7 +913,25 @@ export default function AppOrder() {
             <span className="text-[20px] font-bold tabular-nums text-ink">{total.toLocaleString('ko-KR')}원</span>
           </div>
         </div>
-        <p className="text-[11.5px] text-ink-faint mt-3 pt-3 border-t border-rule">결제수단: 신용·체크카드</p>
+        <div className="mt-3 pt-3 border-t border-rule">
+          <p className="text-[11.5px] text-ink-faint mb-2">결제수단</p>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setPayMethod('CARD')}
+              className={`flex-1 rounded-control border py-2.5 text-[13.5px] font-bold ${payMethod === 'CARD' ? 'border-ink bg-ink text-paper' : 'border-rule text-ink-soft'}`}
+            >
+              신용·체크카드
+            </button>
+            <button
+              type="button"
+              onClick={() => setPayMethod('KAKAO')}
+              className={`flex-1 rounded-control border py-2.5 text-[13.5px] font-bold ${payMethod === 'KAKAO' ? 'border-ink bg-ink text-paper' : 'border-rule text-ink-soft'}`}
+            >
+              카카오페이
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* 안내 — 체크박스 대신 결제 시 동의 간주(쿠팡·네이버식). 주문 확인·정정 절차는 이 주문서 화면 자체로 충족 */}
