@@ -51,7 +51,7 @@ export default function BoardHomeFeed({ category = null }: { category?: BoardCat
       {feed === null ? (
         <div className="space-y-3">
           {[0, 1].map((i) => (
-            <div key={i} className="rounded-card border border-rule bg-paper p-5 space-y-3">
+            <div key={i} style={{ borderRadius: 8 }} className="border border-rule bg-paper p-5 space-y-3">
               <div className="h-3 w-1/3 bg-quiet rounded animate-pulse" />
               <div className="h-3 bg-quiet rounded animate-pulse" />
             </div>
@@ -60,6 +60,7 @@ export default function BoardHomeFeed({ category = null }: { category?: BoardCat
       ) : feed.length === 0 ? (
         <button
           onClick={goBoard}
+          style={{ borderRadius: 8 }}
           className="w-full rounded-card border border-dashed border-rule bg-quiet/40 px-5 py-8 text-center focus:outline-none focus-visible:shadow-ring"
         >
           <p className="text-[16px] font-semibold text-ink leading-[1.8]">{category ? '이 주제에 첫 이야기를 남겨보세요' : '말 못 하고 지나온 일이 있나요'}</p>
@@ -71,6 +72,7 @@ export default function BoardHomeFeed({ category = null }: { category?: BoardCat
             <li key={p.id}>
               <Link
                 to={`/app/board/${p.id}`}
+                style={{ borderRadius: 8 }}
                 className="block rounded-card border border-rule bg-paper px-5 py-4 focus:outline-none focus-visible:shadow-ring"
               >
                 <div className="flex items-center gap-2 mb-2">
