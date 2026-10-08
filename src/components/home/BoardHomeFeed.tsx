@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { categoryLabel, getBoardFeed, type BoardPost } from '../../lib/board'
+import { categoryLabel, getBoardFeed, type BoardPost, type BoardCategory } from '../../lib/board'
 import { MetaMarks } from '../community/marks'
 
 // 홈 ↔ 속 이야기 연결 (2026-09-10, 커뮤니티 로드맵 4-4 ①)
@@ -18,26 +18,28 @@ function timeAgo(iso: string) {
   return new Date(iso).toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' })
 }
 
-export default function BoardHomeFeed() {
+export default function BoardHomeFeed({ category = null }: { category?: BoardCategory | null }) {
   const navigate = useNavigate()
   const [feed, setFeed] = useState<BoardPost[] | null>(null)
 
   useEffect(() => {
     let active = true
-    void getBoardFeed([], 3).then((rows) => { if (active) setFeed(rows) })
+    setFeed(null)
+    void getBoardFeed(category ? [category] : [], 3).then((rows) => { if (active) setFeed(rows) })
     return () => { active = false }
-  }, [])
+  }, [category])
+  const goBoard = () => navigate('/app/board', { state: category ? { category } : undefined })
 
   return (
     <section className="px-5 pt-6">
       <div className="flex items-end justify-between gap-3 mb-4">
         <div className="min-w-0">
-          <p className="text-[13px] text-ink-soft leading-relaxed mb-1.5">속마음을 꺼내놓는 곳</p>
-          <h2 className="text-[18px] font-bold text-ink leading-[1.6]">속 이야기</h2>
+          <p className="text-[12px] text-ink-soft leading-relaxed mb-1">{category ? '선택한 주제의 최신 글' : '여러 주제에서 나누는 솔직한 이야기'}</p>
+          <h3 className="text-[17px] font-bold text-ink leading-[1.6]">{category ? categoryLabel(category) : '지금 나누는 이야기'}</h3>
         </div>
         {feed && feed.length > 0 && (
           <button
-            onClick={() => navigate('/app/board')}
+            onClick={goBoard}
             className="min-h-11 min-w-11 shrink-0 text-[13px] font-medium text-ink-soft focus:outline-none focus-visible:shadow-ring"
           >
             더보기
@@ -56,11 +58,11 @@ export default function BoardHomeFeed() {
         </div>
       ) : feed.length === 0 ? (
         <button
-          onClick={() => navigate('/app/board')}
+          onClick={goBoard}
           className="w-full rounded-card border border-dashed border-rule bg-quiet/40 px-5 py-8 text-center focus:outline-none focus-visible:shadow-ring"
         >
-          <p className="text-[16px] font-semibold text-ink leading-[1.8]">말 못 하고 지나온 일이 있나요</p>
-          <p className="text-[15px] text-ink-soft leading-[1.8] mt-2">여기선 이름을 가리고 털어놓을 수 있어요</p>
+          <p className="text-[16px] font-semibold text-ink leading-[1.8]">{category ? '이 주제에 첫 이야기를 남겨보세요' : '말 못 하고 지나온 일이 있나요'}</p>
+          <p className="text-[14px] text-ink-soft leading-[1.8] mt-2">여기선 이름을 가리고 털어놓을 수 있어요</p>
         </button>
       ) : (
         <ul className="space-y-3">

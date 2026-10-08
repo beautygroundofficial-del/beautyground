@@ -24,23 +24,33 @@ const GRID_ITEMS: { key: BoardCategory; short: string; emoji: string }[] = [
   { key: 'chat', short: '잡담', emoji: '💬' },
 ]
 
-export default function BoardCategoryGrid() {
+interface Props {
+  selectedCategory?: BoardCategory | null
+  onSelect?: (key: BoardCategory | null) => void
+}
+
+export default function BoardCategoryGrid({ selectedCategory = null, onSelect }: Props) {
   const navigate = useNavigate()
-  const go = (key: BoardCategory) => navigate('/app/board', { state: { category: key } })
+  const go = (key: BoardCategory) => onSelect ? onSelect(key) : navigate('/app/board', { state: { category: key } })
 
   return (
-    <section className="px-5 pt-6">
-      <h2 className="text-[18px] font-bold text-ink leading-[1.6] mb-4">관심 있는 이야기부터</h2>
-      <div className="grid grid-cols-5 gap-y-5">
+    <section className="px-5 pt-7">
+      <div className="flex items-center justify-between gap-3 mb-1">
+        <h2 className="text-[18px] font-bold text-ink leading-[1.6]">주제별 이야기</h2>
+        {onSelect && <button type="button" onClick={() => onSelect(null)} aria-pressed={selectedCategory === null} className={`min-h-11 px-3 text-[12px] rounded-full focus-visible:shadow-ring ${selectedCategory === null ? 'font-bold text-ink' : 'text-ink-soft'}`}>전체 보기</button>}
+      </div>
+      <p className="mb-4 text-[13px] leading-relaxed text-ink-soft">주제를 선택하면 아래에서 해당 글을 볼 수 있어요.</p>
+      <div className="grid grid-cols-5 gap-2">
         {GRID_ITEMS.map((c, i) => (
           <button
             key={c.key}
             type="button"
             onClick={() => go(c.key)}
-            className="flex min-h-11 min-w-11 flex-col items-center gap-2 rounded-control focus:outline-none focus-visible:shadow-ring"
+            aria-pressed={onSelect ? selectedCategory === c.key : undefined}
+            className={`flex min-h-[84px] min-w-0 flex-col items-center justify-center gap-2 rounded-xl border focus:outline-none focus-visible:shadow-ring transition-colors ${selectedCategory === c.key ? 'border-ink bg-quiet' : 'border-rule bg-paper'}`}
           >
             <span
-              className="w-14 h-14 rounded-full flex items-center justify-center text-[22px]"
+              className="w-9 h-9 rounded-full flex items-center justify-center text-[20px]"
               style={{ backgroundColor: `${SUB_COLORS[i % SUB_COLORS.length]}1A` }}
               aria-hidden="true"
             >

@@ -57,7 +57,7 @@ function SectionHead({ label, title, onMore }: { label: string; title: string; o
   )
 }
 
-export default function DiaryHomeFeed({ limit = 6 }: { limit?: number }) {
+export default function DiaryHomeFeed({ limit = 6, compact = false }: { limit?: number; compact?: boolean }) {
   const navigate = useNavigate()
   const [feed, setFeed] = useState<Diary[] | null>(null)
   const [loggedIn, setLoggedIn] = useState(false)
@@ -94,8 +94,8 @@ export default function DiaryHomeFeed({ limit = 6 }: { limit?: number }) {
       {/* 최근 이야기 */}
       <section className="px-5 pt-6 pb-6">
         <SectionHead
-          label="오늘도 각자의 하루를 살아갑니다"
-          title="사람들의 이야기"
+          label={compact ? '사진과 함께 나누는 우리의 일상' : '오늘도 각자의 하루를 살아갑니다'}
+          title={compact ? '하루 이야기' : '사람들의 이야기'}
           onMore={feed && feed.length > 0 ? go : undefined}
         />
 
@@ -128,6 +128,27 @@ export default function DiaryHomeFeed({ limit = 6 }: { limit?: number }) {
           <ul className="divide-y divide-rule border-t border-rule">
             {feed.map((d) => {
               const imgs = d.images ?? []
+              if (compact) return (
+                <li key={d.id} className="py-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <button type="button" onClick={() => navigate(`/app/people/${d.user_id}`)} className="min-h-11 text-[13px] font-semibold text-ink focus-visible:shadow-ring">{maskName(d.nickname)}</button>
+                    <PetAvatars pets={d.pets} />
+                    <span className="ml-auto text-[12px] text-ink-soft">{timeAgo(d.created_at)}</span>
+                  </div>
+                  <button type="button" onClick={() => goPost(d.id)} className="flex w-full items-start gap-4 text-left focus-visible:shadow-ring">
+                    <span className="min-w-0 flex-1"><span className="block text-[15px] leading-[1.7] line-clamp-3 whitespace-pre-wrap break-words text-ink">{d.content}</span>{d.video_url && <span className="mt-2 block text-[12px] text-ink-soft">영상 함께 보기 →</span>}</span>
+                    {imgs[0] && <img src={imgs[0]} alt="이야기에 첨부된 사진" loading="lazy" className="h-24 w-24 shrink-0 rounded-xl object-cover bg-quiet" />}
+                  </button>
+                  <div className="mt-2 flex items-center justify-end gap-1">
+                    <LikeButton liked={d.liked_by_me} count={d.like_count} loggedIn={loggedIn} disabled={d.is_mine} onToggle={async () => {
+                      const res = await toggleDiaryLike(d.id)
+                      if (res) setFeed(prev => (prev ?? []).map(x => x.id === d.id ? { ...x, liked_by_me: res.liked, like_count: res.like_count } : x))
+                      return res
+                    }} />
+                    <CommentToggle count={d.comment_count} open={false} onClick={() => goComments(d.id)} />
+                  </div>
+                </li>
+              )
               return (
                 <li key={d.id} className="bg-paper py-5">
                   <div className="mb-4 flex items-center gap-3">

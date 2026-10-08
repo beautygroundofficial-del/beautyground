@@ -1,4 +1,6 @@
 import { useNavigate } from 'react-router-dom'
+import { useState } from 'react'
+import type { BoardCategory } from '../../lib/board'
 import { IconPencil } from '@tabler/icons-react'
 import AppHeader from '../layout/AppHeader'
 import MarqueeBar from './MarqueeBar'
@@ -37,25 +39,41 @@ interface HomeBodyProps {
 // props 는 호출부(AppHome·관리자 미리보기) 호환을 위해 그대로 받되 상품 관련 값은 쓰지 않는다.
 export default function HomeBody({ marqueeItems, promoBarAbove = false }: HomeBodyProps) {
   const navigate = useNavigate()
+  const [category, setCategory] = useState<BoardCategory | null>(null)
+  const jumpTo = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
 
   return (
     <>
       <MarqueeBar items={marqueeItems} />
       <AppHeader promoBarAbove={promoBarAbove} />
 
-      <div className="px-5 pt-5 flex items-center justify-between gap-3">
-        <p className="text-[14px] leading-relaxed text-ink-soft">오늘은 읽기만 해도 괜찮아요.</p>
-        <button type="button" onClick={() => navigate('/app/friends')} className="min-h-11 shrink-0 rounded-full border border-solid border-rule px-3 text-[13px] font-bold text-ink focus-visible:shadow-ring">내 친구</button>
-      </div>
+      <section className="mx-5 mt-5 rounded-2xl border border-rule bg-quiet/50 p-5" aria-label="뷰티그라운드 이용 안내">
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-[12px] font-semibold text-ink-soft">우리의 일상이 모이는 곳</p>
+          <button type="button" onClick={() => navigate('/app/friends')} className="min-h-11 shrink-0 text-[12px] font-semibold text-ink focus-visible:shadow-ring">내 친구 →</button>
+        </div>
+        <h1 className="mt-1 text-[23px] font-bold leading-snug tracking-[-0.03em] text-ink">작은 이야기도,<br />함께 나누면 달라져요.</h1>
+        <p className="mt-3 text-[14px] leading-relaxed text-ink-soft">관심 있는 주제의 글을 읽고,<br />공감하거나 나의 하루를 남겨보세요.</p>
+      </section>
+      <nav className="mx-5 mt-4 grid grid-cols-3 gap-2" aria-label="홈 콘텐츠 바로가기">
+        {[{ id: 'home-topics', title: '주제별 이야기', note: '관심사로 골라보기' }, { id: 'home-days', title: '하루 이야기', note: '사진과 일상 만나기' }, { id: 'home-question', title: '오늘의 질문', note: '한 줄로 참여하기' }].map(item => (
+          <button key={item.id} type="button" onClick={() => jumpTo(item.id)} className="min-h-[72px] rounded-xl border border-rule bg-paper px-2 py-3 text-left focus-visible:shadow-ring">
+            <span className="block text-[13px] font-bold text-ink">{item.title}</span>
+            <span className="mt-1 block text-[11px] leading-relaxed text-ink-soft">{item.note}</span>
+          </button>
+        ))}
+      </nav>
 
       {/* 속 이야기가 하루 일기보다 반응(하트·댓글)이 훨씬 활발해 "사람들이 지금 얘기하고 있다"는
           인상을 첫 화면에서 바로 주기 위해 맨 위로 배치 (2026-09-30 대표님 지시 — 맨 아래 있으면
           아무도 안 본다). 카테고리 그리드로 고르고 바로 아래서 최신 글을 본다. */}
-      <BoardCategoryGrid />
-      <BoardHomeFeed />
+      <div id="home-topics" className="scroll-mt-28">
+        <BoardCategoryGrid selectedCategory={category} onSelect={setCategory} />
+        <BoardHomeFeed category={category} />
+      </div>
 
       {/* 회원의 이야기를 먼저 만나고, 원하는 만큼 대화에 참여한다. */}
-      <DiaryHomeFeed limit={3} />
+      <div id="home-days" className="mt-7 border-t border-rule scroll-mt-28"><DiaryHomeFeed limit={3} compact /></div>
 
       {/* 전화번호 인증 배너 제거(2026-09-16) — claim_mission()에서 전화인증 게이트를
           없애 포인트가 인증 없이도 지급되므로, "인증해야 포인트"라는 이 배너 문구가
@@ -75,7 +93,7 @@ export default function HomeBody({ marqueeItems, promoBarAbove = false }: HomeBo
         </button>
       </section>
 
-      <div className="px-5 pt-6">
+      <div id="home-question" className="px-5 pt-6 scroll-mt-28">
         <TodayQuestion />
       </div>
 
