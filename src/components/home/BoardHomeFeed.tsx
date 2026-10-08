@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { categoryLabel, getBoardFeed, type BoardPost, type BoardCategory } from '../../lib/board'
 import { MetaMarks } from '../community/marks'
+import StoryMediaPreview from './StoryMediaPreview'
 
 // 홈 ↔ 속 이야기 연결 (2026-09-10, 커뮤니티 로드맵 4-4 ①)
 // 홈에 최신 속 이야기 3개를 얇게 보여주고 누르면 글로 들어간다. 사진 없이 글만 — 하루 이야기(사진 카드)와
@@ -79,7 +80,8 @@ export default function BoardHomeFeed({ category = null }: { category?: BoardCat
                   <span className="text-[12px] text-ink-soft">{timeAgo(p.created_at)}</span>
                   <span className="ml-auto"><MetaMarks likes={p.like_count ?? 0} comments={p.comment_count} size={15} /></span>
                 </div>
-                <p className="text-[15px] text-ink leading-[1.8] line-clamp-2 whitespace-pre-wrap">{p.content}</p>
+                <p className="text-[15px] text-ink leading-[1.8] line-clamp-3 whitespace-pre-wrap break-words">{p.content.replace(/https?:\/\/[^\s<>]+/g, '').trim() || '공유한 링크를 확인해보세요.'}</p>
+                <StoryMediaPreview content={p.content} images={p.images} videoUrl={p.video_url} />
               </Link>
             </li>
           ))}

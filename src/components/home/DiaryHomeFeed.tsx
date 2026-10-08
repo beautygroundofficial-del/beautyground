@@ -6,6 +6,7 @@ import { supabase } from '../../lib/supabase'
 import LikeButton from '../community/LikeButton'
 import { CommentToggle } from '../community/DiaryComments'
 import { PetAvatars, petWalkLabel } from '../community/PetMarks'
+import StoryMediaPreview from './StoryMediaPreview'
 
 // 홈의 주인공 — 사람들의 이야기 (2026-09-02)
 // 대표님 지시로 홈에서 상품을 걷어내고 커뮤니티를 앞세우면서 만든 컴포넌트.
@@ -135,9 +136,9 @@ export default function DiaryHomeFeed({ limit = 6, compact = false }: { limit?: 
                     <PetAvatars pets={d.pets} />
                     <span className="ml-auto text-[12px] text-ink-soft">{timeAgo(d.created_at)}</span>
                   </div>
-                  <button type="button" onClick={() => goPost(d.id)} className="flex w-full items-start gap-4 text-left focus-visible:shadow-ring">
-                    <span className="min-w-0 flex-1"><span className="block text-[15px] leading-[1.7] line-clamp-3 whitespace-pre-wrap break-words text-ink">{d.content}</span>{d.video_url && <span className="mt-2 block text-[12px] text-ink-soft">영상 함께 보기 →</span>}</span>
-                    {imgs[0] && <img src={imgs[0]} alt="이야기에 첨부된 사진" loading="lazy" className="h-24 w-24 shrink-0 rounded-xl object-cover bg-quiet" />}
+                  <button type="button" onClick={() => goPost(d.id)} className="block w-full text-left focus-visible:shadow-ring">
+                    <span className="block text-[15px] leading-[1.7] line-clamp-3 whitespace-pre-wrap break-words text-ink">{d.content.replace(/https?:\/\/[^\s<>]+/g, '').trim() || '공유한 링크를 확인해보세요.'}</span>
+                    <StoryMediaPreview content={d.content} images={imgs} videoUrl={d.video_url} />
                   </button>
                   <div className="mt-2 flex items-center justify-end gap-1">
                     <LikeButton liked={d.liked_by_me} count={d.like_count} loggedIn={loggedIn} disabled={d.is_mine} onToggle={async () => {
