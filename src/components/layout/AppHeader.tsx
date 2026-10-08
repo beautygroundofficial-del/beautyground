@@ -76,6 +76,14 @@ export default function AppHeader({ promoBarAbove = false }: Props) {
         >
           <IconSearch className="w-[18px] h-[18px]" />
         </Link>
+        {!name && (
+          <Link
+            to="/app/login"
+            className="h-10 px-3 rounded-pill border border-rule flex items-center text-[13px] font-bold text-ink whitespace-nowrap focus:outline-none focus-visible:shadow-ring"
+          >
+            로그인
+          </Link>
+        )}
       </div>
     </header>
   )
