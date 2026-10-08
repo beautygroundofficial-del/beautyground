@@ -47,14 +47,15 @@ export default function HomeBody({ marqueeItems, promoBarAbove = false }: HomeBo
       <MarqueeBar items={marqueeItems} />
       <AppHeader promoBarAbove={promoBarAbove} />
 
-      <section className="mx-5 mt-5 rounded-2xl border border-rule bg-quiet/50 p-5" aria-label="뷰티그라운드 이용 안내">
+      <section className="mx-5 mt-4 border-b border-rule pb-3" aria-label="뷰티그라운드 이용 안내">
         <div className="flex items-center justify-between gap-3">
           <p className="text-[12px] font-semibold text-ink-soft">우리의 일상이 모이는 곳</p>
           <button type="button" onClick={() => navigate('/app/friends')} className="min-h-11 shrink-0 text-[12px] font-semibold text-ink focus-visible:shadow-ring">내 친구 →</button>
         </div>
-        <h1 className="mt-1 text-[23px] font-bold leading-snug tracking-[-0.03em] text-ink">작은 이야기도,<br />함께 나누면 달라져요.</h1>
-        <p className="mt-3 text-[14px] leading-relaxed text-ink-soft">관심 있는 주제의 글을 읽고,<br />공감하거나 나의 하루를 남겨보세요.</p>
+        <h1 className="text-[21px] font-bold leading-snug tracking-[-0.03em] text-ink">오늘, 어떤 이야기가 궁금하세요?</h1>
+        <p className="mt-2 text-[14px] leading-relaxed text-ink-soft">관심 있는 이야기를 읽고 나의 하루도 남겨보세요.</p>
       </section>
+      <BoardHomeFeed featured />
       <nav className="mx-5 mt-4 grid grid-cols-3 gap-2" aria-label="홈 콘텐츠 바로가기">
         {[{ id: 'home-topics', title: '주제별 이야기', note: '관심사로 골라보기' }, { id: 'home-days', title: '하루 이야기', note: '사진과 일상 만나기' }, { id: 'home-question', title: '오늘의 질문', note: '한 줄로 참여하기' }].map(item => (
           <button key={item.id} type="button" onClick={() => jumpTo(item.id)} className="min-h-[72px] rounded-xl border border-rule bg-paper px-2 py-3 text-left focus-visible:shadow-ring">

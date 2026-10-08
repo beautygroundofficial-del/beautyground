@@ -19,24 +19,24 @@ function timeAgo(iso: string) {
   return new Date(iso).toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' })
 }
 
-export default function BoardHomeFeed({ category = null }: { category?: BoardCategory | null }) {
+export default function BoardHomeFeed({ category = null, featured = false }: { category?: BoardCategory | null; featured?: boolean }) {
   const navigate = useNavigate()
   const [feed, setFeed] = useState<BoardPost[] | null>(null)
 
   useEffect(() => {
     let active = true
     setFeed(null)
-    void getBoardFeed(category ? [category] : [], 3).then((rows) => { if (active) setFeed(rows) })
+    void getBoardFeed(category ? [category] : [], featured ? 1 : category ? 3 : 4).then((rows) => { if (active) setFeed(featured || category ? rows : rows.slice(1)) })
     return () => { active = false }
-  }, [category])
+  }, [category, featured])
   const goBoard = () => navigate('/app/board', { state: category ? { category } : undefined })
 
   return (
     <section className="px-5 pt-6">
       <div className="flex items-end justify-between gap-3 mb-4">
         <div className="min-w-0">
-          <p className="text-[12px] text-ink-soft leading-relaxed mb-1">{category ? '선택한 주제의 최신 글' : '여러 주제에서 나누는 솔직한 이야기'}</p>
-          <h3 className="text-[17px] font-bold text-ink leading-[1.6]">{category ? categoryLabel(category) : '지금 나누는 이야기'}</h3>
+          {!featured && <p className="text-[12px] text-ink-soft leading-relaxed mb-1">{category ? '선택한 주제의 최신 글' : '여러 주제에서 나누는 솔직한 이야기'}</p>}
+          <h3 className="text-[17px] font-bold text-ink leading-[1.6]">{featured ? '방금 올라온 이야기' : category ? categoryLabel(category) : '지금 나누는 이야기'}</h3>
         </div>
         {feed && feed.length > 0 && (
           <button
@@ -80,10 +80,10 @@ export default function BoardHomeFeed({ category = null }: { category?: BoardCat
                     {categoryLabel(p.category)}
                   </span>
                   <span className="text-[12px] text-ink-soft">{timeAgo(p.created_at)}</span>
-                  <span className="ml-auto"><MetaMarks likes={p.like_count ?? 0} comments={p.comment_count} size={15} /></span>
                 </div>
                 <p className="text-[15px] text-ink leading-[1.8] line-clamp-3 whitespace-pre-wrap break-words">{p.content.replace(/https?:\/\/[^\s<>]+/g, '').trim() || '공유한 링크를 확인해보세요.'}</p>
                 <StoryMediaPreview content={p.content} images={p.images} videoUrl={p.video_url} />
+                <div className="mt-3 flex justify-end text-ink-soft"><MetaMarks likes={p.like_count ?? 0} comments={p.comment_count} size={15} /></div>
               </Link>
             </li>
           ))}

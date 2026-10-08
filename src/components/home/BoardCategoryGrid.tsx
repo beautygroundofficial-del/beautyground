@@ -47,6 +47,7 @@ export default function BoardCategoryGrid({ selectedCategory = null, onSelect }:
             type="button"
             onClick={() => go(c.key)}
             aria-pressed={onSelect ? selectedCategory === c.key : undefined}
+            style={selectedCategory === c.key ? { backgroundColor: 'var(--color-quiet, #f2f3f7)', boxShadow: 'inset 0 0 0 2px currentColor', borderRadius: 8 } : { borderRadius: 8 }}
             className={`flex min-h-[84px] min-w-0 flex-col items-center justify-center gap-2 rounded-xl border focus:outline-none focus-visible:shadow-ring transition-colors ${selectedCategory === c.key ? 'border-ink bg-quiet' : 'border-rule bg-paper'}`}
           >
             <span
@@ -56,7 +57,7 @@ export default function BoardCategoryGrid({ selectedCategory = null, onSelect }:
             >
               {c.emoji}
             </span>
-            <span className="text-[13px] font-medium text-ink leading-relaxed">{c.short}</span>
+            <span className="text-[13px] font-medium text-ink leading-relaxed">{selectedCategory === c.key ? '✓ ' : ''}{c.short}</span>
           </button>
         ))}
       </div>
