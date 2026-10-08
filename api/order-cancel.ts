@@ -129,7 +129,37 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         // 이미 전액 취소된 결제면 그대로 진행 (멱등)
         if (!/ALREADY_CANCELLED|CANCELLED_PAYMENT/i.test(text)) {
           console.error('[order-cancel] portone cancel failed', r.status, text)
-          res.status(200).json({ ok: false, reason: `포트원 환불에 실패했습니다 (${r.status}). 잠시 후 다시 시도해주세요.` })
+          // KG이니시스 취소한도초과(501906) — PG사 정산 구조상 발생, 재시도로는 안 풀리고
+          // 대표님이 가맹점관리자에서 직접 입금 후 재취소해야 풀린다(2026-10-07 실사례).
+          // 고객에게 "다시 시도하라"고 하면 계속 똑같이 실패하므로, 이 경우만 별도 안내 +
+          // 관리자에게 즉시 메일로 알려 수동 처리를 유도한다.
+          const isCancelLimitExceeded = /501906|취소한도/i.test(text)
+          if (isCancelLimitExceeded && GMAIL_APP_PASSWORD) {
+            try {
+              const transporter = nodemailer.createTransport({
+                service: 'gmail',
+                auth: { user: GMAIL_USER, pass: GMAIL_APP_PASSWORD },
+              })
+              await transporter.sendMail({
+                from: `"뷰티그라운드" <${GMAIL_USER}>`,
+                to: ADMIN_EMAILS.join(','),
+                subject: `[긴급] 결제취소 실패(취소한도초과) — ${paymentId}`,
+                html: `<div style="font-family:sans-serif">
+                         <h3>⚠️ 고객 취소 요청이 취소한도초과로 실패했습니다</h3>
+                         <p>KG이니시스 가맹점관리자에서 부족한 취소한도만큼 입금 후 재취소 처리가 필요합니다.</p>
+                         <ul><li>주문번호: ${paymentId}</li><li>오류: ${text.slice(0, 500)}</li></ul>
+                       </div>`,
+              })
+            } catch (mailErr) {
+              console.error('[order-cancel] 취소한도초과 관리자 알림 메일 실패', mailErr)
+            }
+          }
+          res.status(200).json({
+            ok: false,
+            reason: isCancelLimitExceeded
+              ? '취소 접수가 확인됐습니다. 결제사 정산 절차상 확인이 필요해 담당자가 곧바로 처리해 드리겠습니다. 급하신 경우 고객센터(02-897-8287)로 연락해 주세요.'
+              : `포트원 환불에 실패했습니다 (${r.status}). 잠시 후 다시 시도해주세요.`,
+          })
           return
         }
       }
