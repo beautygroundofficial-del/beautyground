@@ -192,7 +192,16 @@ export default function AppDiary() {
 
   return (
     <AppFrame>
-      <BackHeader title="오늘 이야기" rightElement={<button type="button" onClick={() => navigate('/app/friends')} className="min-h-11 px-2 text-[13px] font-semibold">내 친구</button>} />
+      <BackHeader
+        title="오늘 이야기"
+        rightElement={
+          loggedIn === false ? (
+            <button type="button" onClick={() => navigate('/app/login', { state: { from: '/app/diary' } })} className="min-h-11 px-2 text-[13px] font-bold text-ink">로그인</button>
+          ) : (
+            <button type="button" onClick={() => navigate('/app/friends')} className="min-h-11 px-2 text-[13px] font-semibold">내 친구</button>
+          )
+        }
+      />
 
       {/* 쓰기 — 화면에 들어오면 가장 먼저 보이는 행동 */}
       <section className="px-5 pt-4">

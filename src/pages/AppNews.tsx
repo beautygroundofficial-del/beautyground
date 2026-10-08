@@ -186,7 +186,17 @@ export default function AppNews() {
 
   return (
     <AppFrame>
-      <BackHeader title="새 소식" onBack={() => navigate('/app/home')} rightElement={<button type="button" onClick={() => navigate('/app/friends')} className="min-h-11 px-2 text-[13px] font-bold text-ink">친구 신청</button>} />
+      <BackHeader
+        title="새 소식"
+        onBack={() => navigate('/app/home')}
+        rightElement={
+          loggedIn === false ? (
+            <button type="button" onClick={() => navigate('/app/login', { state: { from: '/app/news' } })} className="min-h-11 px-2 text-[13px] font-bold text-ink">로그인</button>
+          ) : (
+            <button type="button" onClick={() => navigate('/app/friends')} className="min-h-11 px-2 text-[13px] font-bold text-ink">친구 신청</button>
+          )
+        }
+      />
 
       <section className="px-5 pt-6 pb-28">
         {loggedIn && <div className="mb-2 flex flex-wrap items-center justify-between gap-x-4 gap-y-1"><button type="button" disabled={loading || marking} onClick={() => void load()} className="inline-flex min-h-11 items-center gap-2 text-[13px] text-ink-soft disabled:opacity-50"><IconRefresh size={16} stroke={1.6} aria-hidden="true" />{loading ? '확인 중…' : '새로 확인'}</button>{items?.some(item => item.is_new) && <button type="button" disabled={marking || loading || !canMarkSeen} onClick={() => void markSeen()} className="min-h-11 text-[13px] font-bold text-ink disabled:opacity-50">{marking ? '저장 중…' : '모두 확인했어요'}</button>}</div>}
