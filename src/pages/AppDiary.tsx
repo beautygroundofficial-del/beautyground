@@ -19,8 +19,10 @@ import FriendButton from '../components/community/FriendButton'
 import { PetAvatars, petWalkLabel } from '../components/community/PetMarks'
 import { FRIENDS_CHANGED_EVENT, getFriendStatuses, type FriendStatus } from '../lib/friends'
 import { getConversationDiary, getConversationFeed } from '../lib/communityConversations'
-import { getBoardFeed, categoryLabel, type BoardPost } from '../lib/board'
+import { getBoardFeed, categoryLabel, BOARD_CATEGORIES, type BoardCategory, type BoardPost } from '../lib/board'
+import BoardCategoryGrid from '../components/home/BoardCategoryGrid'
 import { MetaMarks } from '../components/community/marks'
+import { extractYoutubeId, youtubeThumbnailUrl } from '../lib/youtube'
 
 // 살아가는 이야기 — 유저가 사진과 함께 일상을 남기는 곳.
 // 글을 올리면 create_diary RPC 안에서 diary_post 미션이 자동 적립된다(화면에서 따로 적립 호출 안 함).
@@ -74,6 +76,8 @@ function SectionHead({ label, title, right }: { label: string; title: string; ri
 export default function AppDiary() {
   const navigate = useNavigate()
   const location = useLocation()
+  const initialCategory = (location.state as { category?: BoardCategory } | null)?.category
+  const [boardCategory, setBoardCategory] = useState<BoardCategory | null>(BOARD_CATEGORIES.some(c => c.key === initialCategory) ? initialCategory! : null)
   const params = new URLSearchParams(location.search)
   const legacy = location.state as { toast?: string; openComments?: string; focus?: string } | null
   const targetId = params.get('focus') || params.get('comments') || legacy?.focus || legacy?.openComments || null
@@ -159,9 +163,9 @@ export default function AppDiary() {
   useEffect(() => {
     let alive = true
     setBoardLoading(true)
-    getBoardFeed([], 30).then((rows) => { if (alive) { setBoardFeed(rows); setBoardLoading(false) } })
+    getBoardFeed(boardCategory ? [boardCategory] : [], 30).then((rows) => { if (alive) { setBoardFeed(rows); setBoardLoading(false) } })
     return () => { alive = false }
-  }, [])
+  }, [boardCategory])
 
   useEffect(() => {
     if (!focusId || loading || targetComment) return
@@ -202,6 +206,7 @@ export default function AppDiary() {
           )
         }
       />
+      <BoardCategoryGrid selectedCategory={boardCategory} onSelect={setBoardCategory} />
 
       {/* 쓰기 — 화면에 들어오면 가장 먼저 보이는 행동 */}
       <section className="px-5 pt-4">
@@ -227,11 +232,15 @@ export default function AppDiary() {
           <p className="py-12 text-center text-[13px] text-ink-faint">아직 아무도 속 이야기를 꺼내지 않았어요</p>
         ) : (
           <ul className="space-y-3">
-            {boardFeed.map((p) => (
+            {boardFeed.map((p) => {
+              const youtubeId = extractYoutubeId(p.content)
+              const thumbnail = youtubeId ? youtubeThumbnailUrl(youtubeId) : p.images?.[0]
+              return (
               <li key={p.id}>
                 <button
                   type="button"
                   onClick={() => navigate(`/app/board/${p.id}`)}
+                  style={{ borderRadius: 8 }}
                   className="block w-full rounded-card border border-rule bg-paper p-4 text-left focus:outline-none focus-visible:shadow-ring"
                 >
                   <div className="flex items-center gap-2 mb-2">
@@ -241,12 +250,13 @@ export default function AppDiary() {
                     <span className="text-[11px] text-ink-faint">{timeAgo(p.created_at)}</span>
                   </div>
                   <div className="flex items-start gap-3">
-                    <p className="flex-1 text-[14px] text-ink leading-relaxed whitespace-pre-wrap line-clamp-2">
-                      {p.content}
+                    {(thumbnail || p.video_url) && <span style={{ borderRadius: 8 }} className="relative block shrink-0 w-16 h-16 overflow-hidden bg-quiet">
+                      {thumbnail ? <img src={thumbnail} alt={youtubeId ? '영상 미리보기' : '이야기 대표 사진'} loading="lazy" className="h-full w-full object-cover" /> : <video src={p.video_url ?? undefined} muted playsInline preload="metadata" className="h-full w-full object-cover" />}
+                      {(youtubeId || p.video_url) && <span className="absolute inset-0 flex items-center justify-center text-white bg-ink/20" aria-label="영상">▶</span>}
+                    </span>}
+                    <p className="min-w-0 flex-1 text-[15px] text-ink leading-relaxed whitespace-pre-wrap line-clamp-2 break-words">
+                      {p.content.replace(/https?:\/\/[^\s<>]+/g, '').trim() || '공유한 링크를 확인해보세요.'}
                     </p>
-                    {p.images?.[0] && (
-                      <img src={p.images[0]} alt="" loading="lazy" className="shrink-0 w-14 h-14 rounded-control object-cover bg-quiet" />
-                    )}
                   </div>
                   <div className="flex items-center justify-between mt-3">
                     <span className="text-[11.5px] text-ink-faint">{p.is_mine ? '나' : maskName(p.nickname)}</span>
@@ -254,7 +264,7 @@ export default function AppDiary() {
                   </div>
                 </button>
               </li>
-            ))}
+            )})}
           </ul>
         )}
       </section>

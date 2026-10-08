@@ -29,7 +29,7 @@ export default function BoardHomeFeed({ category = null, featured = false }: { c
     void getBoardFeed(category ? [category] : [], featured ? 1 : category ? 3 : 4).then((rows) => { if (active) setFeed(featured || category ? rows : rows.slice(1)) })
     return () => { active = false }
   }, [category, featured])
-  const goBoard = () => navigate('/app/board', { state: category ? { category } : undefined })
+  const goBoard = () => navigate('/app/diary', { state: category ? { category } : undefined })
 
   return (
     <section className="px-5 pt-6">

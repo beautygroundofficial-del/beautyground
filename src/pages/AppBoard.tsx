@@ -6,7 +6,6 @@ import StoryTabs from '../components/community/StoryTabs'
 import { supabase } from '../lib/supabase'
 import { BOARD_CATEGORIES, categoryLabel, getBoardFeed, type BoardCategory, type BoardPost } from '../lib/board'
 import { MetaMarks } from '../components/community/marks'
-import { extractYoutubeId, youtubeThumbnailUrl } from '../lib/youtube'
 
 // 속 이야기 — 주제별로 속마음을 꺼내놓는 곳. (2026-09-10)
 //
@@ -133,14 +132,10 @@ export default function AppBoard() {
           </button>
         ) : (
           <ul className="space-y-3">
-            {feed.map((p) => {
-              const youtubeId = extractYoutubeId(p.content)
-              const thumbnail = youtubeId ? youtubeThumbnailUrl(youtubeId) : p.images?.[0]
-              return (
+            {feed.map((p) => (
               <li key={p.id}>
                 <Link
                   to={`/app/board/${p.id}`}
-                  style={{ borderRadius: 8 }}
                   className="block rounded-card border border-rule bg-paper p-4 focus:outline-none focus-visible:shadow-ring"
                 >
                   <div className="flex items-center gap-2 mb-2">
@@ -150,13 +145,17 @@ export default function AppBoard() {
                     <span className="text-[11px] text-ink-faint">{timeAgo(p.created_at)}</span>
                   </div>
                   <div className="flex items-start gap-3">
-                    {(thumbnail || p.video_url) && <span style={{ borderRadius: 8 }} className="relative block shrink-0 w-16 h-16 overflow-hidden bg-quiet">
-                      {thumbnail ? <img src={thumbnail} alt={youtubeId ? '영상 미리보기' : '이야기 대표 사진'} loading="lazy" className="h-full w-full object-cover" /> : <video src={p.video_url ?? undefined} muted playsInline preload="metadata" className="h-full w-full object-cover" />}
-                      {(youtubeId || p.video_url) && <span className="absolute inset-0 flex items-center justify-center text-white bg-ink/20" aria-label="영상">▶</span>}
-                    </span>}
-                    <p className="min-w-0 flex-1 text-[15px] text-ink leading-relaxed whitespace-pre-wrap line-clamp-2 break-words">
-                      {p.content.replace(/https?:\/\/[^\s<>]+/g, '').trim() || '공유한 링크를 확인해보세요.'}
+                    <p className="flex-1 text-[14px] text-ink leading-relaxed whitespace-pre-wrap line-clamp-2">
+                      {p.content}
                     </p>
+                    {p.images?.[0] && (
+                      <img
+                        src={p.images[0]}
+                        alt=""
+                        loading="lazy"
+                        className="shrink-0 w-14 h-14 rounded-control object-cover bg-quiet"
+                      />
+                    )}
                   </div>
                   {/* 하루 이야기와 같은 하트·말풍선 — 목록에선 개수만, 누르는 건 글 안에서 */}
                   <div className="flex items-center justify-between mt-3">
@@ -165,7 +164,7 @@ export default function AppBoard() {
                   </div>
                 </Link>
               </li>
-            )})}
+            ))}
           </ul>
         )}
       </section>
