@@ -1,7 +1,7 @@
 import { extractYoutubeId, youtubeThumbnailUrl } from '../../lib/youtube'
 
 /** Read-only preview; opening and playback happen on the existing story page. */
-export default function StoryMediaPreview({ content, images = [], videoUrl }: { content: string; images?: string[]; videoUrl?: string | null }) {
+export default function StoryMediaPreview({ content, images = [], videoUrl, compact = false }: { content: string; images?: string[]; videoUrl?: string | null; compact?: boolean }) {
   const youtubeId = extractYoutubeId(content)
   const link = content.match(/https?:\/\/[^\s<>]+/)?.[0]
   let hostname = ''
@@ -9,6 +9,12 @@ export default function StoryMediaPreview({ content, images = [], videoUrl }: { 
   const image = youtubeId ? youtubeThumbnailUrl(youtubeId) : images[0]
   const video = !!youtubeId || !!videoUrl
   if (!image && !video && !hostname) return null
+  if (compact) return (
+    <span className="relative flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-rule bg-quiet">
+      {image ? <img src={image} alt={video ? '영상 미리보기' : '이야기 대표 사진'} loading="lazy" className="h-full w-full object-cover" onError={event => { event.currentTarget.style.visibility = 'hidden' }} /> : <span className="px-1 text-center text-[10px] text-ink-soft break-all">{video ? '영상' : hostname}</span>}
+      {video && <span className="absolute inset-0 flex items-center justify-center bg-black/15 text-white" aria-label="영상">▶</span>}
+    </span>
+  )
   return (
     <span style={{ borderRadius: 8 }} className="mt-3 block overflow-hidden border border-rule bg-quiet/40">
       {(image || video) && <span className="relative block aspect-video max-h-[200px] overflow-hidden bg-quiet">

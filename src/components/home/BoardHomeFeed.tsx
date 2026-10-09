@@ -19,7 +19,7 @@ function timeAgo(iso: string) {
   return new Date(iso).toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' })
 }
 
-export default function BoardHomeFeed({ category = null, featured = false }: { category?: BoardCategory | null; featured?: boolean }) {
+export default function BoardHomeFeed({ category = null, featured = false, compact = false }: { category?: BoardCategory | null; featured?: boolean; compact?: boolean }) {
   const navigate = useNavigate()
   const [feed, setFeed] = useState<BoardPost[] | null>(null)
 
@@ -32,13 +32,13 @@ export default function BoardHomeFeed({ category = null, featured = false }: { c
   const goBoard = () => navigate('/app/diary', { state: category ? { category } : undefined })
 
   return (
-    <section className="px-5 pt-6">
-      <div className="flex items-end justify-between gap-3 mb-4">
+    <section className={`px-5 ${compact ? 'pt-4' : 'pt-6'}`} aria-label="최신 이야기">
+      <div className={`flex items-end justify-between gap-3 ${compact ? 'mb-2' : 'mb-4'}`}>
         <div className="min-w-0">
-          {!featured && <p className="text-[12px] text-ink-soft leading-relaxed mb-1">{category ? '선택한 주제의 최신 글' : '여러 주제에서 나누는 솔직한 이야기'}</p>}
+          {!featured && !compact && <p className="text-[12px] text-ink-soft leading-relaxed mb-1">{category ? '선택한 주제의 최신 글' : '여러 주제에서 나누는 솔직한 이야기'}</p>}
           <h3 className="text-[17px] font-bold text-ink leading-[1.6]">{featured ? '방금 올라온 이야기' : category ? categoryLabel(category) : '지금 나누는 이야기'}</h3>
         </div>
-        {feed && feed.length > 0 && (
+        {!compact && feed && feed.length > 0 && (
           <button
             onClick={goBoard}
             className="min-h-11 min-w-11 shrink-0 text-[13px] font-medium text-ink-soft focus:outline-none focus-visible:shadow-ring"
@@ -67,28 +67,32 @@ export default function BoardHomeFeed({ category = null, featured = false }: { c
           <p className="text-[14px] text-ink-soft leading-[1.8] mt-2">여기선 이름을 가리고 털어놓을 수 있어요</p>
         </button>
       ) : (
-        <ul className="space-y-3">
+        <ul className={compact ? 'divide-y divide-rule' : 'space-y-3'}>
           {feed.map((p) => (
             <li key={p.id}>
               <Link
                 to={`/app/board/${p.id}`}
                 style={{ borderRadius: 8 }}
-                className="block rounded-card border border-rule bg-paper px-5 py-4 focus:outline-none focus-visible:shadow-ring"
+                className={compact ? 'flex items-center gap-3 bg-paper py-3 focus:outline-none focus-visible:shadow-ring' : 'block rounded-card border border-rule bg-paper px-5 py-4 focus:outline-none focus-visible:shadow-ring'}
               >
+                {compact && <StoryMediaPreview content={p.content} images={p.images} videoUrl={p.video_url} compact />}
+                <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2 mb-2">
                   <span className="text-[12px] font-semibold text-ink-soft bg-quiet rounded-full px-2.5 py-1 leading-relaxed">
                     {categoryLabel(p.category)}
                   </span>
                   <span className="text-[12px] text-ink-soft">{timeAgo(p.created_at)}</span>
                 </div>
-                <p className="text-[15px] text-ink leading-[1.8] line-clamp-3 whitespace-pre-wrap break-words">{p.content.replace(/https?:\/\/[^\s<>]+/g, '').trim() || '공유한 링크를 확인해보세요.'}</p>
-                <StoryMediaPreview content={p.content} images={p.images} videoUrl={p.video_url} />
-                <div className="mt-3 flex justify-end text-ink-soft"><MetaMarks likes={p.like_count ?? 0} comments={p.comment_count} size={15} /></div>
+                <p className={`text-[15px] text-ink leading-[1.6] ${compact ? 'line-clamp-2' : 'line-clamp-3'} whitespace-pre-wrap break-words`}>{p.content.replace(/https?:\/\/[^\s<>]+/g, '').trim() || '공유한 링크를 확인해보세요.'}</p>
+                {!compact && <StoryMediaPreview content={p.content} images={p.images} videoUrl={p.video_url} />}
+                <div className={`${compact ? 'mt-1' : 'mt-3'} flex justify-end text-ink-soft`}><MetaMarks likes={p.like_count ?? 0} comments={p.comment_count} size={15} /></div>
+                </div>
               </Link>
             </li>
           ))}
         </ul>
       )}
+      {compact && <button type="button" onClick={goBoard} className="mt-2 min-h-11 w-full rounded-lg border border-rule text-[14px] font-semibold text-ink focus-visible:shadow-ring">{category ? `${categoryLabel(category)} 이야기 더 보기 →` : '이야기 더 보기 →'}</button>}
     </section>
   )
 }

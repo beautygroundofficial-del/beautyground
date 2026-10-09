@@ -27,27 +27,28 @@ const GRID_ITEMS: { key: BoardCategory; short: string; emoji: string }[] = [
 interface Props {
   selectedCategory?: BoardCategory | null
   onSelect?: (key: BoardCategory | null) => void
+  compact?: boolean
 }
 
-export default function BoardCategoryGrid({ selectedCategory = null, onSelect }: Props) {
+export default function BoardCategoryGrid({ selectedCategory = null, onSelect, compact = false }: Props) {
   const navigate = useNavigate()
   const go = (key: BoardCategory) => onSelect ? onSelect(key) : navigate('/app/board', { state: { category: key } })
 
   return (
-    <section className="px-5 pt-7">
+    <section className={`px-5 ${compact ? 'pt-2' : 'pt-7'}`}>
       <div className="flex items-center justify-between gap-3 mb-1">
         <h2 className="text-[18px] font-bold text-ink leading-[1.6]">주제별 이야기</h2>
         {onSelect && <button type="button" onClick={() => onSelect(null)} aria-pressed={selectedCategory === null} className={`min-h-11 px-3 text-[12px] rounded-full focus-visible:shadow-ring ${selectedCategory === null ? 'font-bold text-ink' : 'text-ink-soft'}`}>전체 보기</button>}
       </div>
-      <p className="mb-4 text-[13px] leading-relaxed text-ink-soft">주제를 선택하면 아래에서 해당 글을 볼 수 있어요.</p>
-      <div className="grid grid-cols-5 gap-2">
+      {!compact && <p className="mb-4 text-[13px] leading-relaxed text-ink-soft">주제를 선택하면 아래에서 해당 글을 볼 수 있어요.</p>}
+      <div className={`grid grid-cols-5 ${compact ? 'gap-x-2 gap-y-1' : 'gap-2'}`}>
         {GRID_ITEMS.map((c, i) => (
           <button
             key={c.key}
             type="button"
             onClick={() => go(c.key)}
             aria-pressed={onSelect ? selectedCategory === c.key : undefined}
-            className={`flex min-h-[84px] min-w-0 flex-col items-center justify-center gap-2 focus:outline-none focus-visible:shadow-ring transition-colors ${selectedCategory === c.key ? 'font-bold text-ink' : 'text-ink-soft'}`}
+            className={`flex ${compact ? 'min-h-[68px] gap-1' : 'min-h-[84px] gap-2'} min-w-0 flex-col items-center justify-center focus:outline-none focus-visible:shadow-ring transition-colors ${selectedCategory === c.key ? 'font-bold text-ink' : 'text-ink-soft'}`}
           >
             <span
               className="w-9 h-9 rounded-full flex items-center justify-center text-[20px]"
