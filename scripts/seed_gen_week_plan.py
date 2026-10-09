@@ -91,7 +91,7 @@ def gemini_generate_original(category, n_comments):
         caption = str(parsed.get("caption", "")).strip()
         comments = [str(c).strip() for c in parsed.get("comments", []) if str(c).strip()]
         if caption and comments:
-            return {"caption": caption, "comments": comments}
+            return {"caption": caption, "comments": comments, "engine": "claude"}
     body = json.dumps({
         "contents": [{"parts": [{"text": prompt}]}],
         "generationConfig": {"response_mime_type": "application/json"},
@@ -108,7 +108,7 @@ def gemini_generate_original(category, n_comments):
             caption = parsed.get("caption", "").strip()
             comments = [c.strip() for c in parsed.get("comments", []) if c.strip()]
             if caption and comments:
-                return {"caption": caption, "comments": comments}
+                return {"caption": caption, "comments": comments, "engine": "gemini"}
             last_err = "빈 응답"
             break
         except urllib.error.HTTPError as e:
@@ -162,7 +162,7 @@ def gemini_generate(video_title, category, n_comments):
         caption = str(parsed.get("caption", "")).strip()
         comments = [str(c).strip() for c in parsed.get("comments", []) if str(c).strip()]
         if caption and comments:
-            return {"caption": caption, "comments": comments}
+            return {"caption": caption, "comments": comments, "engine": "claude"}
     body = json.dumps({
         "contents": [{"parts": [{"text": prompt}]}],
         "generationConfig": {"response_mime_type": "application/json"},
@@ -186,7 +186,7 @@ def gemini_generate(video_title, category, n_comments):
             caption = parsed.get("caption", "").strip()
             comments = [c.strip() for c in parsed.get("comments", []) if c.strip()]
             if caption and comments:
-                return {"caption": caption, "comments": comments}
+                return {"caption": caption, "comments": comments, "engine": "gemini"}
             last_err = "빈 응답"
             break
         except urllib.error.HTTPError as e:
@@ -317,7 +317,7 @@ for cat_i, cat in enumerate(today_categories):
     if gen:
         caption = gen["caption"]
         comment_pool = gen["comments"]
-        source = "gemini"
+        source = gen.get("engine", "gemini")
     else:
         caption = random.choice(FALLBACK_CAPTIONS.get(cat, ["이거 보세요"]))
         comment_pool = FALLBACK_COMMENTS
