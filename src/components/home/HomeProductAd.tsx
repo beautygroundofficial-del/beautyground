@@ -14,16 +14,32 @@ export default function HomeProductAd() {
 
   useEffect(() => {
     let active = true
-    void getHomeAd().then(value => { if (active) setAd(value) }).catch(() => {})
-    return () => { active = false }
+    let busy = false
+    let timer: number | undefined
+    let lastKey = ''
+    const load = async () => {
+      if (!active || busy) return
+      busy = true
+      clearTimeout(timer)
+      try {
+        const value = await getHomeAd()
+        if (!active) return
+        const key = value ? `${value.campaign_id}:${value.product_id}:${value.slot_at}` : ''
+        if (key !== lastKey) { setOpen(false); setImageFailed(false); lastKey = key }
+        setAd(value)
+        // Server-relative delay survives a wrong phone clock. Recheck within a minute for pauses/stock changes.
+        const delay = value ? Math.min(60000, Math.max(1000, value.refresh_after_seconds * 1000 + 100)) : 60000
+        timer = window.setTimeout(() => { void load() }, delay)
+      } catch {
+        if (active) { setOpen(false); setAd(null); timer = window.setTimeout(() => { void load() }, 60000) }
+      } finally { busy = false }
+    }
+    const resume = () => { if (document.visibilityState === 'visible') void load() }
+    void load()
+    document.addEventListener('visibilitychange', resume)
+    window.addEventListener('focus', resume)
+    return () => { active = false; clearTimeout(timer); document.removeEventListener('visibilitychange', resume); window.removeEventListener('focus', resume) }
   }, [])
-
-  useEffect(() => {
-    if (!ad) return
-    const remaining = new Date(ad.ends_at).getTime() - Date.now()
-    const timeout = window.setTimeout(() => { setOpen(false); setAd(null) }, Math.min(Math.max(0, remaining), 2147483647))
-    return () => clearTimeout(timeout)
-  }, [ad])
 
   useEffect(() => {
     if (!ad || imageFailed || !card.current) return

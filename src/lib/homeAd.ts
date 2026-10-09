@@ -10,6 +10,8 @@ export interface HomeAd {
   sale_price: number | null
   thumbnail_url: string
   ends_at: string
+  slot_at: string
+  refresh_after_seconds: number
 }
 
 export type AdEvent = 'impression' | 'popup_open' | 'product_click'
@@ -21,7 +23,8 @@ export async function getHomeAd(): Promise<HomeAd | null> {
   if (isHomeAdPreview()) {
     const { data, error } = await supabase.from('products').select('id,name,brand,price,sale_price,thumbnail_url').eq('id', HOME_AD_PILOT_PRODUCT).eq('status', 'on_sale').maybeSingle()
     if (error || !data?.thumbnail_url) return null
-    return { campaign_id: 'local-preview', campaign_name: '홈 상품 광고 자체 테스트', product_id: data.id, product_name: data.name, brand: data.brand, price: data.price, sale_price: data.sale_price, thumbnail_url: data.thumbnail_url, ends_at: new Date(Date.now() + 86400000).toISOString() }
+    const slot = Math.floor(Date.now() / 3600000) * 3600000
+    return { campaign_id: 'local-preview', campaign_name: '홈 상품 광고 자체 테스트', product_id: data.id, product_name: data.name, brand: data.brand, price: data.price, sale_price: data.sale_price, thumbnail_url: data.thumbnail_url, ends_at: new Date(slot + 3600000).toISOString(), slot_at: new Date(slot).toISOString(), refresh_after_seconds: (slot + 3600000 - Date.now()) / 1000 }
   }
   const { data, error } = await supabase.rpc('get_active_home_ad')
   if (error) return null
@@ -46,13 +49,12 @@ function getSessionId() {
 }
 
 export function trackHomeAd(ad: HomeAd, kind: AdEvent): Promise<void> {
-  if (isHomeAdPreview() || ad.campaign_id === 'local-preview' || !location.pathname.startsWith('/app/')) return Promise.resolve()
-  const day = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' })
-  const key = `${ad.campaign_id}:${day}:${kind}`
+  if (import.meta.env.DEV || ad.campaign_id === 'local-preview' || !location.pathname.startsWith('/app/')) return Promise.resolve()
+  const key = `${ad.campaign_id}:${ad.product_id}:${ad.slot_at}:${kind}`
   // Serial requests preserve impression → popup → product-click ordering.
   eventQueue = eventQueue.catch(() => {}).then(async () => {
     if (recorded.has(key)) return
-    const { data, error } = await supabase.rpc('record_home_ad_event', { p_campaign_id: ad.campaign_id, p_session_id: getSessionId(), p_kind: kind })
+    const { data, error } = await supabase.rpc('record_home_ad_event', { p_campaign_id: ad.campaign_id, p_product_id: ad.product_id, p_slot_at: ad.slot_at, p_session_id: getSessionId(), p_kind: kind })
     if (!error && data === true) recorded.add(key)
   }).catch(() => { /* Advertising metrics must never block shopping. */ })
   return eventQueue
