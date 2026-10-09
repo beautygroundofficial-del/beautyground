@@ -8,6 +8,7 @@ import TodayQuestion from '../community/TodayQuestion'
 import BoardHomeFeed from './BoardHomeFeed'
 import BoardCategoryGrid from './BoardCategoryGrid'
 import FeaturedDailyStory from './FeaturedDailyStory'
+import HomeProductAd from './HomeProductAd'
 import type { HeroBanner } from '../../hooks/useHeroBanners'
 import type { ShopProduct } from '../../hooks/useShopProducts'
 import type { ShopBrand } from '../../hooks/useShopBrands'
@@ -58,6 +59,7 @@ export default function HomeBody({ marqueeItems, promoBarAbove = false }: HomeBo
       <div id="home-topics" className="scroll-mt-28">
         <BoardCategoryGrid selectedCategory={category} onSelect={setCategory} compact />
       </div>
+      <HomeProductAd />
       {/* 대표 일기와 최신 주제 글은 서로 다른 목록이므로 중복 노출하지 않는다. */}
       <div id="home-days" className="scroll-mt-28"><FeaturedDailyStory /></div>
       <BoardHomeFeed category={category} compact />

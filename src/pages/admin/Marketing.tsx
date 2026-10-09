@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
 import { won, comma } from '../../lib/format'
+import HomeAdReport from '../../components/admin/HomeAdReport'
 
 type Row = {
   source: string
@@ -63,6 +64,7 @@ export default function AdminMarketing() {
       </header>
 
       <main className="max-w-[1200px] p-8">
+        <HomeAdReport />
         <h1 className="text-[22px] font-bold text-ink mb-2">유입경로 분석</h1>
         <p className="text-[13px] text-ink-soft mb-5">
           네이버·구글 검색, 인스타그램·페이스북, 카카오 등 어느 경로로 들어온 손님이 실제 회원가입·구매까지
