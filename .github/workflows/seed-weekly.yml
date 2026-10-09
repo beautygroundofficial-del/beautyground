@@ -32,6 +32,7 @@ jobs:
       - name: 이번 주 게시 계획 생성(랜덤 요일·계정 로테이션·영상 내용에 맞는 캡션·댓글)
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: python3 scripts/seed_gen_week_plan.py
 
       - name: 실행 SQL 생성

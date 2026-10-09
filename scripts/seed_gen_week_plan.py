@@ -22,6 +22,31 @@ accounts = [a for a in accounts_raw if a.get("nickname")]
 
 GEMINI_KEY = os.environ.get("GEMINI_API_KEY")
 GEMINI_MODEL = "gemini-2.5-flash"
+ANTHROPIC_KEY = os.environ.get("ANTHROPIC_API_KEY")
+CLAUDE_MODEL = "claude-haiku-4-5"
+
+
+def claude_json(prompt):
+    """Claude Haiku 1차 생성기(2026-10-09 전환 — Gemini 503/타임아웃으로 대체문구행이 4건 중 3건 발생).
+    프롬프트를 Haiku에 보내 JSON dict를 받는다. 키가 없거나 실패하면 None → Gemini → 정적 템플릿 순으로 대체."""
+    if not ANTHROPIC_KEY:
+        return None
+    body = json.dumps({
+        "model": CLAUDE_MODEL, "max_tokens": 1024,
+        "messages": [{"role": "user", "content": prompt}],
+    }).encode("utf-8")
+    for attempt in range(2):
+        try:
+            req = urllib.request.Request("https://api.anthropic.com/v1/messages", data=body, headers={
+                "x-api-key": ANTHROPIC_KEY, "anthropic-version": "2023-06-01", "content-type": "application/json"})
+            with urllib.request.urlopen(req, timeout=60) as resp:
+                text = json.load(resp)["content"][0]["text"]
+            m = re.search(r"\{.*\}", text, re.S)
+            return json.loads(m.group(0)) if m else None
+        except Exception as e:
+            print(f"  [claude 실패, {attempt + 1}회 시도] {e}", file=sys.stderr)
+            time.sleep(5)
+    return None
 
 
 def yid(url):
@@ -49,7 +74,7 @@ CATEGORY_DESC = {
 def gemini_generate_original(category, n_comments):
     """영상 없이, 그 카테고리 주제로 자연스럽게 떠오른 생각을 쓰는 글 — 캡션 1개 + 댓글 n개.
     2026-09-30 대표님 지시: 쇼츠 링크만 계속 올라오면 부자연스럽다 — 텍스트만 쓰는 글도 섞어야 함."""
-    if not GEMINI_KEY:
+    if not GEMINI_KEY and not ANTHROPIC_KEY:
         return None
     cat_desc = CATEGORY_DESC.get(category, category)
     prompt = (
@@ -61,6 +86,12 @@ def gemini_generate_original(category, n_comments):
         "규칙: 존댓말 완결문 대신 반말·구어체 섞기, 이모티콘 남발 금지.\n"
         '다음 JSON 형식으로만 답하세요: {"caption": "...", "comments": ["...", ...]}'
     )
+    parsed = claude_json(prompt)  # 2026-10-09 대표님 지시: 앞으로 Claude Haiku가 기본, Gemini는 Haiku 실패 시 대체
+    if parsed:
+        caption = str(parsed.get("caption", "")).strip()
+        comments = [str(c).strip() for c in parsed.get("comments", []) if str(c).strip()]
+        if caption and comments:
+            return {"caption": caption, "comments": comments}
     body = json.dumps({
         "contents": [{"parts": [{"text": prompt}]}],
         "generationConfig": {"response_mime_type": "application/json"},
@@ -106,7 +137,7 @@ def gemini_generate(video_title, category, n_comments):
     제목만으로 판단해 그 카테고리 게시판과 안 맞으면 fits_category=false를 받아 이 영상은 쓰지 않는다
     (2026-09-30 — "담배 피우는 이유" 영상이 parents 카테고리에 잘못 들어간 사고로 추가).
     제목에 없는 내용을 지어내지 말라는 규칙도 명시(같은 날 living 카테고리에서 지어낸 사례 발견)."""
-    if not GEMINI_KEY:
+    if not GEMINI_KEY and not ANTHROPIC_KEY:
         return None
     cat_desc = CATEGORY_DESC.get(category, category)
     prompt = (
@@ -123,6 +154,15 @@ def gemini_generate(video_title, category, n_comments):
         "자연스럽게 언급할 것.\n"
         '다음 JSON 형식으로만 답하세요: {"fits_category": true/false, "caption": "...", "comments": ["...", ...]}'
     )
+    parsed = claude_json(prompt)  # Haiku 기본, 실패 시 아래 Gemini로 대체
+    if parsed:
+        if not parsed.get("fits_category", True):
+            print(f"  [카테고리 불일치, 건너뜀] {video_title[:40]}", file=sys.stderr)
+            return "mismatch"
+        caption = str(parsed.get("caption", "")).strip()
+        comments = [str(c).strip() for c in parsed.get("comments", []) if str(c).strip()]
+        if caption and comments:
+            return {"caption": caption, "comments": comments}
     body = json.dumps({
         "contents": [{"parts": [{"text": prompt}]}],
         "generationConfig": {"response_mime_type": "application/json"},
@@ -198,8 +238,10 @@ POST_TYPES = ["text", "shorts", "image"]
 POST_TYPE_WEIGHTS = [0.4, 0.3, 0.3]
 MIN_POSTS_PER_DAY = 2
 MAX_POSTS_PER_DAY = 4
-# 2026-10-01: 앱스토어·플레이 심사 "검토 중"인 동안 피드 노출 빈도를 낮추려고 6~10 → 2~4로 축소
-# (대표님 지시: 정지는 하지 않고 생성 빈도만 줄임 — 앱 심사 거절 리스크 점검 중 발견).
+# 2026-10-04 정정: 바로 위 복귀 조치는 잘못된 판단이었음 — Gmail만 검색하고 옵시디언(앱 스토어 등록.md)을
+# 확인하지 않아, 애플·구글 둘 다 2026-09-28에 이미 심사 제출(iOS appStoreState=READY_FOR_REVIEW,
+# Google Play "검토 중인 변경사항")까지 끝나있던 것을 놓쳤다. 10-01 축소 조치가 맞았으므로 원복.
+# 앞으로 "심사 제출 여부"를 판단할 땐 Gmail 검색만으로 결론 내리지 말고 옵시디언 03 홈페이지/앱 스토어 등록.md부터 볼 것.
 # 이미지형 글의 사진 — CC0(Open Peeps, dicebear.com이 무료 호스팅) 재확인된 라이선스라 재검토 불필요.
 DICEBEAR_STYLE = "open-peeps"
 
@@ -230,7 +272,7 @@ for cat_i, cat in enumerate(today_categories):
 
     video = None
     gen = None
-    n_likes = random.randint(4, 12)  # 2026-10-01: 심사 기간 노출 축소(10~30 → 4~12)
+    n_likes = random.randint(4, 12)  # 2026-10-04 정정: 심사 제출 이미 돼있었음(위 설명 참고), 축소 원복
     n_comments_target = max(1, int(n_likes * random.uniform(0.25, 0.45)))
 
     if post_type == "shorts":
@@ -267,7 +309,7 @@ for cat_i, cat in enumerate(today_categories):
     # 팔로워(친구) 자동 추가 — 2026-09-30 대표님 지시: 매일 글을 쓰니 그때마다 다른 계정들이
     # 글쓴이를 친구로 추가하게 하자. 전원 똑같이 10%면 티가 나니, 5%/7%/10% 중 매번 랜덤으로
     # 하나 골라 그 비율만큼만 추가(자연스러운 편차를 위함).
-    # 2026-10-01: 앱 심사 "검토 중" 기간 노출 축소 — 5/7/10% → 2/3/5%로 하향(대표님 지시, 중단은 아님).
+    # 2026-10-04 정정: 심사 제출 이미 돼있었음(위 설명 참고) — 축소 비율로 원복.
     follow_rate = random.choice([0.02, 0.03, 0.05])
     n_followers = round(len(react_pool) * follow_rate)
     followers = random.sample(react_pool, min(n_followers, len(react_pool)))
