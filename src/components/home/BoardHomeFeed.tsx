@@ -26,7 +26,7 @@ export default function BoardHomeFeed({ category = null, featured = false }: { c
   useEffect(() => {
     let active = true
     setFeed(null)
-    void getBoardFeed(category ? [category] : [], featured ? 1 : category ? 3 : 4).then((rows) => { if (active) setFeed(featured || category ? rows : rows.slice(1)) })
+    void getBoardFeed(category ? [category] : [], featured ? 1 : 3).then((rows) => { if (active) setFeed(rows) })
     return () => { active = false }
   }, [category, featured])
   const goBoard = () => navigate('/app/diary', { state: category ? { category } : undefined })

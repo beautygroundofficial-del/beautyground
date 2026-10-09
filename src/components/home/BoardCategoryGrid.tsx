@@ -47,17 +47,16 @@ export default function BoardCategoryGrid({ selectedCategory = null, onSelect }:
             type="button"
             onClick={() => go(c.key)}
             aria-pressed={onSelect ? selectedCategory === c.key : undefined}
-            style={selectedCategory === c.key ? { backgroundColor: 'var(--color-quiet, #f2f3f7)', boxShadow: 'inset 0 0 0 2px currentColor', borderRadius: 8 } : { borderRadius: 8 }}
-            className={`flex min-h-[84px] min-w-0 flex-col items-center justify-center gap-2 rounded-xl border focus:outline-none focus-visible:shadow-ring transition-colors ${selectedCategory === c.key ? 'border-ink bg-quiet' : 'border-rule bg-paper'}`}
+            className={`flex min-h-[84px] min-w-0 flex-col items-center justify-center gap-2 focus:outline-none focus-visible:shadow-ring transition-colors ${selectedCategory === c.key ? 'font-bold text-ink' : 'text-ink-soft'}`}
           >
             <span
               className="w-9 h-9 rounded-full flex items-center justify-center text-[20px]"
-              style={{ backgroundColor: `${SUB_COLORS[i % SUB_COLORS.length]}1A` }}
+              style={{ backgroundColor: `${SUB_COLORS[i % SUB_COLORS.length]}1A`, outline: selectedCategory === c.key ? '2px solid currentColor' : undefined, outlineOffset: 3 }}
               aria-hidden="true"
             >
               {c.emoji}
             </span>
-            <span className="text-[13px] font-medium text-ink leading-relaxed">{selectedCategory === c.key ? '✓ ' : ''}{c.short}</span>
+            <span className="text-[14px] font-medium text-ink leading-relaxed">{c.short}</span>
           </button>
         ))}
       </div>

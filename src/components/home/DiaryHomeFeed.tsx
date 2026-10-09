@@ -58,7 +58,7 @@ function SectionHead({ label, title, onMore }: { label: string; title: string; o
   )
 }
 
-export default function DiaryHomeFeed({ limit = 6, compact = false }: { limit?: number; compact?: boolean }) {
+export default function DiaryHomeFeed({ limit = 6, compact = false, skipFirst = false }: { limit?: number; compact?: boolean; skipFirst?: boolean }) {
   const navigate = useNavigate()
   const [feed, setFeed] = useState<Diary[] | null>(null)
   const [loggedIn, setLoggedIn] = useState(false)
@@ -127,7 +127,7 @@ export default function DiaryHomeFeed({ limit = 6, compact = false }: { limit?: 
           </button>
         ) : (
           <ul className="divide-y divide-rule border-t border-rule">
-            {feed.map((d) => {
+            {feed.slice(skipFirst ? 1 : 0).map((d) => {
               const imgs = d.images ?? []
               if (compact) return (
                 <li key={d.id} className="py-4">

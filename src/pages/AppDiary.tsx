@@ -225,11 +225,11 @@ export default function AppDiary() {
       {/* 속 이야기 병합 — 하루 일기보다 반응(하트·댓글)이 훨씬 활발해 화면 맨 위에 둔다
           (2026-09-30 대표님 지시: 탭 없애고 한 화면으로 + "맨 밑에 있으면 아무도 안 본다") */}
       <section className="px-5 pt-8 pb-2">
-        <SectionHead label="주제별로 속마음을 꺼내놓는 곳" title="다같이 나누는 이야기" />
+        <SectionHead label={boardCategory ? '선택한 주제의 이야기만 모았어요' : '주제별로 속마음을 꺼내놓는 곳'} title={boardCategory ? categoryLabel(boardCategory) : '다같이 나누는 이야기'} />
         {boardLoading ? (
           <p className="py-12 text-center text-[13px] text-ink-faint">불러오는 중…</p>
         ) : boardFeed.length === 0 ? (
-          <p className="py-12 text-center text-[13px] text-ink-faint">아직 아무도 속 이야기를 꺼내지 않았어요</p>
+          <p className="py-12 text-center text-[14px] text-ink-soft">{boardCategory ? '이 주제에는 아직 이야기가 없어요. 다른 주제도 둘러보세요.' : '아직 아무도 속 이야기를 꺼내지 않았어요'}</p>
         ) : (
           <ul className="space-y-3">
             {boardFeed.map((p) => {
