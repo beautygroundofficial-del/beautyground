@@ -18,7 +18,10 @@ const config: CapacitorConfig = {
   server: {
     url: serverUrl,
     cleartext: serverUrl.startsWith('http://'),
-    // 로그인(카카오·네이버·Supabase)·결제(포트원/이니시스) 화면은 앱 안에서 열려야 한다
+    // 로그인(카카오·네이버·Apple·Supabase)·결제(포트원/이니시스) 화면은 앱 안에서 열려야 한다
+    // ⚠️ 2026-10-10 Apple 심사 거절(Guideline 4) — appleid.apple.com이 빠져있어 "Apple로 시작하기"가
+    // 앱 안 웹뷰가 아니라 기기 기본 브라우저(사파리)로 튕겨나갔다. 카카오·네이버는 처음부터 있었는데
+    // Apple 로그인을 나중에 추가하면서 이 목록을 안 챙긴 게 원인.
     allowNavigation: [
       'beautyground.co.kr',
       '*.beautyground.co.kr',
@@ -26,6 +29,7 @@ const config: CapacitorConfig = {
       'kauth.kakao.com',
       'accounts.kakao.com',
       'nid.naver.com',
+      'appleid.apple.com',
       '*.portone.io',
       '*.inicis.com',
     ],

@@ -19,11 +19,14 @@ export function nativePlatform(): 'ios' | 'android' | 'web' {
 }
 
 // 앱 안에서 그대로 열어도 되는 호스트 — capacitor.config.ts 의 allowNavigation 과 같은 목록
+// ⚠️ 2026-10-10 Apple 심사 거절(Guideline 4) 계기로 apple.com 추가 — appleid.apple.com이 빠져있어
+// "Apple로 시작하기"가 앱 밖 사파리로 튕겨나갔었다.
 const IN_APP_HOSTS = [
   /(^|\.)beautyground\.co\.kr$/,
   /\.supabase\.co$/,
   /kakao\.com$/,
   /naver\.com$/,
+  /apple\.com$/,
   /portone\.io$/,
   /inicis\.com$/,
 ]
