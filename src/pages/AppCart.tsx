@@ -102,7 +102,9 @@ export default function AppCart() {
 
   const selectedLines = lines.filter((l) => selected.has(l.id))
   const subtotal = selectedLines.reduce((s, l) => s + linePrice(l) * l.quantity, 0)
-  const deliveryFee = subtotal === 0 || subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_FEE
+  // 무료배송 판정은 VVIP 할인 전 정가 합계 기준(비VVIP는 subtotal과 같음)
+  const listSubtotal = selectedLines.reduce((s, l) => s + (l.product.sale_price ?? l.product.price) * l.quantity, 0)
+  const deliveryFee = subtotal === 0 || listSubtotal >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_FEE
   const total = subtotal + deliveryFee
 
   // 담긴 상품과 같은 카테고리에서 추천 — 장바구니 담긴 상품은 추천에서 제외
@@ -161,6 +163,7 @@ export default function AppCart() {
           onUpdateQty={updateQty}
           onRemove={removeItem}
           subtotal={subtotal}
+          listSubtotal={listSubtotal}
           isVvip={isVvip}
           linePrice={linePrice}
           deliveryFee={deliveryFee}
@@ -308,9 +311,9 @@ export default function AppCart() {
                   {deliveryFee === 0 ? '무료' : `${deliveryFee.toLocaleString('ko-KR')}원`}
                 </span>
               </div>
-              {subtotal > 0 && subtotal < FREE_SHIPPING_THRESHOLD && (
+              {subtotal > 0 && listSubtotal < FREE_SHIPPING_THRESHOLD && (
                 <p className="text-[11px] text-ink-faint">
-                  무료배송까지 {(FREE_SHIPPING_THRESHOLD - subtotal).toLocaleString('ko-KR')}원 남았어요
+                  무료배송까지 {(FREE_SHIPPING_THRESHOLD - listSubtotal).toLocaleString('ko-KR')}원 남았어요
                 </p>
               )}
               <div className="flex justify-between pt-2 border-t border-rule mt-2">

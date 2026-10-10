@@ -18,6 +18,7 @@ interface Props {
   onUpdateQty: (line: CartLine, delta: number) => void
   onRemove: (line: CartLine) => void
   subtotal: number
+  listSubtotal: number // VVIP 할인 전 정가 합계 — 무료배송 판정 기준
   isVvip: boolean
   linePrice: (line: CartLine) => number
   deliveryFee: number
@@ -40,6 +41,7 @@ export default function DesktopCart({
   onUpdateQty,
   onRemove,
   subtotal,
+  listSubtotal,
   isVvip,
   linePrice,
   deliveryFee,
@@ -187,9 +189,9 @@ export default function DesktopCart({
                     {deliveryFee === 0 ? '무료' : `${deliveryFee.toLocaleString('ko-KR')}원`}
                   </span>
                 </div>
-                {subtotal > 0 && subtotal < FREE_SHIPPING_THRESHOLD && (
+                {subtotal > 0 && listSubtotal < FREE_SHIPPING_THRESHOLD && (
                   <p className="text-[11px] text-ink-faint">
-                    {(FREE_SHIPPING_THRESHOLD - subtotal).toLocaleString('ko-KR')}원 더 담으면 무료 배송
+                    {(FREE_SHIPPING_THRESHOLD - listSubtotal).toLocaleString('ko-KR')}원 더 담으면 무료 배송
                   </p>
                 )}
                 <div className="flex justify-between pt-3 border-t border-rule mt-3">

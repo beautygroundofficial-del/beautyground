@@ -357,9 +357,11 @@ export default function AppOrder() {
   }
 
   const subtotal = items.reduce((s, i) => s + i.price * i.quantity, 0)
+  // 무료배송 판정은 VVIP 할인 전 정가 합계 기준(비VVIP는 price와 같음)
+  const listSubtotal = items.reduce((s, i) => s + (i.basePrice ?? i.price) * i.quantity, 0)
   const selectedCoupon = selectedCouponId ? myCoupons.find((c) => c.id === selectedCouponId) ?? null : null
   const isFreeShipCoupon = selectedCoupon?.discountType === 'free_shipping'
-  const baseDeliveryFee = subtotal === 0 || subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_FEE
+  const baseDeliveryFee = subtotal === 0 || listSubtotal >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_FEE
   const deliveryFee = isFreeShipCoupon ? 0 : baseDeliveryFee
   // 결제 직전 실제 적용 여부는 handlePay 에서 서버(redeem_live_coupon 등)로 원자적으로 확정됨 — 이건 화면 미리보기용
   const couponPreview = liveCoupon && couponEligible(liveCoupon, subtotal) ? couponDiscountAmount(liveCoupon, subtotal) : 0

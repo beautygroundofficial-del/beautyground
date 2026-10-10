@@ -575,16 +575,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   // 1) 상품 소계 = Σ (실제 판매가 × 수량, VVIP면 브랜드별 할인 반영). product_id 없는 행(배송비/쿠폰 행)은 서버가 별도 재계산하므로 무시.
   let authoritativeSubtotal = 0
+  let listSubtotal = 0 // VVIP 할인 전 정가 합계 — 무료배송 판정 기준(2026-10-11 대표님 지시: VVIP도 할인 전 3만원 이상이면 무료배송)
   for (const r of rows) {
     if (!r.product_id || !r.products) continue
     const baseUnit = r.products.sale_price ?? r.products.price ?? 0
     const unit = vvipUnitPrice(baseUnit, r.partner_id)
     authoritativeSubtotal += unit * (r.quantity as number)
+    listSubtotal += baseUnit * (r.quantity as number)
   }
 
   // 2) 배송비 = 소계 기준 재계산 (클라이언트 배송비 행 무시)
   const shippingFee =
-    authoritativeSubtotal > 0 && authoritativeSubtotal < FREE_SHIPPING_THRESHOLD ? SHIPPING_FEE : 0
+    authoritativeSubtotal > 0 && listSubtotal < FREE_SHIPPING_THRESHOLD ? SHIPPING_FEE : 0
 
   // 3) 라이브 쿠폰 할인 = DB 쿠폰으로 재계산 (활성·최소구매액 충족 시에만). 클라이언트 쿠폰 행 무시.
   let couponDiscount = 0

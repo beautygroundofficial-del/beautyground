@@ -5,6 +5,7 @@ export interface OrderItem {
   product_id: string
   name: string
   price: number
+  basePrice?: number // VVIP 할인 전 정가 — 무료배송 판정용
   quantity: number
   thumbnail?: string | null
   cart_item_id?: string
@@ -73,7 +74,7 @@ export async function revalidateOrderItems(
     }
     const isDeptStore = p.partner_id ? (deptStoreMap.get(p.partner_id) ?? true) : true
     const nowPrice = vvip ? vvipPrice(basePrice, isDeptStore) : basePrice
-    next.push({ ...it, price: nowPrice, quantity: qty })
+    next.push({ ...it, price: nowPrice, basePrice, quantity: qty })
   }
   return { items: next, notices, blocked, isVvip: vvip }
 }
