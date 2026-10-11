@@ -161,7 +161,8 @@ export default function AdminBoardReports() {
               <tbody>
                 {others.map((r) => {
                   const key = `${r.target_type}:${r.target_id}`
-                  const gone = r.content === null
+                  const isUser = r.target_type === 'user'
+                  const gone = !isUser && r.content === null
                   return (
                     <tr key={key} className="border-b border-rule last:border-b-0 align-top">
                       <td className="px-4 py-3 font-bold text-ink tabular-nums">{r.report_count}</td>
@@ -170,9 +171,9 @@ export default function AdminBoardReports() {
                       <td className="px-4 py-3 text-ink-soft max-w-[260px]"><p className="line-clamp-3">{r.reasons || '—'}</p></td>
                       <td className="px-4 py-3 text-ink-soft whitespace-nowrap">{maskName(r.nickname)}</td>
                       <td className="px-4 py-3 text-ink-soft whitespace-nowrap tabular-nums">{fmt(r.last_reported_at)}</td>
-                      <td className="px-4 py-3 whitespace-nowrap">{gone ? <span className="text-[12px] text-ink-faint">삭제됨</span> : r.status === 'hidden' ? <span className="text-[12px] text-signal-red">가려짐</span> : <span className="text-[12px] text-ink-faint">보이는 중</span>}</td>
+                      <td className="px-4 py-3 whitespace-nowrap">{isUser ? <span className="text-[12px] text-ink-faint">차단됨</span> : gone ? <span className="text-[12px] text-ink-faint">삭제됨</span> : r.status === 'hidden' ? <span className="text-[12px] text-signal-red">가려짐</span> : <span className="text-[12px] text-ink-faint">보이는 중</span>}</td>
                       <td className="px-4 py-3 whitespace-nowrap">
-                        {!gone && (
+                        {!gone && !isUser && (
                           <button type="button" disabled={busyKey === key} onClick={() => void toggleOther(r)} className="text-[12px] text-signal-blue hover:underline disabled:opacity-40">
                             {busyKey === key ? '처리 중…' : r.target_type === 'chat' ? '삭제' : r.status === 'hidden' ? '되살리기' : '가리기'}
                           </button>

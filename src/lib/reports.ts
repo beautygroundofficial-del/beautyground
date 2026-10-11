@@ -2,7 +2,9 @@ import { supabase } from './supabase'
 
 // 신고 — 속 이야기(board.ts reportBoardPost)를 제외한 사용자 생성 콘텐츠 전부. 서버는 supabase/community_block_filter.sql 4).
 // 자동으로 가리지 않는다 — 운영자가 관리자 > 커뮤니티 신고에서 읽고 결정한다(오신고로 글이 사라지면 안 된다).
-export type ReportTargetType = 'diary' | 'answer' | 'board_comment' | 'diary_comment' | 'answer_comment' | 'chat'
+// 'user' — 콘텐츠가 아니라 "누군가를 차단했다"는 알림(Apple 1.2 "blocking should also notify the developer").
+// blockUser()가 서버에서 자동으로 적립한다. 이 타입으로 reportContent/adminSetContentStatus를 직접 호출하는 화면은 없다.
+export type ReportTargetType = 'diary' | 'answer' | 'board_comment' | 'diary_comment' | 'answer_comment' | 'chat' | 'user'
 
 export async function reportContent(type: ReportTargetType, id: string | number, reason?: string): Promise<{ ok: boolean; message: string }> {
   const { data, error } = await supabase.rpc('report_content', { p_target_type: type, p_target_id: String(id), p_reason: reason ?? null })
@@ -49,4 +51,5 @@ export const REPORT_TYPE_LABEL: Record<ReportTargetType, string> = {
   diary_comment: '하루 이야기 댓글',
   answer_comment: '답변 댓글',
   chat: '라이브 채팅',
+  user: '사용자 차단',
 }
