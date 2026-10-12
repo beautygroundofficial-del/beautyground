@@ -235,7 +235,8 @@ now = datetime.now(timezone.utc)
 # 3) 같은 날 배치 안에서 같은 계정이 두 번 글을 쓰지 않는다(used_this_week로 보장).
 # 4) 게시 시각은 하루 8~22시 사이에 흩어놓는다(한꺼번에 몰아 올리지 않음).
 POST_TYPES = ["text", "shorts", "image"]
-POST_TYPE_WEIGHTS = [0.4, 0.3, 0.3]
+# 2026-10-13 대표님 지시: 40~60대 커뮤니티에 만화(DiceBear) 이미지는 어울리지 않음 → image형 비중 0(텍스트·쇼츠만)
+POST_TYPE_WEIGHTS = [0.6, 0.4, 0.0]
 MIN_POSTS_PER_DAY = 2
 MAX_POSTS_PER_DAY = 4
 # 2026-10-04 정정: 바로 위 복귀 조치는 잘못된 판단이었음 — Gmail만 검색하고 옵시디언(앱 스토어 등록.md)을
