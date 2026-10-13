@@ -18,7 +18,7 @@ import Lightbox from '../components/community/Lightbox'
 import FriendButton from '../components/community/FriendButton'
 import { PetAvatars, petWalkLabel } from '../components/community/PetMarks'
 import { FRIENDS_CHANGED_EVENT, getFriendStatuses, type FriendStatus } from '../lib/friends'
-import { getConversationDiary, getConversationFeed } from '../lib/communityConversations'
+import { getConversationDiary, getConversationFeed, getConversationNews } from '../lib/communityConversations'
 import { getBoardFeed, categoryLabel, BOARD_CATEGORIES, type BoardCategory, type BoardPost } from '../lib/board'
 import BoardCategoryGrid from '../components/home/BoardCategoryGrid'
 import { MetaMarks } from '../components/community/marks'
@@ -86,6 +86,8 @@ export default function AppDiary() {
   const loadVersion = useRef(0)
 
   const [loggedIn, setLoggedIn] = useState<boolean | null>(null)
+  // 친구가 새 글을 남겼는지(아직 소식에서 확인 안 한 것) — "친구" 탭에 작은 점으로만 알린다. 숫자·순위 없음
+  const [friendNew, setFriendNew] = useState(false)
   const [sort, setSort] = useState<FeedView>('recent')
   const [feed, setFeed] = useState<Diary[]>([])
   // 글쓴이별 친구 관계 — 없으면 'none'
@@ -159,6 +161,22 @@ export default function AppDiary() {
     window.addEventListener('focus', refresh)
     return () => { loadVersion.current++; window.removeEventListener(FRIENDS_CHANGED_EVENT, refresh); window.removeEventListener('focus', refresh) }
   }, [load, sort])
+
+  useEffect(() => {
+    if (!loggedIn) { setFriendNew(false); return }
+    let alive = true
+    const check = () => {
+      // "친구" 탭을 마지막으로 열어 본 시각(이 기기) 이후의 새 글만 점으로 알린다
+      let seenAt = 0
+      try { seenAt = Number(localStorage.getItem('bg:friendTabSeen') ?? 0) || 0 } catch { /* 저장소 막힘 — 점만 매번 뜸 */ }
+      void getConversationNews(50).then((rows) => {
+        if (alive) setFriendNew(rows.some((n) => n.kind === 'friend_post' && n.is_new && new Date(n.created_at).getTime() > seenAt))
+      }).catch(() => {})
+    }
+    check()
+    window.addEventListener('bg:news-seen', check)
+    return () => { alive = false; window.removeEventListener('bg:news-seen', check) }
+  }, [loggedIn])
 
   useEffect(() => {
     let alive = true
@@ -321,6 +339,10 @@ export default function AppDiary() {
                 <button key={key}
                   onClick={() => {
                     if (key === 'friends' && !loggedIn) { navigate('/app/login', { state: { from: '/app/diary' } }); return }
+                    if (key === 'friends') {
+                      setFriendNew(false)
+                      try { localStorage.setItem('bg:friendTabSeen', String(Date.now())) } catch { /* 저장소 막힘 */ }
+                    }
                     if (key === sort) return
                     setLoading(true); setSort(key)
                   }}
@@ -328,6 +350,9 @@ export default function AppDiary() {
                   className={`min-h-11 flex-1 rounded-full border border-solid px-3 py-2 text-[14px] font-bold transition-colors focus-visible:shadow-ring ${
                     sort === key ? 'border-ink bg-ink text-paper' : 'border-rule bg-paper text-ink-soft hover:bg-quiet'}`}>
                   {label}
+                  {key === 'friends' && friendNew && sort !== 'friends' && (
+                    <span role="img" aria-label="친구가 새 이야기를 남겼어요" className="ml-1.5 inline-block h-2 w-2 rounded-full bg-ink align-middle" />
+                  )}
                 </button>
               ))}
             </div>

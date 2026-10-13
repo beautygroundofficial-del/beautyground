@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { Fragment, useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { IconBell, IconHeart, IconHeartHandshake, IconMessageCircle, IconRefresh, IconUserCheck, IconUserPlus } from '@tabler/icons-react'
 import BackHeader from '../components/layout/BackHeader'
@@ -207,6 +207,11 @@ export default function AppNews() {
   }
 
   const open = (n: ConversationNews) => navigate(conversationNewsPath(n))
+  // 친구가 보낸 소식(새 글·토닥)을 맨 위 "친구 소식"으로 먼저 보여준다. 각 묶음 안은 서버가 준 시간 순서 그대로(2026-10-14)
+  const isFriendNews = (n: ConversationNews) => n.kind === 'friend_post' || n.kind === 'friend_pat'
+  const friendItems = (items ?? []).filter(isFriendNews)
+  const ordered = [...friendItems, ...(items ?? []).filter((n) => !isFriendNews(n))]
+  const both = friendItems.length > 0 && ordered.length > friendItems.length
   const sourceLabel = (t: ConversationNews['target_type']) =>
     t === 'board' ? '속 이야기' : t === 'answer' ? '오늘의 질문' : t === 'friend' ? '친구' : '하루 이야기'
 
@@ -254,8 +259,14 @@ export default function AppNews() {
           </div>
         ) : (
           <ul className="-mx-5 border-t border-solid border-rule">
-            {(items ?? []).map((n, i) => (
-              <li key={`${n.kind}-${n.target_id}-${n.created_at}-${i}`} className="border-b border-solid border-rule">
+            {ordered.map((n, i) => (
+              <Fragment key={`${n.kind}-${n.target_id}-${n.created_at}-${i}`}>
+              {both && (i === 0 || i === friendItems.length) && (
+                <li aria-hidden="true" className="border-b border-solid border-rule bg-paper px-5 pb-2 pt-5 text-[13px] font-bold leading-[1.7] text-ink-soft">
+                  {i === 0 ? '친구 소식' : '내 이야기에 온 마음'}
+                </li>
+              )}
+              <li className="border-b border-solid border-rule">
                 <button
                   type="button"
                   onClick={() => open(n)}
@@ -293,6 +304,7 @@ export default function AppNews() {
                   </div>
                 </button>
               </li>
+              </Fragment>
             ))}
           </ul>
         )}
