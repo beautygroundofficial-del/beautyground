@@ -33,7 +33,7 @@ export default function AppPartnersSettlement() {
                 <p className="text-[20px] font-bold text-ink tabular-nums">{won(summary?.total_sales ?? 0)}</p>
                 <p className="text-[13px] text-ink-soft">예상 수수료 <b className="text-ink tabular-nums">{won(summary?.estimated_commission ?? 0)}</b></p>
               </div>
-              <p className="text-[12px] text-ink-faint mt-1">{summary?.tier_name ?? '기본'} 등급 · 수수료 {summary?.commission_rate ?? 5}% · 결제완료 이상 주문 기준</p>
+              <p className="text-[12px] text-ink-faint mt-1">{summary?.tier_name ?? '기본'} 등급 · 수수료 {summary?.commission_rate ?? 5}% · 결제완료 이상 주문 기준 · 본인 구매 제외 · 익월 10일 지급</p>
             </div>
           </section>
 

@@ -107,7 +107,7 @@ function InfoForm({ affiliate, reload }: { affiliate: Affiliate | null; reload: 
         {isNew && (
           <label className="flex items-start gap-2.5 text-[12.5px] text-ink-soft leading-relaxed">
             <input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} className="mt-1" />
-            <span>링크를 공유해 소개하는 방식이며, 다른 파트너를 모집하거나 하위 판매에 대한 수당은 없어요. 수수료는 구매 확정 기준으로 매월 정산되고, 관련 세법에 따라 세금이 공제될 수 있어요. 취소·환불된 주문은 정산에서 제외돼요. 이에 동의합니다.</span>
+            <span>링크를 공유해 소개하는 방식이며, 다른 파트너를 모집하거나 하위 판매에 대한 수당은 없어요. 수수료는 결제 완료 후 취소·환불되지 않은 주문 기준으로 매월 정산해 익월 10일에 지급하고, 관련 세법에 따라 세금이 공제될 수 있어요. 취소·환불된 주문과 본인이 산 주문은 정산에서 제외돼요. 이에 동의합니다.</span>
           </label>
         )}
 

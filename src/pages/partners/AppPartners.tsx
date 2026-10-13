@@ -65,7 +65,7 @@ export default function AppPartners() {
 
           <p className="text-[11.5px] text-ink-faint mt-8 leading-relaxed">
             링크를 공유해 소개하는 방식이에요. 다른 파트너를 모집하거나 하위 판매에 대한 수당은 없어요.
-            수수료는 구매 확정 기준으로 매월 정산되며, 취소·환불된 주문은 제외돼요.
+            수수료는 결제 완료 후 취소·환불되지 않은 주문 기준으로 매월 정산해 익월 10일에 보내드려요. 본인이 산 주문은 제외돼요.
           </p>
         </section>
       )}

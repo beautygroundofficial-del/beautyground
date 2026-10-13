@@ -88,8 +88,8 @@ function Home({ affiliate }: { affiliate: Affiliate }) {
           {aboutOpen && (
             <ul className="mt-2 space-y-1 text-[12.5px] text-ink-soft leading-relaxed list-disc pl-4">
               <li>제품 링크를 붙여넣거나 인기 제품에서 [내 링크]를 누르면 바로 만들어져요.</li>
-              <li>내 링크로 들어온 손님이 7일 안에 구매하면 내 판매로 잡혀요. 취소·환불은 제외.</li>
-              <li>매월 정산해 등록한 계좌로 보내드려요. 재고·배송·비용 부담이 없어요.</li>
+              <li>내 링크로 들어온 손님이 7일 안에 구매하면 내 판매로 잡혀요. 취소·환불과 본인이 산 주문은 제외.</li>
+              <li>매월 정산해 익월 10일에 등록한 계좌로 보내드려요. 재고·배송·비용 부담이 없어요.</li>
               <li>다른 파트너를 모집하거나 하위 판매 수당을 받는 방식은 아니에요.</li>
             </ul>
           )}
@@ -172,7 +172,7 @@ function Home({ affiliate }: { affiliate: Affiliate }) {
 
       {/* 메뉴는 왼쪽 사이드바(PartnersShell)로 옮겼다 */}
       <section className="px-5 pt-6 pb-8">
-        <p className="text-[11.5px] text-ink-faint leading-relaxed">내 링크로 들어온 손님이 7일 안에 구매하면 내 판매로 잡혀요. 취소·환불은 제외돼요.</p>
+        <p className="text-[11.5px] text-ink-faint leading-relaxed">내 링크로 들어온 손님이 7일 안에 구매하면 내 판매로 잡혀요. 취소·환불과 본인이 산 주문은 제외돼요. 정산은 익월 10일에 지급해요.</p>
       </section>
 
       {toast && <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 rounded-full bg-ink text-paper text-[13px] shadow-lg">{toast}</div>}
