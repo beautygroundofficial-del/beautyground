@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import ImagePlaceholder from '../common/ImagePlaceholder'
 import Thumb from '../common/Thumb'
 import ReviewSummary from './ReviewSummary'
+import { ProductShareBar, ProductShareSheet, type ProductShareCtl } from './ProductShare'
 import ProductQnA from './ProductQnA'
 import CategoryTabBar from './CategoryTabBar'
 import { IconHeart, IconCart, IconMinus, IconPlus } from '../common/Icon'
@@ -38,6 +39,7 @@ interface View {
 }
 
 interface Props {
+  share: ProductShareCtl
   id?: string
   view: View
   discountRate: number
@@ -59,6 +61,7 @@ interface Props {
 // 상단 카테고리 탭바는 전체 폭으로 유지, 그 아래를 [이미지+정보] : [구매패널] 2단으로 나누고
 // 구매패널만 스크롤해도 고정. 설명/리뷰는 콘텐츠 폭 전체로 이어서 스크롤.
 export default function DesktopProductDetail({
+  share,
   id,
   view,
   discountRate,
@@ -216,6 +219,9 @@ export default function DesktopProductDetail({
               </span>
             )}
           </div>
+
+          <ProductShareBar ctl={share} />
+          <ProductShareSheet ctl={share} />
 
           {view.soldOut && (
             <p className="mt-3 inline-block text-[12px] font-bold tracking-[0.04em] text-paper bg-ink px-2.5 py-1">일시 품절</p>
