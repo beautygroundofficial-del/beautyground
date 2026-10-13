@@ -54,6 +54,42 @@ export async function getStepStatus(): Promise<StepStatus> {
   }
 }
 
+// 걸음수 연동이 안 될 때 원인을 화면에서 바로 보기 위한 점검 정보(2026-10-13, 출시 전 임시).
+export interface StepDiagnostics {
+  native: boolean
+  platform: string
+  plugin: boolean
+  imported: boolean
+  available?: boolean
+  reason?: string
+  readAuthorized?: boolean
+  error?: string
+}
+
+export async function getStepDiagnostics(): Promise<StepDiagnostics> {
+  const native = Capacitor.isNativePlatform()
+  const platform = Capacitor.getPlatform()
+  const plugin = native ? Capacitor.isPluginAvailable('Health') : false
+  const out: StepDiagnostics = { native, platform, plugin, imported: false }
+  if (!native) return out
+  try {
+    const mod = await import('@capgo/capacitor-health')
+    out.imported = true
+    const av = await mod.Health.isAvailable()
+    out.available = av.available
+    out.reason = av.reason
+    try {
+      const auth = await mod.Health.checkAuthorization({ read: ['steps'] })
+      out.readAuthorized = auth.readAuthorized.includes('steps')
+    } catch (e) {
+      out.error = 'checkAuthorization: ' + (e instanceof Error ? e.message : String(e))
+    }
+  } catch (e) {
+    out.error = (e instanceof Error ? e.message : String(e))
+  }
+  return out
+}
+
 // 사용자가 버튼을 눌렀을 때만 호출한다(권한 창이 뜬다). 허용되면 true.
 export async function requestStepPermission(): Promise<boolean> {
   const health = await getHealth()

@@ -4,7 +4,7 @@ import BackHeader from '../components/layout/BackHeader'
 import AppFrame from '../components/layout/AppFrame'
 import { supabase } from '../lib/supabase'
 import { getMyPointsBalance } from '../lib/rewards'
-import { getStepStatus, requestStepPermission, syncSteps, type StepStatus } from '../lib/steps'
+import { getStepStatus, getStepDiagnostics, requestStepPermission, syncSteps, type StepStatus, type StepDiagnostics } from '../lib/steps'
 import {
   getMyMissions, claimMission, missionProgressRatio, nextMilestone, remainingPoints,
   type MyMission,
@@ -36,6 +36,7 @@ export default function AppMissions() {
   const [busyKey, setBusyKey] = useState('')
   const [toast, setToast] = useState('')
   const [stepStatus, setStepStatus] = useState<StepStatus>('unsupported')
+  const [stepDiag, setStepDiag] = useState<StepDiagnostics | null>(null)
 
   const showToast = (msg: string) => {
     setToast(msg)
@@ -53,7 +54,7 @@ export default function AppMissions() {
   }, [])
 
   useEffect(() => { void load() }, [load])
-  useEffect(() => { void getStepStatus().then(setStepStatus) }, [])
+  useEffect(() => { void getStepStatus().then(setStepStatus); void getStepDiagnostics().then(setStepDiag) }, [])
 
   // 걸음수 권한은 여기서 버튼을 눌렀을 때만 요청한다(앱을 열자마자 권한 창을 띄우지 않는다)
   const handleConnectSteps = async () => {
@@ -140,6 +141,15 @@ export default function AppMissions() {
         <section className="mx-5 mt-4 rounded-card border border-rule bg-paper px-4 py-4">
           <p className="text-[13px] text-ink-soft">걸음 수를 읽으려면 Health Connect 앱이 필요해요. 스토어에서 설치한 뒤 다시 열어 주세요.</p>
         </section>
+      )}
+
+      {stepDiag?.native && missions.some((m) => m.metric === 'steps') && (
+        <p className="mx-5 mt-3 text-[11px] text-ink-faint break-all">
+          걸음 연동 점검 · {stepDiag.platform} · 플러그인 {stepDiag.plugin ? '있음' : '없음'} · 불러오기 {stepDiag.imported ? '성공' : '실패'}
+          {stepDiag.available !== undefined && ` · 건강앱 ${stepDiag.available ? '사용가능' : '사용불가'}${stepDiag.reason ? `(${stepDiag.reason})` : ''}`}
+          {stepDiag.readAuthorized !== undefined && ` · 걸음 권한 ${stepDiag.readAuthorized ? '허용' : '없음'}`}
+          {stepDiag.error ? ` · 오류: ${stepDiag.error}` : ''} · 상태 {stepStatus}
+        </p>
       )}
 
       <p className="px-5 mt-5 mb-2 text-[13px] text-ink-soft">
