@@ -123,7 +123,7 @@ export interface NewsItem {
   kind: 'board_comment' | 'board_reaction' | 'board_like'
       | 'diary_comment' | 'diary_reaction' | 'diary_like'
       | 'answer_comment' | 'answer_reaction' | 'answer_like'
-      | 'friend_accept'
+      | 'friend_accept' | 'friend_pat' | 'friend_post'
   target_type: 'board' | 'diary' | 'answer' | 'friend'
   target_id: string
   actor_nickname: string | null

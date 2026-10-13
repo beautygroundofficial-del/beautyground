@@ -5,9 +5,10 @@ import BackHeader from '../components/layout/BackHeader'
 import AppFrame from '../components/layout/AppFrame'
 import { supabase } from '../lib/supabase'
 import {
-  getMyFriends, getFriendRequests, respondFriend, removeFriend, FRIENDS_CHANGED_EVENT,
+  getMyFriends, getFriendRequests, respondFriend, removeFriend, getPatsSentToday, FRIENDS_CHANGED_EVENT,
   type FriendRow, type FriendRequestRow,
 } from '../lib/friends'
+import PatButton from '../components/community/PatButton'
 
 // 친구 — 마이페이지에서 들어온다. (2026-09-11)
 // 위에서부터: 받은 신청(수락·거절) → 내 친구(끊기) → 보낸 신청(취소).
@@ -48,6 +49,8 @@ export default function AppFriends() {
   const loggedIn = viewerId === undefined ? null : !!viewerId
   const [friends, setFriends] = useState<FriendRow[] | null>(null)
   const [requests, setRequests] = useState<FriendRequestRow[]>([])
+  // 오늘 이미 토닥인 친구들(user_id) — 토닥 버튼 상태
+  const [patSent, setPatSent] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [busyUserId, setBusyUserId] = useState<string | null>(null)
@@ -70,8 +73,11 @@ export default function AppFriends() {
         getMyFriends({ throwOnError: true }), getFriendRequests({ throwOnError: true }),
       ])
       if (version !== loadVersion.current) return
+      const pats = await getPatsSentToday(f.map((x) => x.user_id))
+      if (version !== loadVersion.current) return
       setFriends(f)
       setRequests(r)
+      setPatSent(pats)
       setError('')
     } catch {
       if (version === loadVersion.current) setError('친구 목록을 불러오지 못했어요. 다시 시도해 주세요.')
@@ -218,7 +224,11 @@ export default function AppFriends() {
                         <Link to={`/app/people/${f.user_id}`} className={nameCls + ' block min-h-11 py-2 hover:underline focus:outline-none focus-visible:shadow-ring'}>{f.nickname ?? '익명'}</Link>
                         <p className={subCls}>{timeAgo(f.since)}부터 친구</p>
                       </div>
-                      <button type="button" disabled={busyUserId !== null} onClick={() => void unfriend(f)} className={ghost + ' self-center disabled:opacity-50'}>끊기</button>
+                      <div className="flex shrink-0 items-center gap-1 self-center">
+                        <PatButton userId={f.user_id} sentToday={patSent.has(f.user_id)} disabled={busyUserId !== null}
+                          onSent={() => setPatSent((prev) => new Set(prev).add(f.user_id))} onNotice={showToast} />
+                        <button type="button" disabled={busyUserId !== null} onClick={() => void unfriend(f)} className={ghost + ' disabled:opacity-50'}>끊기</button>
+                      </div>
                     </li>
                   ))}
                 </ul>

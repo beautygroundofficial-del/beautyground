@@ -5,9 +5,10 @@ import AppFrame from '../components/layout/AppFrame'
 import { supabase } from '../lib/supabase'
 import { getUserProfile, getUserDiaries, type PersonProfile } from '../lib/people'
 import { toggleDiaryLike, type Diary } from '../lib/diaries'
-import { FRIENDS_CHANGED_EVENT, getFriendStatuses, type FriendStatus } from '../lib/friends'
+import { FRIENDS_CHANGED_EVENT, getFriendStatuses, getPatsSentToday, type FriendStatus } from '../lib/friends'
 import { petEmoji } from '../lib/pets'
 import FriendButton from '../components/community/FriendButton'
+import PatButton from '../components/community/PatButton'
 import { blockUser, isBlockedByMe, unblockUser } from '../lib/blocks'
 import LikeButton from '../components/community/LikeButton'
 import { CommentToggle } from '../components/community/DiaryComments'
@@ -57,6 +58,8 @@ export default function AppPerson() {
   const [friend, setFriend] = useState<FriendStatus>('none')
   const [friendLoading, setFriendLoading] = useState(true)
   const [friendError, setFriendError] = useState('')
+  // 친구에게 오늘 이미 토닥였는지 — 친구일 때만 조회한다
+  const [patSent, setPatSent] = useState(false)
   const [refreshVersion, setRefreshVersion] = useState(0)
   const [loadError, setLoadError] = useState('')
   const [viewer, setViewer] = useState<{ images: string[]; index: number } | null>(null)
@@ -163,6 +166,14 @@ export default function AppPerson() {
     }
   }, [id, viewerId, refreshVersion])
 
+  useEffect(() => {
+    let alive = true
+    setPatSent(false)
+    if (friend !== 'friends' || !id) return
+    void getPatsSentToday([id]).then((s) => { if (alive) setPatSent(s.has(id)) })
+    return () => { alive = false }
+  }, [friend, id])
+
   const name = profile ? (friend === 'friends' || profile.is_me ? (profile.nickname ?? '익명') : maskName(profile.nickname)) : ''
 
   return (
@@ -198,6 +209,11 @@ export default function AppPerson() {
                 <div className="max-w-full shrink-0 text-right">
                   <FriendButton key={id} userId={id} status={friend} loggedIn={loggedIn} disabled={friendLoading || !!friendError}
                     onChange={setFriend} onNotice={showToast} />
+                  {friend === 'friends' && !blocked && (
+                    <div className="mt-2 flex justify-end">
+                      <PatButton userId={id} sentToday={patSent} onSent={() => setPatSent(true)} onNotice={showToast} />
+                    </div>
+                  )}
                   <button type="button" onClick={() => void onToggleBlock()} disabled={blockBusy}
                     className="block ml-auto min-h-11 mt-1 text-[12px] text-ink-faint underline underline-offset-4 disabled:opacity-50">
                     {blocked ? '차단 해제' : '차단'}
