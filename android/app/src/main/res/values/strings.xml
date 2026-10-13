@@ -4,4 +4,6 @@
     <string name="title_activity_main">뷰티그라운드</string>
     <string name="package_name">kr.co.beautyground.app</string>
     <string name="custom_url_scheme">kr.co.beautyground.app</string>
+    <!-- Health Connect 권한 창의 "개인정보처리방침" 링크가 여는 주소(걸음 수 읽기, 2026-10-13) -->
+    <string name="health_connect_privacy_policy_url">https://beautyground.co.kr/privacy</string>
 </resources>

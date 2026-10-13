@@ -4,6 +4,7 @@ import BackHeader from '../components/layout/BackHeader'
 import AppFrame from '../components/layout/AppFrame'
 import { supabase } from '../lib/supabase'
 import { getMyPointsBalance } from '../lib/rewards'
+import { getStepStatus, requestStepPermission, syncSteps, type StepStatus } from '../lib/steps'
 import {
   getMyMissions, claimMission, missionProgressRatio, nextMilestone, remainingPoints,
   type MyMission,
@@ -34,6 +35,7 @@ export default function AppMissions() {
   const [loading, setLoading] = useState(true)
   const [busyKey, setBusyKey] = useState('')
   const [toast, setToast] = useState('')
+  const [stepStatus, setStepStatus] = useState<StepStatus>('unsupported')
 
   const showToast = (msg: string) => {
     setToast(msg)
@@ -51,6 +53,17 @@ export default function AppMissions() {
   }, [])
 
   useEffect(() => { void load() }, [load])
+  useEffect(() => { void getStepStatus().then(setStepStatus) }, [])
+
+  // 걸음수 권한은 여기서 버튼을 눌렀을 때만 요청한다(앱을 열자마자 권한 창을 띄우지 않는다)
+  const handleConnectSteps = async () => {
+    const ok = await requestStepPermission()
+    if (!ok) { showToast('걸음 수 접근을 허용하면 포인트를 받을 수 있어요'); return }
+    setStepStatus('ready')
+    const res = await syncSteps(true)
+    if (res && res.awarded > 0) showToast(`걷기 포인트 ${res.awarded}P를 받았어요`)
+    void load()
+  }
 
   const handleClaim = async (m: MyMission) => {
     setBusyKey(m.key)
@@ -112,6 +125,22 @@ export default function AppMissions() {
         <button onClick={() => navigate('/app/benefits')}
           className="text-[12px] underline opacity-80">혜택함 보기</button>
       </section>
+
+      {missions.some((m) => m.metric === 'steps') && stepStatus === 'need_permission' && (
+        <section className="mx-5 mt-4 rounded-card border border-rule bg-paper px-4 py-4">
+          <p className="text-[14px] font-semibold text-ink">걸음 수를 연결하면 걷기만 해도 포인트가 쌓여요</p>
+          <p className="text-[12px] text-ink-soft mt-1">휴대폰 건강 앱의 오늘 걸음 수만 읽어요. 다른 건강 정보는 보지 않아요.</p>
+          <button onClick={() => void handleConnectSteps()}
+            className="mt-3 px-4 py-2 rounded-control bg-signal-blue text-paper text-[13px] font-semibold">
+            걸음 수 연결하기
+          </button>
+        </section>
+      )}
+      {missions.some((m) => m.metric === 'steps') && stepStatus === 'unavailable' && (
+        <section className="mx-5 mt-4 rounded-card border border-rule bg-paper px-4 py-4">
+          <p className="text-[13px] text-ink-soft">걸음 수를 읽으려면 Health Connect 앱이 필요해요. 스토어에서 설치한 뒤 다시 열어 주세요.</p>
+        </section>
+      )}
 
       <p className="px-5 mt-5 mb-2 text-[13px] text-ink-soft">
         오늘의 미션을 완료하고 포인트를 받아보세요.

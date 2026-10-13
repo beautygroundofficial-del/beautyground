@@ -152,6 +152,7 @@ const LiveSale = lazy(() => import('./pages/LiveSale'))
 const ShopLiveWatch = lazy(() => import('./pages/app/ShopLiveWatch'))
 import LiveGate from './components/app/LiveGate'
 import ScrollRestoration from './components/layout/ScrollRestoration'
+import StepSync from './components/StepSync'
 
 export default function App() {
   // 홈 테마(시그널 3색) — /admin/theme 저장값 또는 ?themePreview= 값을 CSS 변수로 적용
@@ -190,6 +191,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <ScrollRestoration />
+      <StepSync />
       {welcomeToast && (
         <div
           className="fixed left-1/2 -translate-x-1/2 top-5 z-[100] rounded-pill bg-ink text-paper text-[14px] font-bold px-5 py-3 shadow-card"

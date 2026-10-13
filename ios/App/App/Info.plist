@@ -32,6 +32,10 @@
 	</array>
 	<key>NSCameraUsageDescription</key>
 	<string>피부 진단 사진 촬영과 라이브 방송 송출을 위해 카메라를 사용합니다.</string>
+	<key>NSHealthShareUsageDescription</key>
+	<string>걷기 포인트를 드리기 위해 건강 앱의 오늘 걸음 수를 읽습니다. 걸음 수 외의 정보는 읽지 않아요.</string>
+	<key>NSHealthUpdateUsageDescription</key>
+	<string>뷰티그라운드는 건강 앱에 데이터를 기록하지 않습니다.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>라이브 방송 송출을 위해 마이크를 사용합니다.</string>
 	<key>UIApplicationSceneManifest</key>
