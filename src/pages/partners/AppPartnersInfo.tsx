@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import AppFrame from '../../components/layout/AppFrame'
-import BackHeader from '../../components/layout/BackHeader'
 import PartnersGate from '../../components/partners/PartnersGate'
+import PartnersShell from '../../components/partners/PartnersShell'
 import { supabase } from '../../lib/supabase'
 import { registerAffiliate, updateAffiliate, type Affiliate } from '../../lib/affiliate'
 
@@ -77,8 +76,7 @@ function InfoForm({ affiliate, reload }: { affiliate: Affiliate | null; reload: 
   }
 
   return (
-    <AppFrame>
-      <BackHeader title={isNew ? '개인정보·계좌 등록' : '개인정보·계좌 수정'} onBack={() => navigate(isNew ? '/app/partners' : '/app/partners/home')} />
+    <PartnersShell active="info" title={isNew ? '개인정보·계좌 등록' : '개인정보·계좌 수정'} hideNav={isNew}>
       <form onSubmit={submit} noValidate className="px-5 pt-5 pb-10 space-y-5">
         {isNew ? (
           <p className="text-[13px] text-ink-soft leading-relaxed">
@@ -121,6 +119,6 @@ function InfoForm({ affiliate, reload }: { affiliate: Affiliate | null; reload: 
           {submitting ? '저장 중…' : isNew ? '등록하고 내 파트너스 페이지 열기' : '저장'}
         </button>
       </form>
-    </AppFrame>
+    </PartnersShell>
   )
 }

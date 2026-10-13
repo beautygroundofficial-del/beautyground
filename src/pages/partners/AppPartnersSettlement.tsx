@@ -1,8 +1,6 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import AppFrame from '../../components/layout/AppFrame'
-import BackHeader from '../../components/layout/BackHeader'
 import PartnersGate from '../../components/partners/PartnersGate'
+import PartnersShell from '../../components/partners/PartnersShell'
 import { formatDateOnly, won } from '../../lib/format'
 import {
   getMySummary, getTiers, listMySales, listMySettlements, ORDER_STATUS_LABEL,
@@ -12,7 +10,6 @@ import {
 // 판매 내역 · 정산 — 이달 요약, 등급표, 월별 정산(관리자가 생성·지급확정), 최근 판매 건.
 // 구매자 이름·연락처는 뷰 자체에 없어 화면에도 없다(affiliate_sales_view).
 export default function AppPartnersSettlement() {
-  const navigate = useNavigate()
   const [summary, setSummary] = useState<AffiliateSummary | null>(null)
   const [tiers, setTiers] = useState<AffiliateTier[]>([])
   const [settlements, setSettlements] = useState<AffiliateSettlement[]>([])
@@ -27,8 +24,7 @@ export default function AppPartnersSettlement() {
   return (
     <PartnersGate title="판매 내역 · 정산">
       {() => (
-        <AppFrame>
-          <BackHeader title="판매 내역 · 정산" onBack={() => navigate('/app/partners/home')} />
+        <PartnersShell active="settlement" title="판매 내역 · 정산">
 
           <section className="px-5 pt-5">
             <div className="rounded-control border border-rule p-4">
@@ -96,7 +92,7 @@ export default function AppPartnersSettlement() {
               </ul>
             )}
           </section>
-        </AppFrame>
+        </PartnersShell>
       )}
     </PartnersGate>
   )

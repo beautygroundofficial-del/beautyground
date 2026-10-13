@@ -1,8 +1,6 @@
-import { useNavigate } from 'react-router-dom'
 import { useEffect, useState } from 'react'
-import AppFrame from '../../components/layout/AppFrame'
-import BackHeader from '../../components/layout/BackHeader'
 import PartnersGate from '../../components/partners/PartnersGate'
+import PartnersShell from '../../components/partners/PartnersShell'
 import BestProductRow from '../../components/partners/BestProductRow'
 import { useShopCategories } from '../../hooks/useShopCategories'
 import { useShopProducts } from '../../hooks/useShopProducts'
@@ -11,7 +9,6 @@ import { listBestProducts, type BestProduct } from '../../lib/affiliate'
 // 인기 제품 — 개인 파트너스 페이지의 메뉴 [인기 제품 TOP 10]에서 들어온다.
 // 처음엔 TOP 10(판매·찜·리뷰 점수 순)만 보여주고, [더보기]를 누르면 카테고리별 전체 상품 탐색으로 전환된다.
 export default function AppPartnersBest() {
-  const navigate = useNavigate()
   const [browsing, setBrowsing] = useState(false)
   const [toast, setToast] = useState('')
   const showToast = (m: string) => { setToast(m); setTimeout(() => setToast(''), 2200) }
@@ -19,15 +16,14 @@ export default function AppPartnersBest() {
   return (
     <PartnersGate title="인기 제품">
       {() => (
-        <AppFrame>
-          <BackHeader title="인기 제품" onBack={() => navigate('/app/partners/home')} />
+        <PartnersShell active="best" title="인기 제품 TOP">
           {browsing ? (
             <CategoryBrowse onToast={showToast} onBack={() => setBrowsing(false)} />
           ) : (
             <Top10 onMore={() => setBrowsing(true)} onToast={showToast} />
           )}
           {toast && <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 rounded-full bg-ink text-paper text-[13px] shadow-lg">{toast}</div>}
-        </AppFrame>
+        </PartnersShell>
       )}
     </PartnersGate>
   )

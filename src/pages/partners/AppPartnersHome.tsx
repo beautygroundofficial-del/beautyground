@@ -1,12 +1,9 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import AppFrame from '../../components/layout/AppFrame'
-import BackHeader from '../../components/layout/BackHeader'
 import PartnersGate from '../../components/partners/PartnersGate'
-import { supabase } from '../../lib/supabase'
+import PartnersShell from '../../components/partners/PartnersShell'
 import { won } from '../../lib/format'
 import {
-  affiliateLinkUrl, createAffiliateLink, getMySummary, getTiers, listMyLinks, parseProductIdFromUrl,
+  affiliateLinkUrl, createAffiliateLink, getMySummary, getTiers, parseProductIdFromUrl,
   type Affiliate, type AffiliateLink, type AffiliateSummary, type AffiliateTier,
 } from '../../lib/affiliate'
 
@@ -30,9 +27,7 @@ export async function copyText(text: string): Promise<boolean> {
 }
 
 function Home({ affiliate }: { affiliate: Affiliate }) {
-  const navigate = useNavigate()
   const [summary, setSummary] = useState<AffiliateSummary | null>(null)
-  const [links, setLinks] = useState<AffiliateLink[]>([])
   const [tiers, setTiers] = useState<AffiliateTier[]>([])
   const [aboutOpen, setAboutOpen] = useState(false)
   const [input, setInput] = useState('')
@@ -43,15 +38,10 @@ function Home({ affiliate }: { affiliate: Affiliate }) {
   const showToast = (m: string) => { setToast(m); setTimeout(() => setToast(''), 2200) }
 
   const load = async () => {
-    const [s, l, t] = await Promise.all([getMySummary(), listMyLinks(), getTiers()])
-    setSummary(s); setLinks(l); setTiers(t)
+    const [s, t] = await Promise.all([getMySummary(), getTiers()])
+    setSummary(s); setTiers(t)
   }
   useEffect(() => { void load() }, [])
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut()
-    navigate('/app/home')
-  }
 
   const make = async () => {
     setError(''); setMade(null)
@@ -75,17 +65,11 @@ function Home({ affiliate }: { affiliate: Affiliate }) {
   const tierName = summary?.tier_name ?? '기본'
 
   return (
-    <AppFrame>
-      <BackHeader
-        title="내 파트너스"
-        onBack={() => navigate('/app/mypage')}
-        rightElement={
-          <div className="flex items-center gap-2">
-            <span className="text-[11px] font-semibold text-ink bg-quiet rounded-full px-2.5 py-1 whitespace-nowrap">{tierName} {rate}%</span>
-            <button type="button" onClick={() => void handleLogout()} className="text-[12px] text-ink-faint whitespace-nowrap focus:outline-none focus-visible:shadow-ring">로그아웃</button>
-          </div>
-        }
-      />
+    <PartnersShell
+      active="home"
+      title="내 파트너스"
+      right={<span className="text-[11px] font-semibold text-ink bg-quiet rounded-full px-2.5 py-1 whitespace-nowrap">{tierName} {rate}%</span>}
+    >
 
       <section className="px-5 pt-5">
         <p className="text-[12.5px] text-ink-soft">{affiliate.name} 파트너 · 코드 <b className="text-ink">{affiliate.code}</b></p>
@@ -186,24 +170,12 @@ function Home({ affiliate }: { affiliate: Affiliate }) {
         </section>
       )}
 
-      {/* 메뉴 — ERP 스타일 버튼 목록 */}
-      <section className="px-5 pt-6 pb-10">
-        <div className="rounded-control border border-rule divide-y divide-rule">
-          {[
-            { label: '인기 제품 TOP 10', path: '/app/partners/best' },
-            { label: links.length > 0 ? `내 링크 전체 · ${links.length}개` : '내 링크 전체', path: '/app/partners/links' },
-            { label: '판매 내역 · 정산', path: '/app/partners/settlement' },
-            { label: '개인정보 · 계좌 수정', path: '/app/partners/info' },
-          ].map((m) => (
-            <button key={m.path} type="button" onClick={() => navigate(m.path)} className="w-full flex items-center justify-between px-4 py-3.5 text-[14px] text-ink focus:outline-none focus-visible:shadow-ring">
-              <span>{m.label}</span><span className="text-ink-faint" aria-hidden="true">›</span>
-            </button>
-          ))}
-        </div>
-        <p className="text-[11.5px] text-ink-faint mt-4 leading-relaxed">내 링크로 들어온 손님이 7일 안에 구매하면 내 판매로 잡혀요. 취소·환불은 제외돼요.</p>
+      {/* 메뉴는 왼쪽 사이드바(PartnersShell)로 옮겼다 */}
+      <section className="px-5 pt-6 pb-8">
+        <p className="text-[11.5px] text-ink-faint leading-relaxed">내 링크로 들어온 손님이 7일 안에 구매하면 내 판매로 잡혀요. 취소·환불은 제외돼요.</p>
       </section>
 
       {toast && <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 rounded-full bg-ink text-paper text-[13px] shadow-lg">{toast}</div>}
-    </AppFrame>
+    </PartnersShell>
   )
 }
