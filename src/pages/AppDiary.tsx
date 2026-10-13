@@ -219,7 +219,7 @@ export default function AppDiary() {
         >
           <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-ink text-paper" aria-hidden="true"><IconPencil size={20} stroke={1.6} /></span>
           <span className="min-w-0">
-            <span className="block text-[16px] font-bold leading-relaxed text-ink">{boardCategory ? `${categoryLabel(boardCategory)} 이야기를 남겨보세요` : '오늘 어떤 하루였나요?'}</span>
+            <span className="block text-[16px] font-bold leading-relaxed text-ink">{boardCategory ? `‘${categoryLabel(boardCategory)}’에 글을 남겨보세요` : '오늘 어떤 하루였나요?'}</span>
             <span className="block text-[13px] leading-relaxed text-ink-soft mt-1">{boardCategory ? '고른 주제로 바로 올라가요' : '사소한 하루도 누군가에겐 위로가 됩니다 · 사진과 걸음 수도 함께'}</span>
           </span>
         </button>
