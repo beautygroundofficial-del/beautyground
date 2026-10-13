@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
-import type { Affiliate } from '../../lib/affiliate'
+import { adminAffiliateSignupStats, type Affiliate, type AffiliateSignupStat } from '../../lib/affiliate'
 import Button from '../../components/common/Button'
 
 // 파트너스(개인 제휴 판매자) 목록 — affiliates 테이블은 affiliates_admin_all 정책으로
@@ -11,6 +11,9 @@ export default function AdminAffiliatePartners() {
   const [loading, setLoading] = useState(true)
   const [busyId, setBusyId] = useState<string | null>(null)
   const [error, setError] = useState('')
+  // 파트너 링크로 가입한 사람과 가입 뒤 행동(관리자 집계, supabase/affiliate_signup_attribution.sql)
+  const [stats, setStats] = useState<AffiliateSignupStat[]>([])
+  const [statsError, setStatsError] = useState('')
 
   const load = async () => {
     setLoading(true)
@@ -21,6 +24,7 @@ export default function AdminAffiliatePartners() {
   }
 
   useEffect(() => { void load() }, [])
+  useEffect(() => { void adminAffiliateSignupStats().then((r) => { setStats(r.rows); setStatsError(r.error) }) }, [])
 
   const toggleStatus = async (row: Affiliate) => {
     const next = row.status === 'active' ? 'suspended' : 'active'
@@ -91,7 +95,54 @@ export default function AdminAffiliatePartners() {
             </table>
           </div>
         )}
+
+        <h2 className="text-[17px] font-bold text-ink mt-10 mb-1">파트너 링크로 들어온 가입자</h2>
+        <p className="text-[13px] text-ink-soft mb-4">
+          파트너 링크를 거쳐 가입한 사람이 가입 뒤 커뮤니티에 남는지 보는 집계입니다(측정 전용 — 가입·활동 보상은 없습니다).
+          비율은 가입한 지 7일/30일이 지난 사람만 기준으로 하고, "다시 접속"은 마지막 접속 시각 기준입니다.
+        </p>
+        {statsError ? (
+          <div className="bg-quiet text-ink-soft text-[13px] rounded-md px-4 py-3">집계를 불러오지 못했어요: {statsError}</div>
+        ) : stats.length === 0 ? (
+          <div className="py-8 text-center text-[13px] text-ink-faint">아직 집계할 파트너가 없습니다.</div>
+        ) : (
+          <div className="bg-paper rounded-md border border-rule overflow-x-auto">
+            <table className="w-full text-[13px] text-left">
+              <thead>
+                <tr className="border-b border-rule text-ink-soft">
+                  <th className="px-4 py-3 font-medium whitespace-nowrap">코드</th>
+                  <th className="px-4 py-3 font-medium whitespace-nowrap">이름</th>
+                  <th className="px-4 py-3 font-medium whitespace-nowrap">가입자</th>
+                  <th className="px-4 py-3 font-medium whitespace-nowrap">최근 30일 가입</th>
+                  <th className="px-4 py-3 font-medium whitespace-nowrap">7일 안에 글·댓글</th>
+                  <th className="px-4 py-3 font-medium whitespace-nowrap">7일 뒤 다시 접속</th>
+                  <th className="px-4 py-3 font-medium whitespace-nowrap">30일 안에 글·댓글</th>
+                  <th className="px-4 py-3 font-medium whitespace-nowrap">30일 뒤 다시 접속</th>
+                </tr>
+              </thead>
+              <tbody>
+                {stats.map((r) => (
+                  <tr key={r.affiliate_id} className="border-b border-rule last:border-b-0">
+                    <td className="px-4 py-3 text-ink font-mono whitespace-nowrap">{r.code}</td>
+                    <td className="px-4 py-3 text-ink whitespace-nowrap">{r.name}</td>
+                    <td className="px-4 py-3 text-ink font-semibold tabular-nums">{r.signups}명</td>
+                    <td className="px-4 py-3 text-ink-soft tabular-nums">{r.signups_30d}명</td>
+                    <td className="px-4 py-3 text-ink-soft tabular-nums whitespace-nowrap">{ratio(r.wrote_7d, r.mature_7d)}</td>
+                    <td className="px-4 py-3 text-ink-soft tabular-nums whitespace-nowrap">{ratio(r.returned_7d, r.mature_7d)}</td>
+                    <td className="px-4 py-3 text-ink-soft tabular-nums whitespace-nowrap">{ratio(r.wrote_30d, r.mature_30d)}</td>
+                    <td className="px-4 py-3 text-ink-soft tabular-nums whitespace-nowrap">{ratio(r.returned_30d, r.mature_30d)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </main>
     </>
   )
+}
+
+// 비율 표시 — 기간이 아직 안 된 파트너(분모 0)는 "기간 전"
+function ratio(n: number, d: number) {
+  return d > 0 ? `${Math.round((n / d) * 100)}% (${n}/${d})` : '기간 전'
 }
