@@ -83,7 +83,10 @@ export default function AppBoardWrite() {
       } else {
         const d = loadDraft<Draft>(`board:${loadedOwner}`)
         setContent(typeof d.content === 'string' ? d.content.slice(0, MAX_LEN) : '')
-        setCategory(d.category && BOARD_CATEGORIES.some((c) => c.key === d.category) ? d.category : null)
+        // 이야기 화면에서 주제를 고르고 들어오면(?category=) 그 주제를 미리 선택해 둔다 — 임시저장된 주제보다 우선
+        const fromUrl = new URLSearchParams(returnTo.split('?')[1] ?? '').get('category')
+        const preset = BOARD_CATEGORIES.find((c) => c.key === fromUrl)?.key ?? null
+        setCategory(preset ?? (d.category && BOARD_CATEGORIES.some((c) => c.key === d.category) ? d.category : null))
       }
       loadedScope.current = `${loadedOwner}:${returnTo}`
       setReady(true)
