@@ -147,10 +147,10 @@ function Home({ affiliate }: { affiliate: Affiliate }) {
 
       {/* 이달 성과 */}
       <section className="px-5 pt-7">
-        <div className="rounded-control bg-ink text-paper p-5">
+        <div className="p-hero rounded-control bg-ink text-paper p-5">
           <div className="flex items-baseline justify-between">
             <p className="text-[12px] opacity-80">{summary?.period ?? ''} 이달 판매</p>
-            <span className="text-[11px] px-2 py-0.5 rounded-full bg-paper/15">{tierName} · 수수료 {rate}%</span>
+            <span className="p-pill text-[11px] px-2 py-0.5 rounded-full bg-paper/15">{tierName} · 수수료 {rate}%</span>
           </div>
           <p className="text-[26px] font-bold mt-1 tabular-nums">{won(summary?.total_sales ?? 0)}</p>
           <div className="flex gap-5 mt-3 text-[12.5px] opacity-90">
@@ -176,7 +176,7 @@ function Home({ affiliate }: { affiliate: Affiliate }) {
                   <div className="flex items-center gap-2.5">
                     <span className={`text-[15px] font-bold tabular-nums ${mine ? 'text-ink' : 'text-ink-soft'}`}>{t.commission_rate}%</span>
                     <span className="text-[13px] text-ink">{t.name}</span>
-                    {mine && <span className="text-[10.5px] font-semibold text-paper bg-ink rounded-full px-2 py-0.5">내 등급</span>}
+                    {mine && <span className="text-[10.5px] font-semibold p-badge text-paper bg-ink rounded-full px-2 py-0.5">내 등급</span>}
                   </div>
                   <span className="text-[12px] text-ink-faint whitespace-nowrap">{t.min_sales > 0 ? `월 판매 ${won(t.min_sales)} 이상` : '가입 즉시'}</span>
                 </div>
