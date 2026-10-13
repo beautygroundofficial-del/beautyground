@@ -34,6 +34,7 @@ const AppGuestOrder = lazy(() => import('./pages/AppGuestOrder'))
 const AppLogin = lazy(() => import('./pages/AppLogin'))
 // 파트너스(개인 제휴 판매자, 쿠팡파트너스식) — 2026-09-26. 입구→파트너스 회원가입→개인정보·계좌→개인 파트너스 페이지
 const AppGo = lazy(() => import('./pages/AppGo'))
+import PartnersTheme from './components/partners/PartnersTheme'
 const AppPartners = lazy(() => import('./pages/partners/AppPartners'))
 const AppPartnersSignup = lazy(() => import('./pages/partners/AppPartnersSignup'))
 const AppPartnersInfo = lazy(() => import('./pages/partners/AppPartnersInfo'))
@@ -359,13 +360,14 @@ export default function App() {
         <Route path="/app/mypage" element={<AppMyPage />} />
         {/* 파트너스 — 쇼핑앱 계정으로 파트너스 회원가입 → 개인정보·계좌 등록 → 개인 파트너스 페이지에서 제품 링크를 개인 링크로(2026-09-26) */}
         <Route path="/go/:code" element={<AppGo />} />
-        <Route path="/app/partners" element={<AppPartners />} />
-        <Route path="/app/partners/signup" element={<AppPartnersSignup />} />
-        <Route path="/app/partners/info" element={<AppPartnersInfo />} />
-        <Route path="/app/partners/home" element={<AppPartnersHome />} />
-        <Route path="/app/partners/links" element={<AppPartnersLinks />} />
-        <Route path="/app/partners/settlement" element={<AppPartnersSettlement />} />
-        <Route path="/app/partners/best" element={<AppPartnersBest />} />
+        {/* 파트너스 화면은 ERP 디자인 색(PartnersTheme)으로 감싼다 — 쇼핑몰 다른 화면엔 영향 없음 */}
+        <Route path="/app/partners" element={<PartnersTheme><AppPartners /></PartnersTheme>} />
+        <Route path="/app/partners/signup" element={<PartnersTheme><AppPartnersSignup /></PartnersTheme>} />
+        <Route path="/app/partners/info" element={<PartnersTheme><AppPartnersInfo /></PartnersTheme>} />
+        <Route path="/app/partners/home" element={<PartnersTheme><AppPartnersHome /></PartnersTheme>} />
+        <Route path="/app/partners/links" element={<PartnersTheme><AppPartnersLinks /></PartnersTheme>} />
+        <Route path="/app/partners/settlement" element={<PartnersTheme><AppPartnersSettlement /></PartnersTheme>} />
+        <Route path="/app/partners/best" element={<PartnersTheme><AppPartnersBest /></PartnersTheme>} />
         <Route path="/app/seller/*" element={<Navigate to="/app/partners" replace />} />
         <Route path="/app/cart" element={<AppCart />} />
         <Route path="/app/order" element={<AppOrder />} />
