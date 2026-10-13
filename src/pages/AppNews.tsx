@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { IconBell, IconHeart, IconMessageCircle, IconRefresh, IconUserCheck, IconUserPlus } from '@tabler/icons-react'
+import { IconBell, IconHeart, IconHeartHandshake, IconMessageCircle, IconRefresh, IconUserCheck, IconUserPlus } from '@tabler/icons-react'
 import BackHeader from '../components/layout/BackHeader'
 import AppFrame from '../components/layout/AppFrame'
 import AppFooter from '../components/layout/AppFooter'
 import { supabase } from '../lib/supabase'
 import { REACTION_META } from '../lib/dailyQuestion'
 import { conversationNewsPath, getConversationNews, markConversationNewsSeen, type ConversationNews } from '../lib/communityConversations'
-import { FRIENDS_CHANGED_EVENT } from '../lib/friends'
+import { FRIENDS_CHANGED_EVENT, getFriendPostNews, setFriendPostNews } from '../lib/friends'
 
 // 새 소식 — 내 글(하루 이야기·속 이야기)에 누가 마음을 남겼는지. (2026-09-10, 커뮤니티 로드맵 4-4 ③)
 // 읽음은 사용자가 확인한 뒤 처리한다. 목록을 불러온 이후에 도착한 소식은 남겨둔다.
@@ -44,6 +44,11 @@ function objectParticle(word: string) {
 function headline(n: ConversationNews): { who: string; rest: string; linkable: boolean } {
   const who = n.actor_nickname ? `${maskName(n.actor_nickname)}님이` : '누군가'
   const linkable = !!n.actor_nickname && !!n.actor_user_id && (n.target_type === 'diary' || n.target_type === 'friend')
+  // 친구가 보낸 토닥·새 글은 이미 이름을 아는 사이라 가리지 않는다(2026-10-14)
+  if (n.kind === 'friend_pat' || n.kind === 'friend_post') {
+    const friendName = `${(n.actor_nickname ?? '').trim() || '친구'}님이`
+    return { who: friendName, rest: n.kind === 'friend_pat' ? ' 토닥였어요' : ' 새 이야기를 남겼어요', linkable: !!n.actor_user_id }
+  }
   if (n.kind === 'friend_request') return { who, rest: ' 친구 신청을 보냈어요', linkable }
   if (n.kind === 'friend_accept') return { who, rest: ' 친구 신청을 받아줬어요', linkable }
   if (n.kind === 'diary_reply') return { who, rest: ' 내 댓글에 답글을 남겼어요', linkable }
@@ -62,6 +67,9 @@ export default function AppNews() {
   const [marking, setMarking] = useState(false)
   const [loading, setLoading] = useState(false)
   const [canMarkSeen, setCanMarkSeen] = useState(false)
+  // 친구 새 글 소식 받기 여부(서버 설정, 기본 켜짐) — null이면 아직 모름
+  const [friendPostOn, setFriendPostOn] = useState<boolean | null>(null)
+  const [friendPostBusy, setFriendPostBusy] = useState(false)
   const version = useRef(0)
   const viewerId = useRef<string | null | undefined>(undefined)
   const loadedList = useRef<{ userId: string; items: ConversationNews[] } | null>(null)
@@ -142,6 +150,24 @@ export default function AppNews() {
     }
   }, [load, changeViewer])
 
+  useEffect(() => {
+    let alive = true
+    if (loggedIn) void getFriendPostNews().then((on) => { if (alive) setFriendPostOn(on) })
+    else setFriendPostOn(null)
+    return () => { alive = false }
+  }, [loggedIn])
+
+  const toggleFriendPost = async () => {
+    if (friendPostOn === null || friendPostBusy) return
+    setFriendPostBusy(true)
+    const next = !friendPostOn
+    const ok = await setFriendPostNews(next)
+    if (mounted.current) {
+      if (ok) { setFriendPostOn(next); void load() }
+      setFriendPostBusy(false)
+    }
+  }
+
   const markSeen = async () => {
     const listed = loadedList.current
     if (!mounted.current || markingRef.current || loading || !listed || listed.items !== items || !items?.length) return
@@ -200,6 +226,13 @@ export default function AppNews() {
 
       <section className="px-5 pt-6 pb-28">
         {loggedIn && <div className="mb-2 flex flex-wrap items-center justify-between gap-x-4 gap-y-1"><button type="button" disabled={loading || marking} onClick={() => void load()} className="inline-flex min-h-11 items-center gap-2 text-[13px] text-ink-soft disabled:opacity-50"><IconRefresh size={16} stroke={1.6} aria-hidden="true" />{loading ? '확인 중…' : '새로 확인'}</button>{items?.some(item => item.is_new) && <button type="button" disabled={marking || loading || !canMarkSeen} onClick={() => void markSeen()} className="min-h-11 text-[13px] font-bold text-ink disabled:opacity-50">{marking ? '저장 중…' : '모두 확인했어요'}</button>}</div>}
+        {loggedIn && friendPostOn !== null && (
+          <div className="mb-3 flex items-center justify-between gap-3 rounded-card bg-quiet px-4 py-1">
+            <p className="text-[13px] leading-[1.7] text-ink-soft break-keep">친구가 남긴 새 이야기를 소식으로 {friendPostOn ? '받고 있어요' : '받지 않고 있어요'}</p>
+            <button type="button" disabled={friendPostBusy} onClick={() => void toggleFriendPost()} aria-pressed={friendPostOn}
+              className="min-h-11 shrink-0 text-[13px] font-bold text-ink underline underline-offset-4 disabled:opacity-50">{friendPostOn ? '끄기' : '켜기'}</button>
+          </div>
+        )}
         {error && <div role="alert" className="mb-6 rounded-card bg-quiet p-4 text-[15px] leading-[1.7] text-ink-soft"><p>{error}</p><button type="button" onClick={() => void load()} className="mt-2 min-h-11 text-[13px] underline underline-offset-4">다시 불러오기</button></div>}
         {loggedIn === false ? (
           <div className="text-center py-16">
@@ -233,6 +266,7 @@ export default function AppNews() {
                   <span className={`relative mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${n.is_new ? 'bg-ink text-paper' : 'bg-quiet text-ink-soft'}`}>
                     {n.kind === 'friend_request' ? <IconUserPlus size={20} stroke={1.6} aria-hidden="true" />
                       : n.kind === 'friend_accept' ? <IconUserCheck size={20} stroke={1.6} aria-hidden="true" />
+                      : n.kind === 'friend_pat' ? <IconHeartHandshake size={20} stroke={1.6} aria-hidden="true" />
                       : n.kind.endsWith('_comment') || n.kind === 'diary_reply' ? <IconMessageCircle size={20} stroke={1.6} aria-hidden="true" />
                       : <IconHeart size={20} stroke={1.6} aria-hidden="true" />}
                     {n.is_new && <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full border-2 border-solid border-paper bg-ink" aria-label="새 소식" />}
