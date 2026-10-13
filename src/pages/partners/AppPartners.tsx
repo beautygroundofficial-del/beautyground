@@ -1,74 +1,72 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import AppFrame from '../../components/layout/AppFrame'
-import BackHeader from '../../components/layout/BackHeader'
+import PartnersEntryLayout from '../../components/partners/PartnersEntryLayout'
 import { supabase } from '../../lib/supabase'
 import { getMyAffiliate } from '../../lib/affiliate'
 
-// 파트너스 페이지(입구) — 앱 안에서 파트너스가 무엇인지 소개하고 [파트너스 회원가입]으로 보낸다.
-// 이미 로그인 + 정보 등록까지 된 사람은 바로 개인 파트너스 페이지로, 로그인만 된 사람은 정보 등록으로.
+// 파트너스 입구 — 사람 종류에 따라 다르게 보여준다(2026-10-14 대표님: 파트너스 가입과 기존 회원은 차별).
+//  · 이미 파트너스 → 바로 개인 파트너스 홈
+//  · 로그인한 쇼핑몰 회원(파트너스 아님) → "이미 회원이에요, 파트너스 정보만 등록" (가입 단계 없음)
+//  · 로그인 안 함 → 처음이에요(회원가입+파트너스) / 이미 쇼핑몰 회원이에요(로그인) / 이미 파트너스예요(로그인)
+// PC·모바일 모두 같은 컴포넌트가 폭에 따라 배치만 바꾼다(partnersEntry.css).
 export default function AppPartners() {
   const navigate = useNavigate()
-  const [checking, setChecking] = useState(true)
+  const [state, setState] = useState<'checking' | 'guest' | 'member'>('checking')
+  const [who, setWho] = useState('')
 
   useEffect(() => {
     let active = true
     ;(async () => {
       const { data: { session } } = await supabase.auth.getSession()
       if (!active) return
-      if (session) {
-        const aff = await getMyAffiliate()
-        if (!active) return
-        navigate(aff ? '/app/partners/home' : '/app/partners/info', { replace: true })
-        return
-      }
-      setChecking(false)
+      if (!session) { setState('guest'); return }
+      const aff = await getMyAffiliate()
+      if (!active) return
+      if (aff) { navigate('/app/partners/home', { replace: true }); return }
+      const meta = (session.user.user_metadata ?? {}) as Record<string, unknown>
+      setWho(String(meta.name ?? meta.nickname ?? meta.full_name ?? session.user.email ?? ''))
+      setState('member')
     })()
     return () => { active = false }
   }, [navigate])
 
   return (
-    <AppFrame>
-      <BackHeader title="파트너스" onBack={() => navigate('/app/mypage')} />
-      {checking ? (
-        <p className="px-5 py-10 text-center text-[13px] text-ink-faint">불러오는 중…</p>
-      ) : (
-        <section className="px-5 pt-8 pb-10">
-          <p className="text-[11.5px] text-ink-faint leading-none mb-2">뷰티그라운드 파트너스</p>
-          <h2 className="text-[20px] font-bold text-ink leading-snug">내 링크로 소개하고<br />판매수수료를 받아요</h2>
-          <p className="text-[13.5px] text-ink-soft mt-3 leading-relaxed">
-            앱에 있는 제품의 링크를 내 링크로 바꿔 친구·SNS에 올리면, 그 링크로 구매가 일어날 때마다
-            판매금액의 <b className="text-ink">5%</b>가 쌓여요. 재고도, 배송도, 비용도 없어요.
-          </p>
+    <PartnersEntryLayout backTo="/app/mypage">
+      {state === 'checking' && <p className="pe-sub" style={{ textAlign: 'center', padding: '24px 0' }}>불러오는 중…</p>}
 
-          <ol className="mt-6 space-y-3">
-            {[
-              ['파트너스 회원가입', '카카오·네이버·이메일 중 편한 방법으로'],
-              ['개인정보·계좌 등록', '수수료를 받을 계좌를 한 번만 입력'],
-              ['개인 파트너스 페이지', '제품 링크를 넣으면 내 링크가 만들어져요'],
-            ].map(([t, d], i) => (
-              <li key={t} className="flex gap-3">
-                <span className="shrink-0 w-6 h-6 rounded-full bg-ink text-paper text-[12px] font-bold flex items-center justify-center">{i + 1}</span>
-                <div><p className="text-[14px] font-semibold text-ink">{t}</p><p className="text-[12.5px] text-ink-soft">{d}</p></div>
-              </li>
-            ))}
-          </ol>
-
-          <button
-            type="button"
-            onClick={() => navigate('/app/partners/signup')}
-            className="mt-8 w-full rounded-control bg-ink text-paper font-bold text-[15px] py-3.5 focus:outline-none focus-visible:shadow-ring"
-          >
-            파트너스 회원가입
-          </button>
-          <p className="text-center text-[12px] text-ink-faint mt-3">이미 파트너스라면 같은 버튼으로 로그인돼요</p>
-
-          <p className="text-[11.5px] text-ink-faint mt-8 leading-relaxed">
-            링크를 공유해 소개하는 방식이에요. 다른 파트너를 모집하거나 하위 판매에 대한 수당은 없어요.
-            수수료는 결제 완료 후 취소·환불되지 않은 주문 기준으로 매월 정산해 익월 10일에 보내드려요. 본인이 산 주문은 제외돼요.
-          </p>
-        </section>
+      {state === 'member' && (
+        <>
+          <h2>이미 뷰티그라운드 회원이세요</h2>
+          <p className="pe-sub">새로 가입하지 않아도 돼요. 수수료를 받을 정보만 등록하면 바로 파트너스가 됩니다.</p>
+          <div className="pe-me">{who ? <><b>{who}</b> 님의 계정으로 진행해요</> : '지금 로그인한 계정으로 진행해요'}</div>
+          <button type="button" className="pe-btn" onClick={() => navigate('/app/partners/info')}>파트너스 정보 등록하기</button>
+          <p className="pe-sub" style={{ marginTop: 12 }}>개인정보·정산 계좌를 한 번만 입력하면 끝나요. 쇼핑 계정과 구매 내역은 그대로예요.</p>
+        </>
       )}
-    </AppFrame>
+
+      {state === 'guest' && (
+        <>
+          <h2>어떤 분이세요?</h2>
+          <p className="pe-sub">해당하는 하나를 골라 주세요. 쇼핑몰 회원은 새로 가입하지 않아도 돼요.</p>
+          <div className="pe-cards">
+            <button type="button" className="pe-card primary" onClick={() => navigate('/app/partners/signup?mode=new')}>
+              <span className="tag">처음</span>
+              <span><span className="pe-card-t" style={{ display: 'block' }}>처음이에요 · 회원가입하고 시작</span>
+                <span className="pe-card-sub" style={{ display: 'block' }}>카카오·네이버·Apple로 가입 → 파트너스 등록</span></span>
+            </button>
+            <button type="button" className="pe-card" onClick={() => navigate('/app/partners/signup?mode=member')}>
+              <span className="tag">회원</span>
+              <span><span className="pe-card-t" style={{ display: 'block' }}>이미 쇼핑몰 회원이에요</span>
+                <span className="pe-card-sub" style={{ display: 'block' }}>내 계정으로 로그인 → 파트너스 정보만 등록</span></span>
+            </button>
+            <button type="button" className="pe-card" onClick={() => navigate('/app/partners/signup?mode=partner')}>
+              <span className="tag">파트너스</span>
+              <span><span className="pe-card-t" style={{ display: 'block' }}>이미 파트너스예요</span>
+                <span className="pe-card-sub" style={{ display: 'block' }}>로그인 → 내 링크·정산 보기</span></span>
+            </button>
+          </div>
+        </>
+      )}
+    </PartnersEntryLayout>
   )
 }
