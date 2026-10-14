@@ -20,7 +20,7 @@ import ProductQnA from '../components/product/ProductQnA'
 import { useProductQuestions } from '../hooks/useProductQuestions'
 import { IconHeart, IconCart, IconMinus, IconPlus } from '../components/common/Icon'
 import { IconSend2, IconUpload } from '@tabler/icons-react'
-import { useProductShare, ProductShareBar, ProductShareSheet } from '../components/product/ProductShare'
+import { useProductShare, ProductShareSheet } from '../components/product/ProductShare'
 import ImagePlaceholder from '../components/common/ImagePlaceholder'
 import Thumb from '../components/common/Thumb'
 import ScrollToTopButton from '../components/common/ScrollToTopButton'
@@ -474,7 +474,6 @@ export default function AppProductDetail() {
           )}
         </div>
 
-        <ProductShareBar ctl={share} />
         <ProductShareSheet ctl={share} />
 
         {view.soldOut && (
@@ -612,24 +611,22 @@ export default function AppProductDetail() {
         className="fixed left-0 right-0 z-40"
         style={{ bottom: 'calc(3.5rem + env(safe-area-inset-bottom))' }}
       >
-        <div className="max-w-[480px] mx-auto bg-paper border-t border-rule px-4 pt-3 pb-2.5 relative">
-          {rewardAmount > 0 && !view.soldOut && (
-            <span
-              className="absolute left-3 -top-3.5 inline-flex items-center gap-1 rounded-pill bg-ink text-paper text-[12px] font-bold pl-1.5 pr-2.5 py-1 shadow-[0_2px_8px_rgba(0,0,0,0.25)]"
-              aria-label={`구매 시 ${rewardAmount.toLocaleString('ko-KR')}원 적립`}
-            >
-              <span className="w-4 h-4 rounded-full bg-signal-yellow text-ink text-[10px] leading-4 text-center font-extrabold" aria-hidden="true">P</span>
-              <span className="tabular-nums text-signal-yellow">{rewardAmount.toLocaleString('ko-KR')}원</span> 적립
-              <span className="absolute left-5 -bottom-1 w-2 h-2 rotate-45 bg-ink" aria-hidden="true" />
-            </span>
-          )}
-          <div className="flex items-center gap-1.5">
+        <div className="max-w-[480px] mx-auto bg-paper border-t border-rule px-4 pt-2 pb-2.5">
+          <div className="flex items-end gap-1.5">
             <button
               onClick={toggleWish}
               aria-label={wished ? '찜 해제' : '찜하기'}
               aria-pressed={wished}
               className="shrink-0 w-11 flex flex-col items-center gap-0.5 text-ink focus:outline-none focus-visible:shadow-ring"
             >
+              {rewardAmount > 0 && !view.soldOut && (
+                <span
+                  className="bb-sparkle text-[10.5px] font-extrabold leading-none tabular-nums text-[#B8860B] whitespace-nowrap"
+                  aria-label={`구매 시 ${rewardAmount.toLocaleString('ko-KR')}원 적립`}
+                >
+                  <span className="bb-star" aria-hidden="true">✦</span>+{rewardAmount.toLocaleString('ko-KR')}P
+                </span>
+              )}
               <IconHeart filled={wished} className={`w-[22px] h-[22px] ${wished ? 'text-accent' : ''}`} />
               <span className="text-[10.5px] leading-none text-ink-soft">찜</span>
             </button>
