@@ -1,0 +1,37 @@
+/* 파트너스 입구·가입 화면 — 모바일은 한 줄 세로, PC(≥900px)는 왼쪽 소개 + 오른쪽 행동 카드 (2026-10-14)
+ * 파트너스는 셀러 작업공간이라 PC 화면을 허용한다(PartnersShell 과 같은 취급). 색은 .partners-erp 테마를 따른다. */
+.pe-page { min-height: 100vh; background: var(--erp-bg, #f4f5f9); color: var(--erp-navy, #1a1e36); }
+.pe-top { display: flex; align-items: center; justify-content: space-between; padding: 14px 20px; background: #fff; border-bottom: 1px solid var(--erp-line, #e4e6ee); }
+.pe-brand { font-weight: 800; font-size: 15px; letter-spacing: -0.01em; }
+.pe-brand small { font-weight: 600; font-size: 12px; color: var(--erp-gold, #b8924a); margin-left: 6px; }
+.pe-back { font-size: 13px; color: var(--erp-soft, #5a6079); background: none; border: 0; cursor: pointer; padding: 8px 4px; min-height: 40px; }
+.pe-wrap { max-width: 1040px; margin: 0 auto; padding: 24px 20px 48px; display: grid; gap: 24px; }
+.pe-hero h1 { font-size: 22px; line-height: 1.35; font-weight: 800; margin: 6px 0 0; }
+.pe-hero .pe-eyebrow { font-size: 12px; color: var(--erp-gold, #b8924a); font-weight: 700; }
+.pe-hero p { font-size: 13.5px; line-height: 1.7; color: var(--erp-soft, #5a6079); margin: 12px 0 0; }
+.pe-steps { list-style: none; margin: 20px 0 0; padding: 0; display: grid; gap: 12px; }
+.pe-steps li { display: flex; gap: 12px; }
+.pe-steps .n { flex: 0 0 24px; height: 24px; border-radius: 50%; background: var(--erp-navy, #1a1e36); color: #fff; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+.pe-steps b { display: block; font-size: 14px; } .pe-steps span { font-size: 12.5px; color: var(--erp-soft, #5a6079); }
+.pe-note { font-size: 11.5px; line-height: 1.7; color: var(--erp-faint, #8b90ad); margin-top: 20px; }
+.pe-panel { background: #fff; border: 1px solid var(--erp-line, #e4e6ee); border-radius: 14px; box-shadow: 0 6px 18px rgba(20,25,60,.08); padding: 20px; }
+.pe-panel h2 { font-size: 17px; font-weight: 800; margin: 0; }
+.pe-panel .pe-sub { font-size: 12.5px; color: var(--erp-soft, #5a6079); margin: 6px 0 0; line-height: 1.6; }
+.pe-cards { display: grid; gap: 10px; margin-top: 16px; }
+.pe-card { text-align: left; width: 100%; background: #fff; border: 1px solid var(--erp-line, #e4e6ee); border-radius: 12px; padding: 14px 16px; cursor: pointer; min-height: 64px; display: flex; align-items: center; gap: 12px; }
+.pe-card:hover { border-color: var(--erp-navy, #1a1e36); }
+.pe-card.primary { background: var(--erp-navy, #1a1e36); border-color: var(--erp-navy, #1a1e36); color: #fff; }
+.pe-card.primary .pe-card-sub { color: rgba(255,255,255,.72); }
+.pe-card .tag { flex: 0 0 auto; font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 999px; background: var(--erp-fill, #eef0f6); color: var(--erp-navy, #1a1e36); }
+.pe-card.primary .tag { background: var(--erp-gold, #b8924a); color: #fff; }
+.pe-card-t { font-size: 14.5px; font-weight: 700; } .pe-card-sub { font-size: 12px; color: var(--erp-soft, #5a6079); margin-top: 2px; }
+.pe-me { margin-top: 14px; background: var(--erp-fill, #eef0f6); border-radius: 10px; padding: 12px 14px; font-size: 13px; line-height: 1.6; }
+.pe-panel { order: -1; }
+.pe-btn { width: 100%; margin-top: 16px; background: var(--erp-navy, #1a1e36); color: #fff; font-weight: 700; font-size: 15px; padding: 14px; border: 0; border-radius: 8px; cursor: pointer; min-height: 48px; }
+@media (min-width: 900px) {
+  .pe-panel { order: 0; }
+  .pe-wrap { grid-template-columns: 1.1fr 0.9fr; gap: 48px; padding-top: 56px; align-items: start; }
+  .pe-hero h1 { font-size: 30px; }
+  .pe-hero p { font-size: 15px; }
+  .pe-panel { padding: 28px; }
+}

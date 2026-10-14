@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { supabase } from './lib/supabase'
 import { mergeGuestCartToServer } from './lib/cart'
 import { logVisitOnce, syncAttributionToUser } from './lib/attribution'
+import { attributeSignupToPartner } from './lib/affiliate'
 
 // 페이지 전체를 React.lazy로 분리한다 — 예전엔 관리자·브랜드·백화점·호스트 포털까지
 // 60여 개 페이지가 전부 하나의 JS 번들(1MB+)로 묶여, 홈 화면 첫 방문자도 이 전부를
@@ -170,6 +171,7 @@ export default function App() {
       if (event === 'SIGNED_IN') {
         void mergeGuestCartToServer()
         void syncAttributionToUser()
+        void attributeSignupToPartner() // 파트너 링크로 들어와 가입했다면 그 파트너에 기록(측정 전용)
 
         const user = session?.user
         if (user?.created_at) {

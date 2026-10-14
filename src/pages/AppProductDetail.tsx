@@ -19,7 +19,8 @@ import ReviewSummary from '../components/product/ReviewSummary'
 import ProductQnA from '../components/product/ProductQnA'
 import { useProductQuestions } from '../hooks/useProductQuestions'
 import { IconHeart, IconCart, IconMinus, IconPlus } from '../components/common/Icon'
-import { IconSend2, IconBrandFacebook, IconBrandX, IconLink } from '@tabler/icons-react'
+import { IconSend2 } from '@tabler/icons-react'
+import { useProductShare, ProductShareBar, ProductShareSheet } from '../components/product/ProductShare'
 import ImagePlaceholder from '../components/common/ImagePlaceholder'
 import Thumb from '../components/common/Thumb'
 import ScrollToTopButton from '../components/common/ScrollToTopButton'
@@ -136,29 +137,6 @@ export default function AppProductDetail() {
   const imgDraggedRef = useRef(false)
   const { questions: qnaQuestions } = useProductQuestions(id)
 
-  // 공유 — 라이브 시청화면과 동일 패턴(자체 소형 메뉴: 카카오=링크복사 대체·페이스북·X·링크복사)
-  // 모바일에 공유 수단이 없다는 대표님 지적(2026-08-13)으로 추가
-  const [shareOpen, setShareOpen] = useState(false)
-  const [shareCopied, setShareCopied] = useState(false)
-
-  const copyShareLink = async () => {
-    try {
-      await navigator.clipboard.writeText(window.location.href)
-      setShareCopied(true)
-      setTimeout(() => setShareCopied(false), 1600)
-    } catch {
-      /* 클립보드 권한 없는 환경 — 무시 */
-    }
-    setShareOpen(false)
-  }
-  const shareToFacebook = () => {
-    window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(window.location.href)}`, '_blank', 'noopener,width=600,height=500')
-    setShareOpen(false)
-  }
-  const shareToX = () => {
-    window.open(`https://twitter.com/intent/tweet?url=${encodeURIComponent(window.location.href)}&text=${encodeURIComponent(view?.name ?? '뷰티그라운드')}`, '_blank', 'noopener,width=600,height=500')
-    setShareOpen(false)
-  }
   const [loading, setLoading] = useState(true)
   const [view, setView] = useState<ProductView | null>(null)
   const [toast, setToast] = useState('')
@@ -238,6 +216,12 @@ export default function AppProductDetail() {
     setToast(msg)
     window.setTimeout(() => setToast(''), 2000)
   }
+
+  // 제품 링크 복사·공유 — 파트너는 내 파트너스 링크로, 그 밖은 제품 주소 그대로(components/product/ProductShare.tsx)
+  const share = useProductShare(
+    { productId: id ?? '', name: view?.name ?? '뷰티그라운드', price: view?.price ?? 0, imageUrl: view?.images[0] ?? null },
+    showToast,
+  )
 
   if (loading) {
     return (
@@ -344,6 +328,7 @@ export default function AppProductDetail() {
       <>
         <ViewModeToggle mode={mode} onToggle={toggle} />
         <DesktopProductDetail
+          share={share}
           id={id}
           view={view}
           discountRate={discountRate}
@@ -374,37 +359,9 @@ export default function AppProductDetail() {
       <BackHeader
         rightElement={
           <div className="flex items-center gap-3 text-ink">
-            <div className="relative">
-              <button onClick={() => setShareOpen((v) => !v)} aria-label="공유" className="focus:outline-none focus-visible:shadow-ring flex items-center">
-                <IconSend2 size={21} />
-              </button>
-              {shareCopied && (
-                <span className="absolute right-0 top-9 whitespace-nowrap bg-ink text-paper text-[11px] px-2.5 py-1 rounded-md z-50">
-                  링크를 복사했어요
-                </span>
-              )}
-              {shareOpen && (
-                <>
-                  <div className="fixed inset-0 z-40" onClick={() => setShareOpen(false)} />
-                  <div className="absolute right-0 top-9 z-50 bg-white rounded-2xl shadow-[0_8px_24px_rgba(0,0,0,0.25)] p-2.5 flex items-center gap-2">
-                    <button type="button" onClick={() => void copyShareLink()} aria-label="카카오톡 공유(링크 복사)" className="w-11 h-11 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: '#FEE500' }}>
-                      <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
-                        <path fill="rgba(0,0,0,0.85)" d="M12 3C6.48 3 2 6.54 2 10.9c0 2.8 1.86 5.26 4.66 6.66l-.95 3.52c-.08.31.27.56.54.38l4.19-2.79c.51.05 1.03.08 1.56.08 5.52 0 10-3.54 10-7.85C22 6.54 17.52 3 12 3z" />
-                      </svg>
-                    </button>
-                    <button type="button" onClick={shareToFacebook} aria-label="페이스북 공유" className="w-11 h-11 rounded-full bg-[#1877F2] flex items-center justify-center shrink-0">
-                      <IconBrandFacebook size={20} className="text-white" />
-                    </button>
-                    <button type="button" onClick={shareToX} aria-label="X 공유" className="w-11 h-11 rounded-full bg-black flex items-center justify-center shrink-0">
-                      <IconBrandX size={18} className="text-white" />
-                    </button>
-                    <button type="button" onClick={() => void copyShareLink()} aria-label="링크 복사" className="w-11 h-11 rounded-full bg-quiet flex items-center justify-center shrink-0">
-                      <IconLink size={18} className="text-ink" />
-                    </button>
-                  </div>
-                </>
-              )}
-            </div>
+            <button onClick={() => void share.openSheet()} aria-label="공유" className="focus:outline-none focus-visible:shadow-ring flex items-center">
+              <IconSend2 size={21} />
+            </button>
             <button onClick={toggleWish} aria-label={wished ? '찜 해제' : '찜하기'} className="focus:outline-none focus-visible:shadow-ring">
               <IconHeart filled={wished} className={`w-[22px] h-[22px] ${wished ? 'text-accent' : ''}`} />
             </button>
@@ -514,6 +471,9 @@ export default function AppProductDetail() {
             </span>
           )}
         </div>
+
+        <ProductShareBar ctl={share} />
+        <ProductShareSheet ctl={share} />
 
         {view.soldOut && (
           <p className="mt-2 inline-block text-[12px] font-bold tracking-[0.04em] text-paper bg-ink px-2.5 py-1">

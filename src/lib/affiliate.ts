@@ -88,6 +88,45 @@ export function getAffiliateCode(): string | null {
   } catch { return null }
 }
 
+// 파트너 링크로 들어와 가입한 사람을 그 파트너에 연결해 기록한다(2026-10-14, supabase/affiliate_signup_attribution.sql).
+// 로그인 직후 한 번 호출 — 7일 귀속 코드가 있을 때만, 서버가 "갓 가입한 계정"인지 확인하고 기록한다.
+// 측정 전용이다: 가입·활동에 대한 보상은 없고, 실패해도 가입·로그인에는 영향을 주지 않는다.
+export async function attributeSignupToPartner(): Promise<void> {
+  try {
+    const code = getAffiliateCode()
+    if (!code) return
+    const { data: { session } } = await supabase.auth.getSession()
+    const uid = session?.user?.id
+    if (!uid) return
+    const flag = `bg_aff_signup_v1:${uid}`
+    if (sessionStorage.getItem(flag)) return
+    sessionStorage.setItem(flag, '1')
+    await supabase.rpc('attribute_affiliate_signup', { p_code: code })
+  } catch { /* 측정 실패는 조용히 넘어간다 */ }
+}
+
+export interface AffiliateSignupStat {
+  affiliate_id: string; code: string; name: string
+  signups: number; signups_30d: number
+  mature_7d: number; wrote_7d: number; returned_7d: number
+  mature_30d: number; wrote_30d: number; returned_30d: number
+}
+
+// 관리자 전용 — 파트너별 가입자 수와 가입 뒤 행동(함수 안에서 관리자 확인)
+export async function adminAffiliateSignupStats(): Promise<{ rows: AffiliateSignupStat[]; error: string }> {
+  const { data, error } = await supabase.rpc('admin_affiliate_signup_stats')
+  if (error) return { rows: [], error: error.message }
+  return {
+    rows: ((data ?? []) as Record<string, unknown>[]).map((r) => ({
+      affiliate_id: String(r.affiliate_id), code: String(r.code), name: String(r.name ?? ''),
+      signups: Number(r.signups ?? 0), signups_30d: Number(r.signups_30d ?? 0),
+      mature_7d: Number(r.mature_7d ?? 0), wrote_7d: Number(r.wrote_7d ?? 0), returned_7d: Number(r.returned_7d ?? 0),
+      mature_30d: Number(r.mature_30d ?? 0), wrote_30d: Number(r.wrote_30d ?? 0), returned_30d: Number(r.returned_30d ?? 0),
+    })),
+    error: '',
+  }
+}
+
 export async function getMyAffiliate(): Promise<Affiliate | null> {
   const { data: { session } } = await supabase.auth.getSession()
   const userId = session?.user?.id

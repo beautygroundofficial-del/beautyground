@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import AppFrame from '../../components/layout/AppFrame'
-import BackHeader from '../../components/layout/BackHeader'
+import { useNavigate, useSearchParams } from 'react-router-dom'
+import PartnersEntryLayout from '../../components/partners/PartnersEntryLayout'
 import { supabase } from '../../lib/supabase'
 import { startAppleSignIn } from '../../lib/appleAuth'
 import AppleSignInButton from '../../components/auth/AppleSignInButton'
@@ -13,10 +12,16 @@ const field =
 // "파트너스 회원가입"임을 화면에 명시한 전용 화면(2026-09-26 대표님: "회원가입은 동일하나 파트너스 회원가입을 명시해야 해").
 // 카카오는 AppKakaoGate, 네이버는 AppNaverCallback 을 그대로 거치되(신규면 동의 화면 → from),
 // 끝나면 from=/app/partners/info(개인정보·계좌 등록)으로 돌아온다.
-const AFTER = '/app/partners/info'
+// 끝나면 입구(/app/partners)로 돌아가 상태를 보고 갈린다: 이미 파트너스 → 홈, 아직 → 정보 등록.
+const AFTER = '/app/partners'
+type Mode = 'new' | 'member' | 'partner'
 
 export default function AppPartnersSignup() {
   const navigate = useNavigate()
+  const [params] = useSearchParams()
+  const raw = params.get('mode')
+  const mode: Mode = raw === 'member' || raw === 'partner' ? raw : 'new'
+  const isNew = mode === 'new'
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [submitting, setSubmitting] = useState(false)
@@ -72,55 +77,67 @@ export default function AppPartnersSignup() {
     setSubmitting(true)
     const { error: e2 } = await supabase.auth.signInWithPassword({ email: email.trim(), password })
     setSubmitting(false)
-    if (e2) { setError('이메일 또는 비밀번호가 맞지 않아요. 처음이시면 카카오·네이버로 가입해 주세요.'); return }
+    if (e2) { setError('이메일 또는 비밀번호가 맞지 않아요. 처음이시면 [처음이에요]에서 카카오·네이버로 가입해 주세요.'); return }
     navigate(AFTER, { replace: true })
   }
 
+  const verb = isNew ? '가입' : '로그인'
+  const title = isNew ? '처음이에요 · 회원가입' : mode === 'member' ? '쇼핑몰 회원 로그인' : '파트너스 로그인'
+  const lead = isNew
+    ? '뷰티그라운드 계정을 새로 만들어요. 가입 뒤 파트너스 정보(계좌)를 등록하면 시작할 수 있어요.'
+    : mode === 'member'
+      ? '쇼핑에 쓰던 계정으로 로그인하세요. 새로 가입하지 않고 파트너스 정보만 등록하면 돼요.'
+      : '파트너스로 가입한 계정으로 로그인하세요. 내 링크와 정산을 바로 볼 수 있어요.'
+
   return (
-    <AppFrame>
-      <BackHeader title="파트너스 회원가입" onBack={() => navigate('/app/partners')} />
-      <section className="px-5 pt-6 pb-10">
-        <h2 className="text-[18px] font-bold text-ink leading-snug">파트너스 회원가입</h2>
-        <p className="text-[13px] text-ink-soft mt-2 leading-relaxed">
-          뷰티그라운드 앱 계정과 같은 방법으로 가입해요. 쇼핑 계정이 이미 있다면 그 계정으로 로그인하면 파트너스로 이어져요.
+    <PartnersEntryLayout backTo="/app/partners">
+      <h2>{title}</h2>
+      <p className="pe-sub">{lead}</p>
+
+      <div className="space-y-2.5" style={{ marginTop: 18 }}>
+        <button type="button" onClick={handleKakao}
+          className="w-full flex items-center justify-center gap-2 rounded-control font-bold text-[16px] py-4 focus:outline-none focus-visible:shadow-ring"
+          style={{ backgroundColor: '#FEE500', color: 'rgba(0,0,0,0.85)' }}>
+          <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path fill="rgba(0,0,0,0.85)" d="M12 3C6.48 3 2 6.54 2 10.9c0 2.8 1.86 5.26 4.66 6.66l-.95 3.52c-.08.31.27.56.54.38l4.19-2.79c.51.05 1.03.08 1.56.08 5.52 0 10-3.54 10-7.85C22 6.54 17.52 3 12 3z" /></svg>
+          카카오로 {verb}
+        </button>
+        <button type="button" onClick={handleNaver}
+          className="w-full flex items-center justify-center gap-2 rounded-control font-bold text-[16px] py-4 text-paper focus:outline-none focus-visible:shadow-ring"
+          style={{ backgroundColor: '#03C75A' }}>
+          <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path fill="#fff" d="M13.6 12.5 8.9 5.5H4.9v13h4.5v-7l4.7 7h4v-13h-4.5v7Z" /></svg>
+          네이버로 {verb}
+        </button>
+        <AppleSignInButton onClick={() => void handleApple()} label={`Apple로 ${verb}`} />
+      </div>
+      {error && isNew && <p className="text-[13px] text-signal-red" role="alert" style={{ marginTop: 10 }}>{error}</p>}
+
+      {isNew ? (
+        <p className="pe-sub" style={{ marginTop: 14 }}>
+          이메일 계정은 쇼핑몰에 이미 있는 분만 로그인할 수 있어요.{' '}
+          <button type="button" onClick={() => navigate('/app/partners/signup?mode=member')} className="underline text-ink-soft">이미 회원이세요?</button>
         </p>
+      ) : (
+        <>
+          <div className="flex items-center gap-3 my-5">
+            <div className="flex-1 h-px bg-rule" /><span className="text-[12px] text-ink-faint">또는 이메일 계정으로</span><div className="flex-1 h-px bg-rule" />
+          </div>
+          <form onSubmit={handleEmail} noValidate className="space-y-3">
+            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="이메일" className={field} autoComplete="email" />
+            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="비밀번호" className={field} autoComplete="current-password" />
+            {error && <p className="text-[13px] text-signal-red" role="alert">{error}</p>}
+            <button type="submit" disabled={submitting}
+              className="w-full rounded-control bg-ink text-paper font-bold text-[15px] py-3.5 disabled:opacity-60 focus:outline-none focus-visible:shadow-ring">
+              {submitting ? '확인 중…' : '이메일로 로그인'}
+            </button>
+          </form>
+        </>
+      )}
 
-        <p className="text-[12px] text-ink-faint text-center mt-6 mb-2">가장 많이 쓰는 방법이에요</p>
-        <div className="space-y-2.5">
-          <button type="button" onClick={handleKakao}
-            className="w-full flex items-center justify-center gap-2 rounded-control font-bold text-[16px] py-4 focus:outline-none focus-visible:shadow-ring"
-            style={{ backgroundColor: '#FEE500', color: 'rgba(0,0,0,0.85)' }}>
-            <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path fill="rgba(0,0,0,0.85)" d="M12 3C6.48 3 2 6.54 2 10.9c0 2.8 1.86 5.26 4.66 6.66l-.95 3.52c-.08.31.27.56.54.38l4.19-2.79c.51.05 1.03.08 1.56.08 5.52 0 10-3.54 10-7.85C22 6.54 17.52 3 12 3z" /></svg>
-            카카오로 파트너스 가입
-          </button>
-          <button type="button" onClick={handleNaver}
-            className="w-full flex items-center justify-center gap-2 rounded-control font-bold text-[16px] py-4 text-paper focus:outline-none focus-visible:shadow-ring"
-            style={{ backgroundColor: '#03C75A' }}>
-            <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path fill="#fff" d="M13.6 12.5 8.9 5.5H4.9v13h4.5v-7l4.7 7h4v-13h-4.5v7Z" /></svg>
-            네이버로 파트너스 가입
-          </button>
-          <AppleSignInButton onClick={() => void handleApple()} label="Apple로 파트너스 가입" />
-        </div>
-        <p className="text-center text-[12.5px] text-ink-faint mt-3">처음이면 가입, 이미 하셨다면 로그인됩니다</p>
-
-        <div className="flex items-center gap-3 my-5">
-          <div className="flex-1 h-px bg-rule" /><span className="text-[12px] text-ink-faint">또는 이메일 계정으로</span><div className="flex-1 h-px bg-rule" />
-        </div>
-
-        <form onSubmit={handleEmail} noValidate className="space-y-3">
-          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="이메일" className={field} autoComplete="email" />
-          <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="비밀번호" className={field} autoComplete="current-password" />
-          {error && <p className="text-[13px] text-signal-red" role="alert">{error}</p>}
-          <button type="submit" disabled={submitting}
-            className="w-full rounded-control bg-ink text-paper font-bold text-[15px] py-3.5 disabled:opacity-60 focus:outline-none focus-visible:shadow-ring">
-            {submitting ? '확인 중…' : '이메일로 파트너스 가입'}
-          </button>
-        </form>
-
-        <p className="text-[11.5px] text-ink-faint mt-6 leading-relaxed">
-          가입을 진행하면 파트너스 안내(링크 공유 방식, 다른 파트너 모집·하위 수당 없음, 결제 완료 후 취소·환불되지 않은 주문 기준 월 정산·익월 10일 지급, 본인 구매 제외, 세법에 따른 공제 가능)에 동의한 것으로 봐요. 다음 화면에서 개인정보와 정산 계좌를 등록해요.
-        </p>
-      </section>
-    </AppFrame>
+      <p className="pe-sub" style={{ marginTop: 18, fontSize: 11.5 }}>
+        {isNew
+          ? '가입을 진행하면 파트너스 안내(링크 공유 방식, 다른 파트너 모집·하위 수당 없음, 결제 완료 후 취소·환불되지 않은 주문 기준 월 정산·익월 10일 지급, 본인 구매 제외, 세법에 따른 공제 가능)에 동의한 것으로 봐요. 다음 화면에서 개인정보와 정산 계좌를 등록해요.'
+          : '로그인 뒤 파트너스 정보가 없으면 정보 등록 화면으로, 이미 파트너스면 내 파트너스 홈으로 이동해요.'}
+      </p>
+    </PartnersEntryLayout>
   )
 }
