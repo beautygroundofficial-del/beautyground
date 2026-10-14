@@ -4,7 +4,7 @@ import BackHeader from '../components/layout/BackHeader'
 import AppFrame from '../components/layout/AppFrame'
 import { supabase } from '../lib/supabase'
 import { getMyPointsBalance } from '../lib/rewards'
-import { getStepStatus, getStepDiagnostics, requestStepPermission, syncSteps, type StepStatus, type StepDiagnostics } from '../lib/steps'
+import { getStepStatus, getStepDiagnostics, getLastStepStatusError, requestStepPermission, syncSteps, type StepStatus, type StepDiagnostics } from '../lib/steps'
 import {
   getMyMissions, claimMission, missionProgressRatio, nextMilestone, remainingPoints,
   type MyMission,
@@ -37,6 +37,7 @@ export default function AppMissions() {
   const [toast, setToast] = useState('')
   const [stepStatus, setStepStatus] = useState<StepStatus>('unsupported')
   const [stepDiag, setStepDiag] = useState<StepDiagnostics | null>(null)
+  const [stepError, setStepError] = useState('')
 
   const showToast = (msg: string) => {
     setToast(msg)
@@ -54,7 +55,14 @@ export default function AppMissions() {
   }, [])
 
   useEffect(() => { void load() }, [load])
-  useEffect(() => { void getStepStatus().then(setStepStatus); void getStepDiagnostics().then(setStepDiag) }, [])
+  // 걸음수 상태는 화면을 열 때뿐 아니라 앱으로 돌아올 때(설정에서 권한을 바꾸고 온 경우)도 다시 확인한다
+  useEffect(() => {
+    const check = () => { void getStepStatus().then((st) => { setStepStatus(st); setStepError(getLastStepStatusError()) }); void getStepDiagnostics().then(setStepDiag) }
+    check()
+    const onVisible = () => { if (document.visibilityState === 'visible') check() }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => document.removeEventListener('visibilitychange', onVisible)
+  }, [])
 
   // 걸음수 권한은 여기서 버튼을 눌렀을 때만 요청한다(앱을 열자마자 권한 창을 띄우지 않는다)
   const handleConnectSteps = async () => {
@@ -148,7 +156,7 @@ export default function AppMissions() {
           걸음 연동 점검 · {stepDiag.platform} · 플러그인 {stepDiag.plugin ? '있음' : '없음'} · 불러오기 {stepDiag.imported ? '성공' : '실패'}
           {stepDiag.available !== undefined && ` · 건강앱 ${stepDiag.available ? '사용가능' : '사용불가'}${stepDiag.reason ? `(${stepDiag.reason})` : ''}`}
           {stepDiag.readAuthorized !== undefined && ` · 걸음 권한 ${stepDiag.readAuthorized ? '허용' : '없음'}`}
-          {stepDiag.error ? ` · 오류: ${stepDiag.error}` : ''} · 상태 {stepStatus}
+          {stepDiag.error ? ` · 오류: ${stepDiag.error}` : ''} · 상태 {stepStatus}{stepError ? ` (${stepError})` : ''}
         </p>
       )}
 

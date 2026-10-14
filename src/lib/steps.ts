@@ -24,33 +24,47 @@ export interface StepSyncResult {
   message: string
 }
 
-let healthCache: HealthPlugin | null | undefined
+let healthCache: HealthPlugin | null = null
+let lastStatusError = ''
 
+const errMsg = (e: unknown) => (e instanceof Error ? e.message : String(e))
+
+// 마지막으로 상태 판단이 실패한 이유(점검 문구용). 비어 있으면 실패 없음.
+export function getLastStepStatusError(): string { return lastStatusError }
+
+// 플러그인을 불러온다. 성공한 결과만 기억한다 — 앱을 막 열었을 때 아직 준비가 안 돼서 "없음"으로 나온 결과를
+// 계속 들고 있으면 이후 항상 unsupported로 보이므로(2026-10-14 S25 실기기에서 확인), 실패는 기억하지 않고 매번 다시 시도한다.
 async function getHealth(): Promise<HealthPlugin | null> {
-  if (healthCache !== undefined) return healthCache
+  if (healthCache) return healthCache
   try {
-    if (!Capacitor.isNativePlatform() || !Capacitor.isPluginAvailable('Health')) {
-      healthCache = null
-      return null
-    }
+    if (!Capacitor.isNativePlatform() || !Capacitor.isPluginAvailable('Health')) return null
     const mod = await import('@capgo/capacitor-health')
     healthCache = mod.Health
-  } catch {
-    healthCache = null
+    return healthCache
+  } catch (e) {
+    lastStatusError = 'load: ' + errMsg(e)
+    return null
   }
-  return healthCache ?? null
 }
 
 export async function getStepStatus(): Promise<StepStatus> {
+  lastStatusError = ''
   const health = await getHealth()
   if (!health) return 'unsupported'
   try {
     const av = await health.isAvailable()
     if (!av.available) return 'unavailable'
+  } catch (e) {
+    lastStatusError = 'isAvailable: ' + errMsg(e)
+    return 'unsupported'
+  }
+  try {
     const auth = await health.checkAuthorization({ read: ['steps'] })
     return auth.readAuthorized.includes('steps') ? 'ready' : 'need_permission'
-  } catch {
-    return 'unsupported'
+  } catch (e) {
+    // 권한 확인만 실패한 경우 — 플러그인과 Health Connect는 살아 있으므로 연결 버튼을 보여줘서 사용자가 직접 권한을 요청할 수 있게 한다.
+    lastStatusError = 'checkAuthorization: ' + errMsg(e)
+    return 'need_permission'
   }
 }
 
