@@ -153,7 +153,7 @@ export default function AppMissions() {
 
       {stepDiag?.native && missions.some((m) => m.metric === 'steps') && (
         <p className="mx-5 mt-3 text-[11px] text-ink-faint break-all">
-          걸음 연동 점검 · {stepDiag.platform} · 플러그인 {stepDiag.plugin ? '있음' : '없음'} · 불러오기 {stepDiag.imported ? '성공' : '실패'}
+          걸음 연동 점검(r2) · {stepDiag.platform} · 플러그인 {stepDiag.plugin ? '있음' : '없음'} · 불러오기 {stepDiag.imported ? '성공' : '실패'}
           {stepDiag.available !== undefined && ` · 건강앱 ${stepDiag.available ? '사용가능' : '사용불가'}${stepDiag.reason ? `(${stepDiag.reason})` : ''}`}
           {stepDiag.readAuthorized !== undefined && ` · 걸음 권한 ${stepDiag.readAuthorized ? '허용' : '없음'}`}
           {stepDiag.error ? ` · 오류: ${stepDiag.error}` : ''} · 상태 {stepStatus}{stepError ? ` (${stepError})` : ''}
