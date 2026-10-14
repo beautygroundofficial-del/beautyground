@@ -19,7 +19,7 @@ import ReviewSummary from '../components/product/ReviewSummary'
 import ProductQnA from '../components/product/ProductQnA'
 import { useProductQuestions } from '../hooks/useProductQuestions'
 import { IconHeart, IconCart, IconMinus, IconPlus } from '../components/common/Icon'
-import { IconSend2 } from '@tabler/icons-react'
+import { IconSend2, IconUpload } from '@tabler/icons-react'
 import { useProductShare, ProductShareBar, ProductShareSheet } from '../components/product/ProductShare'
 import ImagePlaceholder from '../components/common/ImagePlaceholder'
 import Thumb from '../components/common/Thumb'
@@ -262,6 +262,8 @@ export default function AppProductDetail() {
     : 0
   const maxQty = view.stock != null ? Math.max(1, view.stock) : 99
   const total = view.price * quantity
+  // 구매 시 적립 예정액(내 등급 적립률 × 합계) — 하단 바 적립 말풍선용
+  const rewardAmount = Math.round((total * rewardRate) / 100)
   const isDbProduct = !!id && !/^\d+$/.test(id)
 
   // 비로그인이면 로그인 페이지로 보내고, 로그인 후 원래 페이지로 복귀
@@ -603,38 +605,61 @@ export default function AppProductDetail() {
       {/* 맨 위로 버튼 (긴 상세페이지 스크롤 시 노출, 하단 구매 바 위에 배치) */}
       <ScrollToTopButton />
 
-      {/* 하단 sticky 구매 바 (하단 네비 바로 위에 쌓임, 모든 화면 폭에서 동일) */}
+      {/* 하단 sticky 구매 바 (하단 네비 바로 위에 쌓임, 모든 화면 폭에서 동일)
+          2026-10-15 개편: 찜·공유(아이콘+글자) · 장바구니 · 큰 노란 구매하기(합계 표시) + 적립 말풍선.
+          공유는 상단 [공유하기]·헤더 아이콘과 같은 공유창을 연다. 기존 동작(옵션 선택·품절 비활성·장바구니/바로구매)은 그대로. */}
       <div
         className="fixed left-0 right-0 z-40"
         style={{ bottom: 'calc(3.5rem + env(safe-area-inset-bottom))' }}
       >
-        <div className="max-w-[480px] mx-auto bg-paper border-t border-rule px-4 py-3">
-          <div className="flex items-center gap-2.5">
-            <div className="shrink-0">
-              <p className="text-[10px] text-ink-faint leading-none mb-0.5">수량 {quantity}</p>
-              <p className="text-[15px] font-bold tabular-nums text-ink leading-none">{total.toLocaleString('ko-KR')}원</p>
-            </div>
+        <div className="max-w-[480px] mx-auto bg-paper border-t border-rule px-4 pt-3 pb-2.5 relative">
+          {rewardAmount > 0 && !view.soldOut && (
+            <span
+              className="absolute left-3 -top-3.5 inline-flex items-center gap-1 rounded-pill bg-ink text-paper text-[12px] font-bold pl-1.5 pr-2.5 py-1 shadow-[0_2px_8px_rgba(0,0,0,0.25)]"
+              aria-label={`구매 시 ${rewardAmount.toLocaleString('ko-KR')}원 적립`}
+            >
+              <span className="w-4 h-4 rounded-full bg-signal-yellow text-ink text-[10px] leading-4 text-center font-extrabold" aria-hidden="true">P</span>
+              <span className="tabular-nums text-signal-yellow">{rewardAmount.toLocaleString('ko-KR')}원</span> 적립
+              <span className="absolute left-5 -bottom-1 w-2 h-2 rotate-45 bg-ink" aria-hidden="true" />
+            </span>
+          )}
+          <div className="flex items-center gap-1.5">
             <button
               onClick={toggleWish}
               aria-label={wished ? '찜 해제' : '찜하기'}
-              className="shrink-0 rounded-pill border border-rule text-ink px-3.5 py-3 focus:outline-none focus-visible:shadow-ring"
+              aria-pressed={wished}
+              className="shrink-0 w-11 flex flex-col items-center gap-0.5 text-ink focus:outline-none focus-visible:shadow-ring"
             >
-              <IconHeart filled={wished} className={`w-5 h-5 ${wished ? 'text-accent' : ''}`} />
+              <IconHeart filled={wished} className={`w-[22px] h-[22px] ${wished ? 'text-accent' : ''}`} />
+              <span className="text-[10.5px] leading-none text-ink-soft">찜</span>
+            </button>
+            <button
+              onClick={() => void share.openSheet()}
+              aria-label="공유하기"
+              className="shrink-0 w-11 flex flex-col items-center gap-0.5 text-ink focus:outline-none focus-visible:shadow-ring"
+            >
+              <IconUpload size={22} stroke={1.7} aria-hidden="true" />
+              <span className="text-[10.5px] leading-none text-ink-soft">공유</span>
             </button>
             <button
               onClick={onAddToCart}
               disabled={view.soldOut || (options.length > 0 && !selectedOption)}
-              className="shrink-0 rounded-pill border border-rule text-ink font-bold text-[13px] px-4 py-3 disabled:opacity-40 focus:outline-none focus-visible:shadow-ring"
+              className="shrink-0 w-11 flex flex-col items-center gap-0.5 text-ink disabled:opacity-40 focus:outline-none focus-visible:shadow-ring"
               aria-label="장바구니 담기"
             >
-              <IconCart className="w-5 h-5" />
+              <IconCart className="w-[22px] h-[22px]" />
+              <span className="text-[10.5px] leading-none text-ink-soft">담기</span>
             </button>
             <button
               onClick={onBuy}
               disabled={view.soldOut || (options.length > 0 && !selectedOption)}
-              className="flex-1 rounded-pill bg-accent text-paper font-bold text-[14px] py-3 disabled:opacity-40 focus:outline-none focus-visible:shadow-ring"
+              className="flex-1 min-h-12 rounded-control bg-signal-yellow text-ink font-extrabold text-[16px] px-3 py-3 ml-1 disabled:opacity-40 focus:outline-none focus-visible:shadow-ring"
             >
-              {view.soldOut ? '일시 품절' : options.length > 0 && !selectedOption ? '옵션을 선택해 주세요' : '구매하기'}
+              {view.soldOut
+                ? '일시 품절'
+                : options.length > 0 && !selectedOption
+                  ? '옵션을 선택해 주세요'
+                  : <>구매하기<span className="ml-1.5 text-[13px] font-bold tabular-nums opacity-80">{total.toLocaleString('ko-KR')}원</span></>}
             </button>
           </div>
         </div>
